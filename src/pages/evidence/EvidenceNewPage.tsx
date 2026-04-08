@@ -87,7 +87,9 @@ export default function EvidenceNewPage() {
       const activity = activities.find(a => a.id === activityId)
       const currentApproverId = submitStatus === 'submitted' ? (activity?.controller_id ?? null) : null
 
-      const { data: rec, error: recErr } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+      const { data: rec, error: recErr } = await db
         .from('evidence_records')
         .insert({
           activity_id:         activityId,
@@ -104,7 +106,7 @@ export default function EvidenceNewPage() {
         .single()
 
       if (recErr) throw recErr
-      navigate(`/evidence/${rec.id}`)
+      if (rec) navigate(`/evidence/${rec.id}`)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : '저장 중 오류가 발생했습니다.')
     } finally {

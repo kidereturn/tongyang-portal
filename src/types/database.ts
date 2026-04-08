@@ -1,6 +1,6 @@
-// Supabase DB 타입 정의 — Supabase 연결 후 자동 생성으로 교체 가능
 export type UserRole = 'admin' | 'controller' | 'owner'
 export type ApprovalStatus = 'draft' | 'submitted' | 'approved' | 'rejected'
+export type StepStatus = 'pending' | 'approved' | 'rejected'
 
 export interface Database {
   public: {
@@ -48,8 +48,71 @@ export interface Database {
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['evidence_records']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Database['public']['Tables']['evidence_records']['Insert']>
+        Insert: {
+          id?: string
+          activity_id: string
+          owner_id: string
+          status?: ApprovalStatus
+          notes?: string | null
+          file_path?: string | null
+          file_name?: string | null
+          current_approver_id?: string | null
+          submitted_at?: string | null
+          decided_at?: string | null
+        }
+        Update: {
+          status?: ApprovalStatus
+          notes?: string | null
+          file_path?: string | null
+          file_name?: string | null
+          current_approver_id?: string | null
+          submitted_at?: string | null
+          decided_at?: string | null
+        }
+      }
+      approval_steps: {
+        Row: {
+          id: string
+          record_id: string
+          step_order: number
+          approver_id: string
+          status: StepStatus
+          comment: string | null
+          decided_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          record_id: string
+          step_order: number
+          approver_id: string
+          status?: StepStatus
+          comment?: string | null
+          decided_at?: string | null
+        }
+        Update: {
+          status?: StepStatus
+          comment?: string | null
+          decided_at?: string | null
+        }
+      }
+      approval_history: {
+        Row: {
+          id: string
+          record_id: string
+          approver_id: string
+          action: string
+          comment: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          record_id: string
+          approver_id: string
+          action: string
+          comment?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['approval_history']['Insert']>
       }
     }
     Views: Record<string, never>
@@ -57,6 +120,7 @@ export interface Database {
     Enums: {
       user_role: UserRole
       approval_status: ApprovalStatus
+      step_status: StepStatus
     }
   }
 }
