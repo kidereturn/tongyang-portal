@@ -12,6 +12,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true,
+    detectSessionInUrl: false,   // URL 기반 세션 감지 비활성화
+    storage: window.localStorage, // 쿠키 충돌 방지 — localStorage만 사용
   },
 })

@@ -30,9 +30,18 @@ export function useAuth() {
 
     async function init() {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: { session }, error } = await supabase.auth.getSession()
         if (!mounted) return
         clearTimeout(timeout)
+
+        if (error) {
+          // 세션 오류 시 자동 초기화 (쿠키/localStorage 충돌 방지)
+          console.warn('[useAuth] 세션 오류, 초기화합니다:', error.message)
+          await supabase.auth.signOut()
+          setState(prev => ({ ...prev, loading: false }))
+          return
+        }
+
         setState(prev => ({ ...prev, session, user: session?.user ?? null }))
         if (session?.user) {
           await fetchProfile(session.user.id, mounted)
@@ -43,6 +52,8 @@ export function useAuth() {
         console.error('[useAuth] 초기화 오류:', e)
         if (mounted) {
           clearTimeout(timeout)
+          // 심각한 오류 시 세션 초기화
+          try { await supabase.auth.signOut() } catch { /* ignore */ }
           setState(prev => ({ ...prev, loading: false }))
         }
       }
