@@ -23,53 +23,25 @@ export function useAuth() {
   useEffect(() => {
     let mounted = true
 
-    // 10초 안에 응답 없으면 강제로 loading 해제 (로그인 페이지로)
-    const timeout = setTimeout(() => {
-      if (mounted) setState(prev => ({ ...prev, loading: false }))
-    }, 10000)
-
-    async function init() {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession()
+    // getSession() 별도 호출 없이 onAuthStateChange 하나만 사용
+    // → localStorage 잠금 충돌 방지
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
         if (!mounted) return
-        clearTimeout(timeout)
 
-        if (error) {
-          // 세션 오류 시 자동 초기화 (쿠키/localStorage 충돌 방지)
-          console.warn('[useAuth] 세션 오류, 초기화합니다:', error.message)
-          await supabase.auth.signOut()
-          setState(prev => ({ ...prev, loading: false }))
-          return
-        }
-
-        setState(prev => ({ ...prev, session, user: session?.user ?? null }))
         if (session?.user) {
+          setState(prev => ({ ...prev, session, user: session.user }))
           await fetchProfile(session.user.id, mounted)
         } else {
-          setState(prev => ({ ...prev, loading: false }))
-        }
-      } catch (e) {
-        console.error('[useAuth] 초기화 오류:', e)
-        if (mounted) {
-          clearTimeout(timeout)
-          // 심각한 오류 시 세션 초기화
-          try { await supabase.auth.signOut() } catch { /* ignore */ }
-          setState(prev => ({ ...prev, loading: false }))
+          setState({ user: null, session: null, profile: null, loading: false })
         }
       }
-    }
+    )
 
-    init()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!mounted) return
-      setState(prev => ({ ...prev, session, user: session?.user ?? null }))
-      if (session?.user) {
-        await fetchProfile(session.user.id, mounted)
-      } else {
-        setState(prev => ({ ...prev, profile: null, loading: false }))
-      }
-    })
+    // 5초 내 응답 없으면 강제 해제 (최후 안전망)
+    const timeout = setTimeout(() => {
+      if (mounted) setState(prev => ({ ...prev, loading: false }))
+    }, 5000)
 
     return () => {
       mounted = false
@@ -78,16 +50,18 @@ export function useAuth() {
     }
   }, [])
 
-  async function fetchProfile(userId: string, mounted = true) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle()   // 없어도 에러 안 냄
-
-    if (!mounted) return
-    if (error) console.error('[useAuth] 프로필 조회 오류:', error.message)
-    setState(prev => ({ ...prev, profile: data ?? null, loading: false }))
+  async function fetchProfile(userId: string, mounted: boolean) {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle()
+      if (!mounted) return
+      setState(prev => ({ ...prev, profile: data ?? null, loading: false }))
+    } catch {
+      if (mounted) setState(prev => ({ ...prev, loading: false }))
+    }
   }
 
   async function signOut() {
