@@ -1,31 +1,33 @@
-import { Bell, Search } from 'lucide-react'
+import { Bell, Menu } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 
-export default function Header() {
+interface HeaderProps {
+  onMenuToggle: () => void
+}
+
+const ROLE_KO: Record<string, string> = {
+  admin: '관리자', controller: '통제책임자', owner: '담당자',
+}
+
+export default function Header({ onMenuToggle }: HeaderProps) {
   const { profile } = useAuth()
 
   return (
-    <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center px-6 gap-4 shrink-0">
-      {/* 검색 */}
-      <div className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2 flex-1 max-w-xs">
-        <Search size={16} className="text-slate-400 shrink-0" />
-        <input
-          type="text"
-          placeholder="통제번호, 이름, 부서 검색..."
-          className="bg-transparent text-sm text-slate-300 placeholder-slate-500 outline-none w-full"
-        />
-      </div>
+    <header className="h-14 md:h-16 bg-slate-900 border-b border-slate-800 flex items-center px-4 md:px-6 gap-3 shrink-0">
+      {/* 모바일 햄버거 */}
+      <button
+        onClick={onMenuToggle}
+        className="lg:hidden p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
+      >
+        <Menu size={20} />
+      </button>
+
+      {/* 로고 텍스트 (모바일만) */}
+      <span className="lg:hidden text-white font-bold text-sm">동양 포털</span>
 
       <div className="flex-1" />
 
-      {/* 알림 */}
-      <button className="relative w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
-        <Bell size={18} />
-        {/* 뱃지 — 나중에 실제 알림 수로 교체 */}
-        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-      </button>
-
-      {/* 현재 날짜 */}
+      {/* 날짜 (중간 이상) */}
       <div className="text-xs text-slate-500 hidden md:block">
         {new Date().toLocaleDateString('ko-KR', {
           year: 'numeric', month: 'long', day: 'numeric', weekday: 'short',
@@ -34,10 +36,16 @@ export default function Header() {
 
       {/* 역할 뱃지 */}
       {profile?.role && (
-        <span className="text-xs px-2 py-1 rounded-full font-medium bg-brand-900/50 text-brand-300 border border-brand-800">
-          {profile.role === 'admin' ? '관리자' : profile.role === 'controller' ? '통제책임자' : '담당자'}
+        <span className="text-xs px-2 py-1 rounded-full font-medium bg-brand-900/50 text-brand-300 border border-brand-800 hidden sm:inline">
+          {ROLE_KO[profile.role] ?? profile.role}
         </span>
       )}
+
+      {/* 알림 */}
+      <button className="relative w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+        <Bell size={18} />
+        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+      </button>
     </header>
   )
 }
