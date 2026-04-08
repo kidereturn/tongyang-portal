@@ -7,6 +7,7 @@ import DashboardPage from './pages/dashboard/DashboardPage'
 import EvidenceListPage from './pages/evidence/EvidenceListPage'
 import EvidenceNewPage from './pages/evidence/EvidenceNewPage'
 import EvidenceDetailPage from './pages/evidence/EvidenceDetailPage'
+import EvidenceWorkPage from './pages/evidence/EvidenceWorkPage'
 import InboxPage from './pages/inbox/InboxPage'
 import AdminPage from './pages/admin/AdminPage'
 import Layout from './components/layout/Layout'
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="dashboard"  element={<DashboardPage />} />
           <Route path="evidence" element={<EvidenceListPage />} />
           <Route path="evidence/new" element={<EvidenceNewPage />} />
+          <Route path="evidence/work/:id" element={<EvidenceWorkPage />} />
           <Route path="evidence/:id" element={<EvidenceDetailPage />} />
           <Route path="inbox"      element={<InboxPage />} />
           <Route path="admin/*"    element={<AdminRoute><AdminPage /></AdminRoute>} />
