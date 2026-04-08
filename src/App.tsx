@@ -4,7 +4,9 @@ import { useAuth } from './hooks/useAuth'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
-import EvidencePage from './pages/evidence/EvidencePage'
+import EvidenceListPage from './pages/evidence/EvidenceListPage'
+import EvidenceNewPage from './pages/evidence/EvidenceNewPage'
+import EvidenceDetailPage from './pages/evidence/EvidenceDetailPage'
 import InboxPage from './pages/inbox/InboxPage'
 import AdminPage from './pages/admin/AdminPage'
 import Layout from './components/layout/Layout'
@@ -51,7 +53,9 @@ export default function App() {
         <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard"  element={<DashboardPage />} />
-          <Route path="evidence/*" element={<EvidencePage />} />
+          <Route path="evidence" element={<EvidenceListPage />} />
+          <Route path="evidence/new" element={<EvidenceNewPage />} />
+          <Route path="evidence/:id" element={<EvidenceDetailPage />} />
           <Route path="inbox"      element={<InboxPage />} />
           <Route path="admin/*"    element={<AdminRoute><AdminPage /></AdminRoute>} />
         </Route>
