@@ -26,7 +26,7 @@ export function useAuth() {
     // getSession() 별도 호출 없이 onAuthStateChange 하나만 사용
     // → localStorage 잠금 충돌 방지
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         if (!mounted) return
 
         if (session?.user) {
