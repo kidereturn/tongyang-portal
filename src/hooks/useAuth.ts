@@ -23,14 +23,28 @@ export function useAuth() {
   useEffect(() => {
     let mounted = true
 
+    // 10초 안에 응답 없으면 강제로 loading 해제 (로그인 페이지로)
+    const timeout = setTimeout(() => {
+      if (mounted) setState(prev => ({ ...prev, loading: false }))
+    }, 10000)
+
     async function init() {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!mounted) return
-      setState(prev => ({ ...prev, session, user: session?.user ?? null }))
-      if (session?.user) {
-        await fetchProfile(session.user.id, mounted)
-      } else {
-        setState(prev => ({ ...prev, loading: false }))
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!mounted) return
+        clearTimeout(timeout)
+        setState(prev => ({ ...prev, session, user: session?.user ?? null }))
+        if (session?.user) {
+          await fetchProfile(session.user.id, mounted)
+        } else {
+          setState(prev => ({ ...prev, loading: false }))
+        }
+      } catch (e) {
+        console.error('[useAuth] 초기화 오류:', e)
+        if (mounted) {
+          clearTimeout(timeout)
+          setState(prev => ({ ...prev, loading: false }))
+        }
       }
     }
 
@@ -48,6 +62,7 @@ export function useAuth() {
 
     return () => {
       mounted = false
+      clearTimeout(timeout)
       subscription.unsubscribe()
     }
   }, [])
