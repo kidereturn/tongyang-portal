@@ -1,0 +1,83 @@
+import { createContext, useEffect, useState, type ReactNode } from 'react'
+import type { User, Session } from '@supabase/supabase-js'
+import { supabase } from '../lib/supabase'
+import type { Database } from '../types/database'
+
+type Profile = Database['public']['Tables']['profiles']['Row']
+
+interface AuthState {
+  user: User | null
+  profile: Profile | null
+  session: Session | null
+  loading: boolean
+  signOut: () => Promise<void>
+}
+
+export const AuthContext = createContext<AuthState>({
+  user: null,
+  profile: null,
+  session: null,
+  loading: true,
+  signOut: async () => {},
+})
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<Omit<AuthState, 'signOut'>>({
+    user: null,
+    profile: null,
+    session: null,
+    loading: true,
+  })
+
+  useEffect(() => {
+    let mounted = true
+
+    async function fetchProfile(userId: string) {
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle()
+        if (!mounted) return
+        setState(prev => ({ ...prev, profile: data ?? null, loading: false }))
+      } catch {
+        if (mounted) setState(prev => ({ ...prev, loading: false }))
+      }
+    }
+
+    // Single listener — fires INITIAL_SESSION on load, then auth events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (!mounted) return
+        if (session?.user) {
+          setState(prev => ({ ...prev, session, user: session.user }))
+          await fetchProfile(session.user.id)
+        } else {
+          setState({ user: null, session: null, profile: null, loading: false })
+        }
+      }
+    )
+
+    // Failsafe: if INITIAL_SESSION never fires within 5s, unblock the UI
+    const timeout = setTimeout(() => {
+      if (mounted) setState(prev => ({ ...prev, loading: false }))
+    }, 5000)
+
+    return () => {
+      mounted = false
+      clearTimeout(timeout)
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  async function signOut() {
+    await supabase.auth.signOut()
+  }
+
+  return (
+    <AuthContext.Provider value={{ ...state, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
