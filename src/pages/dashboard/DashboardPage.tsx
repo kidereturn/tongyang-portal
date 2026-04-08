@@ -12,7 +12,7 @@ import { useAuth } from '../../hooks/useAuth'
 
 interface Stats {
   total: number
-  draft: number
+  draft: number       // 미사용 (호환 유지)
   submitted: number
   approved: number
   rejected: number
@@ -49,15 +49,23 @@ export default function DashboardPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
 
-    // 1. 전체 증빙 현황
-    const { data: records } = await db
-      .from('evidence_records')
-      .select('id, status, submitted_at, created_at, activity_id, activities(title)')
+    // 1. 전체 결재 현황 (approval_requests 기준)
+    let reqQuery = db
+      .from('approval_requests')
+      .select('id, status, submitted_at, decided_at, control_code, activities!approval_requests_unique_key_fkey(title)')
+
+    // owner는 본인 것만
+    if (profile.role === 'owner') reqQuery = reqQuery.eq('owner_id', profile.id)
+    else if (profile.role === 'controller') reqQuery = reqQuery.eq('controller_id', profile.id)
+
+    const { data: records } = await reqQuery
 
     if (records) {
       const s: Stats = { total: records.length, draft: 0, submitted: 0, approved: 0, rejected: 0 }
       records.forEach((r: { status: string }) => {
-        if (r.status in s) s[r.status as keyof Stats]++
+        if (r.status === 'submitted') s.submitted++
+        else if (r.status === 'approved') s.approved++
+        else if (r.status === 'rejected') s.rejected++
       })
       setStats(s)
 
@@ -69,14 +77,14 @@ export default function DashboardPage() {
         const key = `${d.getMonth() + 1}월`
         monthMap[key] = { month: key, 제출: 0, 승인: 0, 반려: 0 }
       }
-      records.forEach((r: { status: string; submitted_at: string | null; created_at: string }) => {
-        const dateStr = r.submitted_at ?? r.created_at
-        const d = new Date(dateStr)
+      records.forEach((r: { status: string; submitted_at: string | null }) => {
+        if (!r.submitted_at) return
+        const d = new Date(r.submitted_at)
         const diff = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth())
         if (diff >= 0 && diff < 6) {
           const key = `${d.getMonth() + 1}월`
           if (monthMap[key]) {
-            if (r.status === 'submitted' || r.status === 'approved' || r.status === 'rejected') monthMap[key].제출++
+            monthMap[key].제출++
             if (r.status === 'approved') monthMap[key].승인++
             if (r.status === 'rejected') monthMap[key].반려++
           }
@@ -84,10 +92,10 @@ export default function DashboardPage() {
       })
       setMonthly(Object.values(monthMap))
 
-      // 3. 활동별 통계 (상위 5개)
+      // 3. 활동별 통계 (상위 5개) — control_code 기준
       const actMap: Record<string, ActivityStat> = {}
-      records.forEach((r: { status: string; activities: { title: string } | null }) => {
-        const title = r.activities?.title ?? '미지정'
+      records.forEach((r: { status: string; control_code: string }) => {
+        const title = r.control_code ?? '미지정'
         if (!actMap[title]) actMap[title] = { title, total: 0, approved: 0 }
         actMap[title].total++
         if (r.status === 'approved') actMap[title].approved++
