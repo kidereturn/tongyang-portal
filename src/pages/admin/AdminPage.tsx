@@ -1,582 +1,340 @@
 import { useEffect, useRef, useState } from 'react'
 import * as XLSX from 'xlsx'
 import {
-  Users, Activity, Shield, UserCheck, UserX, Database,
-  Plus, Loader2, AlertCircle, CheckCircle2, Pencil, X,
-  Upload, FileSpreadsheet, ChevronDown,
+  Users, FileSpreadsheet, Database, Shield,
+  Upload, Loader2, AlertCircle, CheckCircle2,
+  Download, Eye, EyeOff, Search,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import clsx from 'clsx'
 
-type Tab = 'users' | 'activities' | 'upload' | 'population'
+type Tab = 'upload-rcm' | 'upload-population' | 'users' | 'activities' | 'files'
 
 interface UserRow {
-  id: string; email: string; full_name: string | null
-  department: string | null; role: string; is_active: boolean; created_at: string
+  id: string
+  email: string
+  full_name: string | null
+  employee_id: string | null
+  department: string | null
+  phone: string | null
+  role: string
+  is_active: boolean
+  initial_password: string | null
+  created_at: string
 }
+
 interface ActivityRow {
-  id: string; control_code: string; title: string
-  department: string | null; active: boolean
-  owner: { full_name: string | null } | null
-  controller: { full_name: string | null } | null
-}
-interface ParsedUser {
-  email: string; full_name: string; employee_id: string
-  role: 'owner' | 'controller'; department: string; password: string
-}
-interface ParsedActivity {
-  unique_key: string; control_code: string; title: string; department: string
-  owner_employee_id: string; controller_employee_id: string
-  description: string; cycle: string
-}
-interface PopItem {
-  unique_key: string; control_code: string; transaction_id: string
-  transaction_date: string | null; description: string; extra_info: string
+  id: string
+  control_code: string
+  owner_name: string | null
+  department: string | null
+  title: string | null
+  submission_status: string
+  controller_name: string | null
+  active: boolean
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: '관리자', controller: '통제책임자', owner: '담당자',
-}
-const DOMAIN = '@tongyanginc.co.kr'
-
-// Excel 날짜 숫자 → ISO 문자열
-function excelDateToISO(n: number): string | null {
-  if (!n || typeof n !== 'number') return null
-  const d = new Date((n - 25569) * 86400 * 1000)
-  return d.toISOString().slice(0, 10)
-}
+const TAB_ITEMS: { key: Tab; label: string; icon: React.ElementType }[] = [
+  { key: 'upload-rcm',        label: 'RCM 업로드',    icon: FileSpreadsheet },
+  { key: 'upload-population', label: '모집단 업로드',  icon: Database },
+  { key: 'users',             label: '사용자 관리',    icon: Users },
+  { key: 'activities',        label: '통제활동 관리',  icon: Shield },
+  { key: 'files',             label: '증빙 다운로드',  icon: Download },
+]
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<Tab>('users')
-  const [users, setUsers] = useState<UserRow[]>([])
-  const [activities, setActivities] = useState<ActivityRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [msg, setMsg] = useState(''); const [error, setError] = useState('')
-  const [showForm, setShowForm] = useState(false)
-  const [formData, setFormData] = useState({ control_code: '', title: '', department: '' })
-  const [saving, setSaving] = useState(false)
+  const [tab, setTab] = useState<Tab>('upload-rcm')
 
-  // 일괄 등록 (사용자)
-  const fileRef1 = useRef<HTMLInputElement>(null)
-  const [isDrag1, setIsDrag1] = useState(false)
-  const [fileName1, setFileName1] = useState('')
-  const [parsedUsers, setParsedUsers] = useState<ParsedUser[]>([])
-  const [parsedActs, setParsedActs] = useState<ParsedActivity[]>([])
-  const [uploading1, setUploading1] = useState(false)
-  const [uploadResult, setUploadResult] = useState<null | { created: number; updated: number; skipped: number; errors: number; activities: number }>(null)
-
-  // 모집단
-  const fileRef2 = useRef<HTMLInputElement>(null)
-  const [isDrag2, setIsDrag2] = useState(false)
-  const [fileName2, setFileName2] = useState('')
-  const [popItems, setPopItems] = useState<PopItem[]>([])
-  const [uploading2, setUploading2] = useState(false)
-  const [popResult, setPopResult] = useState<null | { inserted: number; errors: number }>(null)
-
-  useEffect(() => {
-    if (tab === 'upload' || tab === 'population') return
-    fetchData()
-  }, [tab])
-
-  async function fetchData() {
-    setLoading(true); setMsg(''); setError('')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabase as any
-    if (tab === 'users') {
-      const { data } = await db.from('profiles').select('*').order('created_at', { ascending: false })
-      setUsers(data ?? [])
-    } else {
-      const { data } = await db.from('activities').select(`
-        id, control_code, title, department, active,
-        owner:profiles!activities_owner_id_fkey(full_name),
-        controller:profiles!activities_controller_id_fkey(full_name)
-      `).order('control_code')
-      setActivities(data ?? [])
-    }
-    setLoading(false)
-  }
-
-  async function toggleActive(userId: string, current: boolean) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).from('profiles').update({ is_active: !current }).eq('id', userId)
-    if (error) { setError(error.message); return }
-    setMsg(!current ? '계정이 활성화되었습니다.' : '계정이 비활성화되었습니다.'); fetchData()
-  }
-
-  async function changeRole(userId: string, role: string) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).from('profiles').update({ role }).eq('id', userId)
-    if (error) { setError(error.message); return }
-    setMsg('역할이 변경되었습니다.'); fetchData()
-  }
-
-  async function addActivity() {
-    if (!formData.control_code || !formData.title) { setError('통제 코드와 활동명은 필수입니다.'); return }
-    setSaving(true)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).from('activities').insert({
-      control_code: formData.control_code, title: formData.title,
-      department: formData.department || null, active: true,
-    })
-    if (error) setError(error.message)
-    else { setMsg('활동이 추가되었습니다.'); setFormData({ control_code: '', title: '', department: '' }); setShowForm(false); fetchData() }
-    setSaving(false)
-  }
-
-  async function toggleActivityActive(id: string, current: boolean) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any).from('activities').update({ active: !current }).eq('id', id); fetchData()
-  }
-
-  // ── Excel 파싱: 사용자 양식 ──────────────────────────────────
-  function parseUserExcel(file: File) {
-    setFileName1(file.name); setParsedUsers([]); setParsedActs([]); setUploadResult(null)
-    const isDamdan = file.name.includes('담당자')
-    const isCtrl   = file.name.includes('통제자')
-    if (!isDamdan && !isCtrl) { setError('파일명에 "담당자양식" 또는 "통제자양식"이 포함되어야 합니다.'); return }
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target!.result as ArrayBuffer)
-        const wb = XLSX.read(data, { type: 'array' })
-        const ws = wb.Sheets[wb.SheetNames[0]]
-        const rows = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '' }) as string[][]
-        const userMap = new Map<string, ParsedUser>()
-        const actMap  = new Map<string, ParsedActivity>()
-        for (let i = 1; i < rows.length; i++) {
-          const r = rows[i]
-          if (!r[1]) continue
-          if (isDamdan) {
-            // [0]고유키 [1]담당자사번 [2]관련부서 [3]통제번호 [4]통제활동명 [5]설명 [7]승인자사번 [16]주기
-            const uid = String(r[0] ?? '').trim()
-            const ownerEid = String(r[1] ?? '').trim()
-            const dept = String(r[2] ?? '').trim()
-            const code = String(r[3] ?? '').trim()
-            const title = String(r[4] ?? '').trim()
-            const desc = String(r[5] ?? '').trim()
-            const ctrlEid = String(r[7] ?? '').trim()
-            const cycle = String(r[16] ?? '').trim()
-            if (ownerEid && !userMap.has(ownerEid)) {
-              userMap.set(ownerEid, { email: `${ownerEid}${DOMAIN}`, full_name: '', employee_id: ownerEid, role: 'owner', department: dept, password: ownerEid })
-            }
-            if (uid && code && title) actMap.set(uid, { unique_key: uid, control_code: code, title, department: dept, owner_employee_id: ownerEid, controller_employee_id: ctrlEid, description: desc, cycle })
-          } else {
-            // [0]고유키 [1]승인자사번 [2]담당자사번 [3]관련부서 [4]통제번호 [5]통제활동명 [6]설명 [14]승인자명 [15]승인자이메일 [17]주기
-            const uid = String(r[0] ?? '').trim()
-            const ctrlEid = String(r[1] ?? '').trim()
-            const ownerEid = String(r[2] ?? '').trim()
-            const dept = String(r[3] ?? '').trim()
-            const code = String(r[4] ?? '').trim()
-            const title = String(r[5] ?? '').trim()
-            const desc = String(r[6] ?? '').trim()
-            const ctrlName = String(r[14] ?? '').trim()
-            const ctrlEmail = String(r[15] ?? '').trim()
-            const cycle = String(r[17] ?? '').trim()
-            if (ctrlEid && !userMap.has(ctrlEid)) {
-              userMap.set(ctrlEid, { email: ctrlEmail || `${ctrlEid}${DOMAIN}`, full_name: ctrlName, employee_id: ctrlEid, role: 'controller', department: dept, password: ctrlEid })
-            }
-            if (uid && code && title) actMap.set(uid, { unique_key: uid, control_code: code, title, department: dept, owner_employee_id: ownerEid, controller_employee_id: ctrlEid, description: desc, cycle })
-          }
-        }
-        setParsedUsers([...userMap.values()])
-        setParsedActs([...actMap.values()])
-      } catch (err) { setError('파싱 실패: ' + String(err)) }
-    }
-    reader.readAsArrayBuffer(file)
-  }
-
-  async function handleUserUpload() {
-    if (!parsedUsers.length) { setError('등록할 사용자가 없습니다.'); return }
-    setUploading1(true); setError('')
-    const { data: { session } } = await supabase.auth.getSession()
-    const token = session?.access_token
-    if (!token) { setError('로그인이 필요합니다.'); setUploading1(false); return }
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-    const res = await fetch(`${supabaseUrl}/functions/v1/bulk-create-users`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ users: parsedUsers, activities: parsedActs }),
-    })
-    const json = await res.json()
-    if (!res.ok) { setError(json.error ?? '서버 오류'); setUploading1(false); return }
-    setUploadResult(json.summary)
-    setMsg(`완료: 신규 ${json.summary.created}명, 업데이트 ${json.summary.updated}명, 스킵 ${json.summary.skipped}명, 활동 ${json.summary.activities}건`)
-    setUploading1(false)
-  }
-
-  // ── Excel 파싱: 모집단 ──────────────────────────────────────
-  function parsePopExcel(file: File) {
-    setFileName2(file.name); setPopItems([]); setPopResult(null)
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target!.result as ArrayBuffer)
-        const wb = XLSX.read(data, { type: 'array' })
-        const items: PopItem[] = []
-        for (const sheetName of wb.SheetNames) {
-          const ws = wb.Sheets[sheetName]
-          const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: '' }) as unknown[][]
-          for (let i = 1; i < rows.length; i++) {
-            const r = rows[i] as string[]
-            if (!r[0]) continue
-            items.push({
-              unique_key:       String(r[0] ?? '').trim(),
-              control_code:     sheetName.trim(),
-              transaction_id:   String(r[1] ?? '').trim(),
-              transaction_date: typeof r[2] === 'number' ? excelDateToISO(r[2] as number) : null,
-              description:      String(r[3] ?? '').trim(),
-              extra_info:       String(r[4] ?? '').trim(),
-            })
-          }
-        }
-        setPopItems(items)
-      } catch (err) { setError('모집단 파싱 실패: ' + String(err)) }
-    }
-    reader.readAsArrayBuffer(file)
-  }
-
-  async function handlePopUpload() {
-    if (!popItems.length) { setError('등록할 모집단 데이터가 없습니다.'); return }
-    setUploading2(true); setError('')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabase as any
-    const BATCH = 100
-    let inserted = 0; let errors = 0
-    for (let i = 0; i < popItems.length; i += BATCH) {
-      const batch = popItems.slice(i, i + BATCH)
-      const { error } = await db.from('population_items').upsert(
-        batch.map(it => ({
-          unique_key: it.unique_key, control_code: it.control_code,
-          transaction_id: it.transaction_id || null,
-          transaction_date: it.transaction_date || null,
-          description: it.description || null,
-          extra_info: it.extra_info || null,
-        })),
-        { onConflict: 'unique_key,transaction_id' }
-      )
-      if (error) errors += batch.length
-      else inserted += batch.length
-    }
-    setPopResult({ inserted, errors })
-    setMsg(`모집단 등록 완료: ${inserted}건 / 오류: ${errors}건`)
-    setUploading2(false)
-  }
-
-  // ── JSX ─────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center">
-          <Shield size={20} className="text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-white">관리자</h1>
-          <p className="text-slate-400 text-sm mt-0.5">사용자 및 통제 활동 관리</p>
-        </div>
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-xl font-black text-gray-900 flex items-center gap-2">
+          <Shield size={22} className="text-purple-600" />
+          관리자
+        </h1>
+        <p className="text-gray-500 text-sm mt-0.5">시스템 데이터 및 사용자를 관리합니다</p>
       </div>
 
-      {msg && (
-        <div className="flex items-center gap-2 bg-green-950/50 border border-green-800 text-green-300 text-sm rounded-lg px-4 py-3">
-          <CheckCircle2 size={16} className="shrink-0" /><span>{msg}</span>
-          <button onClick={() => setMsg('')} className="ml-auto"><X size={14} /></button>
-        </div>
-      )}
-      {error && (
-        <div className="flex items-center gap-2 bg-red-950/50 border border-red-800 text-red-300 text-sm rounded-lg px-4 py-3">
-          <AlertCircle size={16} className="shrink-0" /><span>{error}</span>
-          <button onClick={() => setError('')} className="ml-auto"><X size={14} /></button>
-        </div>
-      )}
-
       {/* 탭 */}
-      <div className="flex border-b border-slate-800 overflow-x-auto">
-        {([
-          ['users',      '사용자 관리', Users],
-          ['activities', '통제 활동',   Activity],
-          ['upload',     '사용자 일괄 등록', Upload],
-          ['population', '모집단 업로드',    Database],
-        ] as const).map(([key, label, Icon]) => (
-          <button key={key} onClick={() => setTab(key)}
+      <div className="flex gap-1 bg-gray-100 rounded-xl p-1.5 overflow-x-auto">
+        {TAB_ITEMS.map(t => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
             className={clsx(
-              'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px shrink-0',
-              tab === key ? 'border-brand-500 text-brand-400' : 'border-transparent text-slate-400 hover:text-white'
+              'flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap',
+              tab === t.key
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
             )}
           >
-            <Icon size={16} />{label}
+            <t.icon size={15} />
+            {t.label}
           </button>
         ))}
       </div>
 
-      {/* ═══════════════════════════════════════════════
-          탭 1: 사용자 관리
-      ═══════════════════════════════════════════════ */}
-      {tab === 'users' && (
-        loading ? <LoadingSpinner /> : (
-          <div className="space-y-2">
-            {users.length === 0 && <EmptyState text="등록된 사용자가 없습니다" />}
-            {users.map(u => (
-              <div key={u.id} className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
-                <div className="w-9 h-9 bg-brand-800 rounded-full flex items-center justify-center shrink-0">
-                  <span className="text-brand-200 text-sm font-bold">{u.full_name?.charAt(0) ?? '?'}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-white text-sm font-medium">{u.full_name ?? '-'}</p>
-                    {!u.is_active && <span className="text-xs text-red-400 bg-red-950/50 border border-red-800 px-2 py-0.5 rounded-full">비활성</span>}
-                  </div>
-                  <p className="text-slate-500 text-xs">{u.email} · {u.department ?? '-'}</p>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <div className="relative">
-                    <select value={u.role} onChange={e => changeRole(u.id, e.target.value)}
-                      className="appearance-none bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-lg pl-2 pr-6 py-1.5 outline-none focus:border-brand-500 cursor-pointer"
-                    >
-                      {Object.entries(ROLE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                    </select>
-                    <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-                  </div>
-                  <button onClick={() => toggleActive(u.id, u.is_active)}
-                    className={clsx('flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all',
-                      u.is_active ? 'text-red-400 border-red-900 hover:bg-red-950/50' : 'text-green-400 border-green-900 hover:bg-green-950/50'
-                    )}
-                  >
-                    {u.is_active ? <><UserX size={13} />비활성화</> : <><UserCheck size={13} />활성화</>}
-                  </button>
-                </div>
-              </div>
+      {/* 탭 콘텐츠 */}
+      {tab === 'upload-rcm'        && <RcmUploadTab />}
+      {tab === 'upload-population' && <PopulationUploadTab />}
+      {tab === 'users'             && <UsersTab />}
+      {tab === 'activities'        && <ActivitiesTab />}
+      {tab === 'files'             && <FilesTab />}
+    </div>
+  )
+}
+
+/* ─── RCM 업로드 탭 ─── */
+function RcmUploadTab() {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [result, setResult] = useState<{ created: number; updated: number; errors: string[] } | null>(null)
+  const [preview, setPreview] = useState<Record<string, string>[]>([])
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const wb = XLSX.read(ev.target?.result, { type: 'binary' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const raw = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: '' })
+      setPreview(raw.slice(0, 5))
+    }
+    reader.readAsBinaryString(file)
+  }
+
+  async function handleUpload() {
+    const file = fileRef.current?.files?.[0]
+    if (!file) return
+    setUploading(true)
+
+    const reader = new FileReader()
+    reader.onload = async ev => {
+      const wb = XLSX.read(ev.target?.result, { type: 'binary' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' })
+
+      let created = 0, updated = 0
+      const errors: string[] = []
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+
+      // 컬럼 매핑 (엑셀 헤더 → DB 필드)
+      const colMap: Record<string, string> = {
+        '통제번호': 'control_code',
+        '담당자': 'owner_name',
+        '관련부서': 'department',
+        '통제활동명': 'title',
+        '제출 증빙에 대한 설명': 'description',
+        '승인자': 'controller_name',
+        'KPI 점수': 'kpi_score',
+        '상신여부': 'submission_status',
+        '담당자 사번': 'owner_employee_id',
+        '담당자 mail': 'owner_email',
+        '담당자 CP': 'owner_phone',
+        '승인자 사번': 'controller_employee_id',
+        '승인자 mail': 'controller_email',
+        '승인자 CP': 'controller_phone',
+        '통제부서': 'control_department',
+        '주기': 'cycle',
+        '핵심/비핵심': 'key_control_raw',
+        '수동/자동': 'manual_control_raw',
+        '배점': 'base_score',
+        '환산점수': 'converted_score',
+        '고유키': 'unique_key',
+        '테스트 문서': 'test_document',
+      }
+
+      // 1단계: 사용자 일괄 생성/업데이트
+      const userMap: Record<string, { name: string; email: string; phone: string; role: 'owner' | 'controller' }> = {}
+      for (const row of rows) {
+        const ownerEmpId = String(row['담당자 사번'] ?? '').trim()
+        const ownerEmail = String(row['담당자 mail'] ?? '').trim()
+        const ownerName  = String(row['담당자'] ?? '').trim()
+        const ownerPhone = String(row['담당자 CP'] ?? '').trim()
+        if (ownerEmpId) {
+          userMap[ownerEmpId] = { name: ownerName, email: ownerEmail, phone: ownerPhone, role: 'owner' }
+        }
+        const ctrlEmpId = String(row['승인자 사번'] ?? '').trim()
+        const ctrlEmail = String(row['승인자 mail'] ?? '').trim()
+        const ctrlName  = String(row['승인자'] ?? '').trim()
+        const ctrlPhone = String(row['승인자 CP'] ?? '').trim()
+        if (ctrlEmpId) {
+          userMap[ctrlEmpId] = { name: ctrlName, email: ctrlEmail, phone: ctrlPhone, role: 'controller' }
+        }
+      }
+
+      // Edge Function으로 bulk user create 호출
+      try {
+        const { data: bulkResult } = await supabase.functions.invoke('bulk-create-users', {
+          body: { users: Object.entries(userMap).map(([empId, u]) => ({
+            employee_id: empId,
+            email: u.email || `${empId}@tongyanginc.co.kr`,
+            full_name: u.name,
+            phone: u.phone,
+            role: u.role,
+            initial_password: empId,
+          })) }
+        })
+        if (bulkResult) {
+          created += bulkResult.created ?? 0
+          updated += bulkResult.updated ?? 0
+        }
+      } catch (e) {
+        errors.push(`사용자 생성 오류: ${e}`)
+      }
+
+      // 2단계: activities 저장
+      for (const row of rows) {
+        try {
+          const uniqueKey = String(row['고유키'] ?? '').trim()
+          if (!uniqueKey) continue
+
+          const actData: Record<string, unknown> = { active: true }
+          for (const [excelCol, dbCol] of Object.entries(colMap)) {
+            const val = row[excelCol]
+            if (dbCol === 'kpi_score' || dbCol === 'base_score' || dbCol === 'converted_score') {
+              actData[dbCol] = parseFloat(String(val ?? 0)) || 0
+            } else if (dbCol === 'key_control_raw') {
+              actData['key_control'] = String(val ?? '').includes('핵심')
+            } else if (dbCol === 'manual_control_raw') {
+              actData['manual_control'] = String(val ?? '').includes('수동')
+            } else if (dbCol === 'submission_status') {
+              // 초기 업로드 시 미완료로 설정
+              actData[dbCol] = '미완료'
+            } else {
+              actData[dbCol] = String(val ?? '').trim() || null
+            }
+          }
+
+          const { error } = await db.from('activities')
+            .upsert(actData, { onConflict: 'unique_key' })
+
+          if (error) errors.push(`${uniqueKey}: ${error.message}`)
+          else created++
+        } catch (e) {
+          errors.push(String(e))
+        }
+      }
+
+      setResult({ created, updated, errors })
+      setUploading(false)
+    }
+    reader.readAsBinaryString(file)
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="card p-6">
+        <h3 className="text-base font-bold text-gray-900 mb-1">RCM 증빙 사용자 업로드</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">RCM_증빙_사용자_업로드_최종.xlsx</code> 파일을 업로드하면
+          사용자(담당자/승인자) 계정이 자동 생성되고 통제활동이 등록됩니다.
+        </p>
+
+        {/* 컬럼 안내 */}
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-5">
+          <p className="text-xs font-semibold text-blue-700 mb-2">📋 파일 컬럼 구조</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-blue-600">
+            {[
+              { col: 'A', label: '통제번호' },    { col: 'B', label: '담당자' },
+              { col: 'C', label: '관련부서' },    { col: 'D', label: '통제활동명' },
+              { col: 'E', label: '증빙 설명' },   { col: 'G', label: '승인자' },
+              { col: 'J', label: '담당자 사번' }, { col: 'K', label: '담당자 mail' },
+              { col: 'M', label: '승인자 사번' }, { col: 'N', label: '승인자 mail' },
+              { col: 'V', label: '고유키' },      { col: '…', label: '기타 18개 컬럼' },
+            ].map(item => (
+              <span key={item.col} className="flex items-center gap-1">
+                <b className="bg-blue-100 text-blue-800 px-1 rounded font-mono">{item.col}</b>
+                {item.label}
+              </span>
             ))}
           </div>
-        )
-      )}
+        </div>
 
-      {/* ═══════════════════════════════════════════════
-          탭 2: 통제 활동
-      ═══════════════════════════════════════════════ */}
-      {tab === 'activities' && (
-        loading ? <LoadingSpinner /> : (
-          <div className="space-y-4">
-            <div className="flex justify-end">
-              <button onClick={() => setShowForm(v => !v)}
-                className="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-all"
-              >
-                <Plus size={16} />활동 추가
-              </button>
-            </div>
-            {showForm && (
-              <div className="bg-slate-900 border border-brand-800 rounded-xl p-5 space-y-4">
-                <p className="text-white text-sm font-medium">새 통제 활동 추가</p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-1">통제 코드 *</label>
-                    <input value={formData.control_code} onChange={e => setFormData(p => ({ ...p, control_code: e.target.value }))} placeholder="CO1.01.W1.C1"
-                      className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-brand-500" />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs text-slate-400 mb-1">활동명 *</label>
-                    <input value={formData.title} onChange={e => setFormData(p => ({ ...p, title: e.target.value }))} placeholder="활동명"
-                      className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-brand-500" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">부서</label>
-                  <input value={formData.department} onChange={e => setFormData(p => ({ ...p, department: e.target.value }))} placeholder="부서명"
-                    className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-brand-500" />
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={addActivity} disabled={saving}
-                    className="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-lg"
-                  >
-                    {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}추가
-                  </button>
-                  <button onClick={() => setShowForm(false)} className="px-4 py-2 text-slate-400 hover:text-white text-sm rounded-lg">취소</button>
-                </div>
-              </div>
-            )}
-            <div className="space-y-2">
-              {activities.length === 0 && <EmptyState text="등록된 활동이 없습니다" />}
-              {activities.map(a => (
-                <div key={a.id} className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-mono text-brand-400 bg-brand-950/50 border border-brand-900 px-2 py-0.5 rounded shrink-0">{a.control_code}</span>
-                      <p className="text-white text-sm font-medium">{a.title}</p>
-                      {!a.active && <span className="text-xs text-slate-500 bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-full">비활성</span>}
-                    </div>
-                    <p className="text-slate-500 text-xs mt-1">{a.department ?? '부서 미지정'} · 담당: {a.owner?.full_name ?? '미지정'} · 통제: {a.controller?.full_name ?? '미지정'}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button className="p-1.5 text-slate-500 hover:text-brand-400"><Pencil size={14} /></button>
-                    <button onClick={() => toggleActivityActive(a.id, a.active)}
-                      className={clsx('text-xs font-medium px-3 py-1.5 rounded-lg border transition-all',
-                        a.active ? 'text-slate-400 border-slate-700 hover:border-red-800 hover:text-red-400' : 'text-green-400 border-green-900 hover:bg-green-950/50'
-                      )}
-                    >
-                      {a.active ? '비활성화' : '활성화'}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleFileChange}
+              className="form-input text-sm"
+            />
           </div>
-        )
-      )}
+          <button
+            onClick={handleUpload}
+            disabled={uploading}
+            className="btn-primary shrink-0"
+          >
+            {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+            {uploading ? '처리 중...' : '업로드'}
+          </button>
+        </div>
+      </div>
 
-      {/* ═══════════════════════════════════════════════
-          탭 3: 사용자 일괄 등록
-      ═══════════════════════════════════════════════ */}
-      {tab === 'upload' && (
-        <div className="space-y-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 text-sm text-slate-400 space-y-2">
-            <p className="text-white font-medium flex items-center gap-2"><FileSpreadsheet size={16} className="text-brand-400" />Excel 사용자 일괄 등록</p>
-            <ul className="list-disc list-inside space-y-1">
-              <li><span className="text-yellow-400">담당자양식.xlsx</span> → 담당자(증빙담당자) 계정 생성, 초기 비밀번호 = 사번</li>
-              <li><span className="text-brand-400">통제자양식.xlsx</span> → 통제책임자 계정 생성, 이름·이메일 자동 적용</li>
-              <li>이미 등록된 사번은 역할·부서만 업데이트됩니다</li>
-            </ul>
-          </div>
-
-          {/* 드롭존 */}
-          <DropZone
-            isDrag={isDrag1} label={fileName1 || '담당자양식.xlsx 또는 통제자양식.xlsx'}
-            onDragOver={e => { e.preventDefault(); setIsDrag1(true) }}
-            onDragLeave={() => setIsDrag1(false)}
-            onDrop={e => { e.preventDefault(); setIsDrag1(false); const f = e.dataTransfer.files[0]; if (f) parseUserExcel(f) }}
-            onClick={() => fileRef1.current?.click()}
-          />
-          <input ref={fileRef1} type="file" accept=".xlsx,.xls" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) parseUserExcel(f) }} />
-
-          {parsedUsers.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <p className="text-white text-sm font-medium">
-                  미리보기 — 사용자 <span className="text-brand-400">{parsedUsers.length}</span>명 · 활동 <span className="text-brand-400">{parsedActs.length}</span>건
-                </p>
-                <button onClick={handleUserUpload} disabled={uploading1}
-                  className="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white text-sm font-medium px-5 py-2.5 rounded-lg"
-                >
-                  {uploading1 ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-                  {uploading1 ? '등록 중...' : `${parsedUsers.length}명 등록`}
-                </button>
-              </div>
-              {uploadResult && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {[['신규', uploadResult.created, 'text-green-400'],['업데이트', uploadResult.updated, 'text-brand-400'],['스킵', uploadResult.skipped, 'text-yellow-400'],['오류', uploadResult.errors, 'text-red-400']].map(([l,v,c]) => (
-                    <div key={String(l)} className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-                      <p className={`text-2xl font-bold ${c}`}>{v}</p>
-                      <p className="text-slate-500 text-xs mt-1">{l}</p>
-                    </div>
+      {/* 미리보기 */}
+      {preview.length > 0 && (
+        <div className="card p-5">
+          <p className="text-sm font-semibold text-gray-700 mb-3">파일 미리보기 (상위 5행)</p>
+          <div className="overflow-x-auto">
+            <table className="data-table text-xs">
+              <thead>
+                <tr>
+                  {Object.keys(preview[0]).slice(0, 10).map(h => (
+                    <th key={h}>{h}</th>
                   ))}
-                </div>
-              )}
-              <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-800">
-                        {['사번','이름','이메일','부서','역할','초기비밀번호'].map(h => (
-                          <th key={h} className="text-left text-xs text-slate-500 font-medium px-4 py-3">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {parsedUsers.slice(0, 50).map((u, i) => (
-                        <tr key={i} className="border-b border-slate-800/50 hover:bg-slate-800/30">
-                          <td className="px-4 py-2.5 font-mono text-xs text-slate-300">{u.employee_id}</td>
-                          <td className="px-4 py-2.5 text-slate-300">{u.full_name || <span className="text-slate-600">-</span>}</td>
-                          <td className="px-4 py-2.5 text-slate-400 text-xs">{u.email}</td>
-                          <td className="px-4 py-2.5 text-slate-400 text-xs max-w-[120px] truncate">{u.department}</td>
-                          <td className="px-4 py-2.5">
-                            <span className={clsx('text-xs px-2 py-0.5 rounded-full border',
-                              u.role === 'controller' ? 'text-brand-400 border-brand-900 bg-brand-950/50' : 'text-yellow-400 border-yellow-900 bg-yellow-950/50'
-                            )}>{ROLE_LABELS[u.role]}</span>
-                          </td>
-                          <td className="px-4 py-2.5 font-mono text-xs text-slate-500">{u.password}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {parsedUsers.length > 50 && <p className="text-center text-slate-600 text-xs py-3">... 외 {parsedUsers.length - 50}명 (미리보기 50개 제한)</p>}
-                </div>
-              </div>
-            </div>
-          )}
+                </tr>
+              </thead>
+              <tbody>
+                {preview.map((row, i) => (
+                  <tr key={i}>
+                    {Object.values(row).slice(0, 10).map((v, j) => (
+                      <td key={j} className="truncate max-w-[120px]" title={String(v)}>{String(v)}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════
-          탭 4: 모집단 업로드
-      ═══════════════════════════════════════════════ */}
-      {tab === 'population' && (
-        <div className="space-y-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 text-sm text-slate-400 space-y-2">
-            <p className="text-white font-medium flex items-center gap-2"><Database size={16} className="text-brand-400" />모집단 업로드</p>
-            <ul className="list-disc list-inside space-y-1">
-              <li>모집단.xlsx를 업로드하면 각 거래 건이 DB에 저장됩니다</li>
-              <li>시트명 = 통제번호, <span className="text-yellow-400">고유키</span>는 담당자/통제자 양식의 고유키와 자동 연결됩니다</li>
-              <li>담당자는 자신의 고유키에 해당하는 거래 건들을 보고 증빙을 업로드하게 됩니다</li>
-              <li>이미 등록된 데이터는 업데이트됩니다</li>
-            </ul>
+      {/* 결과 */}
+      {result && (
+        <div className={clsx(
+          'card p-5',
+          result.errors.length > 0 ? 'border-amber-100 bg-amber-50/30' : 'border-emerald-100 bg-emerald-50/30'
+        )}>
+          <div className="flex items-center gap-2 mb-3">
+            {result.errors.length > 0
+              ? <AlertCircle size={18} className="text-amber-600" />
+              : <CheckCircle2 size={18} className="text-emerald-600" />}
+            <p className="font-bold text-gray-900">업로드 완료</p>
           </div>
-
-          <DropZone
-            isDrag={isDrag2} label={fileName2 || '모집단.xlsx'}
-            onDragOver={e => { e.preventDefault(); setIsDrag2(true) }}
-            onDragLeave={() => setIsDrag2(false)}
-            onDrop={e => { e.preventDefault(); setIsDrag2(false); const f = e.dataTransfer.files[0]; if (f) parsePopExcel(f) }}
-            onClick={() => fileRef2.current?.click()}
-          />
-          <input ref={fileRef2} type="file" accept=".xlsx,.xls" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) parsePopExcel(f) }} />
-
-          {popItems.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <p className="text-white text-sm font-medium">
-                  미리보기 — <span className="text-brand-400">{popItems.length}</span>건
-                </p>
-                <button onClick={handlePopUpload} disabled={uploading2}
-                  className="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white text-sm font-medium px-5 py-2.5 rounded-lg"
-                >
-                  {uploading2 ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-                  {uploading2 ? '저장 중...' : `${popItems.length}건 저장`}
-                </button>
-              </div>
-              {popResult && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-                    <p className="text-2xl font-bold text-green-400">{popResult.inserted}</p>
-                    <p className="text-slate-500 text-xs mt-1">저장 완료</p>
-                  </div>
-                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-                    <p className="text-2xl font-bold text-red-400">{popResult.errors}</p>
-                    <p className="text-slate-500 text-xs mt-1">오류</p>
-                  </div>
-                </div>
+          <div className="grid grid-cols-3 gap-3 mb-3">
+            <div className="text-center">
+              <p className="text-2xl font-black text-emerald-600">{result.created}</p>
+              <p className="text-xs text-gray-500">생성/등록</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-black text-blue-600">{result.updated}</p>
+              <p className="text-xs text-gray-500">업데이트</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-black text-red-500">{result.errors.length}</p>
+              <p className="text-xs text-gray-500">오류</p>
+            </div>
+          </div>
+          {result.errors.length > 0 && (
+            <div className="bg-red-50 rounded-lg p-3 space-y-1">
+              {result.errors.slice(0, 5).map((e, i) => (
+                <p key={i} className="text-xs text-red-600">{e}</p>
+              ))}
+              {result.errors.length > 5 && (
+                <p className="text-xs text-red-400">...외 {result.errors.length - 5}건</p>
               )}
-              <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-800">
-                        {['고유키','통제번호','Transaction ID','거래일','거래설명'].map(h => (
-                          <th key={h} className="text-left text-xs text-slate-500 font-medium px-4 py-3">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {popItems.slice(0, 50).map((it, i) => (
-                        <tr key={i} className="border-b border-slate-800/50 hover:bg-slate-800/30">
-                          <td className="px-4 py-2.5 text-slate-400 text-xs max-w-[160px] truncate">{it.unique_key}</td>
-                          <td className="px-4 py-2.5 font-mono text-xs text-brand-400">{it.control_code}</td>
-                          <td className="px-4 py-2.5 text-slate-300 text-xs">{it.transaction_id}</td>
-                          <td className="px-4 py-2.5 text-slate-400 text-xs">{it.transaction_date ?? '-'}</td>
-                          <td className="px-4 py-2.5 text-slate-400 text-xs max-w-[200px] truncate">{it.description}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {popItems.length > 50 && <p className="text-center text-slate-600 text-xs py-3">... 외 {popItems.length - 50}건</p>}
-                </div>
-              </div>
             </div>
           )}
         </div>
@@ -585,27 +343,439 @@ export default function AdminPage() {
   )
 }
 
-// ── 공통 컴포넌트 ────────────────────────────────────────────
-function LoadingSpinner() {
-  return <div className="flex justify-center py-16"><Loader2 size={28} className="text-brand-500 animate-spin" /></div>
-}
-function EmptyState({ text }: { text: string }) {
-  return <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center"><p className="text-slate-500 text-sm">{text}</p></div>
-}
-function DropZone({ isDrag, label, onDragOver, onDragLeave, onDrop, onClick }: {
-  isDrag: boolean; label: string
-  onDragOver: React.DragEventHandler; onDragLeave: React.DragEventHandler
-  onDrop: React.DragEventHandler; onClick: () => void
-}) {
+/* ─── 모집단 업로드 탭 ─── */
+function PopulationUploadTab() {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [result, setResult] = useState<{ upserted: number; errors: string[] } | null>(null)
+  const [preview, setPreview] = useState<Record<string, string>[]>([])
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const wb = XLSX.read(ev.target?.result, { type: 'binary' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const raw = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: '' })
+      setPreview(raw.slice(0, 5))
+    }
+    reader.readAsBinaryString(file)
+  }
+
+  async function handleUpload() {
+    const file = fileRef.current?.files?.[0]
+    if (!file) return
+    setUploading(true)
+
+    const reader = new FileReader()
+    reader.onload = async ev => {
+      const wb = XLSX.read(ev.target?.result, { type: 'binary' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' })
+
+      let upserted = 0
+      const errors: string[] = []
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+
+      // 모집단 컬럼 매핑
+      // B: 통제번호, C: 부서코드, D: 관련부서, E: Sample ID
+      // F: Transaction ID, G: 거래일, H: 거래설명, I: 추가정보1
+      // J: 추가정보2, K: 추가정보3, L: 추가정보4, M: 고유키
+      for (const row of rows) {
+        try {
+          const uniqueKey = String(row['고유키'] ?? row['M'] ?? '').trim()
+          if (!uniqueKey) continue
+
+          const transactionDateRaw = row['거래일'] ?? row['G'] ?? ''
+          let transactionDate: string | null = null
+          if (transactionDateRaw) {
+            const d = new Date(String(transactionDateRaw))
+            if (!isNaN(d.getTime())) transactionDate = d.toISOString().slice(0, 10)
+          }
+
+          const itemData = {
+            unique_key: uniqueKey,
+            control_code: String(row['통제번호'] ?? row['B'] ?? '').trim() || null,
+            dept_code: String(row['부서코드'] ?? row['C'] ?? '').trim() || null,
+            related_dept: String(row['관련부서'] ?? row['D'] ?? '').trim() || null,
+            sample_id: String(row['Sample ID'] ?? row['E'] ?? '').trim() || null,
+            transaction_id: String(row['Transaction ID'] ?? row['F'] ?? '').slice(0, 10) || null,
+            transaction_date: transactionDate,
+            description: String(row['거래설명'] ?? row['H'] ?? '').trim() || null,
+            extra_info: String(row['추가 정보 1'] ?? row['I'] ?? '').trim() || null,
+            extra_info_2: String(row['추가 정보 2'] ?? row['J'] ?? '').trim() || null,
+            extra_info_3: String(row['추가 정보 3'] ?? row['K'] ?? '').trim() || null,
+            extra_info_4: String(row['추가 정보 4'] ?? row['L'] ?? '').trim() || null,
+          }
+
+          const { error } = await db.from('population_items').upsert(itemData, { onConflict: 'sample_id' })
+          if (error) errors.push(`${uniqueKey}: ${error.message}`)
+          else upserted++
+        } catch (e) {
+          errors.push(String(e))
+        }
+      }
+
+      setResult({ upserted, errors })
+      setUploading(false)
+    }
+    reader.readAsBinaryString(file)
+  }
+
   return (
-    <div onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} onClick={onClick}
-      className={clsx('border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all',
-        isDrag ? 'border-brand-500 bg-brand-950/30' : 'border-slate-700 hover:border-slate-600 hover:bg-slate-900/50'
+    <div className="space-y-5">
+      <div className="card p-6">
+        <h3 className="text-base font-bold text-gray-900 mb-1">모집단 데이터 업로드</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">모집단_업로드_최종_Final.xlsx</code> 파일을 업로드합니다.
+          M열 고유키와 RCM의 V열 고유키가 자동으로 매핑됩니다.
+        </p>
+
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-5">
+          <p className="text-xs font-semibold text-blue-700 mb-2">📋 파일 컬럼 구조 (팝업에 표시되는 항목)</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-blue-600">
+            {[
+              { col: 'B', label: '통제번호' },      { col: 'C', label: '부서코드' },
+              { col: 'D', label: '관련부서' },      { col: 'E', label: 'Sample ID' },
+              { col: 'F', label: 'Transaction ID', highlight: true }, { col: 'G', label: '거래일', highlight: true },
+              { col: 'H', label: '거래설명', highlight: true },        { col: 'I', label: '추가정보1', highlight: true },
+              { col: 'J', label: '추가정보2', highlight: true },       { col: 'M', label: '고유키 (매핑키)' },
+            ].map(item => (
+              <span key={item.col} className={clsx('flex items-center gap-1', item.highlight && 'font-semibold')}>
+                <b className={clsx('px-1 rounded font-mono', item.highlight ? 'bg-blue-200 text-blue-900' : 'bg-blue-100 text-blue-800')}>{item.col}</b>
+                {item.label}
+                {item.highlight && <span className="text-blue-400">(팝업표시)</span>}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFileChange} className="form-input text-sm" />
+          </div>
+          <button onClick={handleUpload} disabled={uploading} className="btn-primary shrink-0">
+            {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+            {uploading ? '처리 중...' : '업로드'}
+          </button>
+        </div>
+      </div>
+
+      {preview.length > 0 && (
+        <div className="card p-5">
+          <p className="text-sm font-semibold text-gray-700 mb-3">파일 미리보기</p>
+          <div className="overflow-x-auto">
+            <table className="data-table text-xs">
+              <thead><tr>{Object.keys(preview[0]).slice(0, 10).map(h => <th key={h}>{h}</th>)}</tr></thead>
+              <tbody>
+                {preview.map((row, i) => (
+                  <tr key={i}>{Object.values(row).slice(0, 10).map((v, j) => (
+                    <td key={j} className="truncate max-w-[120px]" title={String(v)}>{String(v)}</td>
+                  ))}</tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
-    >
-      <FileSpreadsheet size={36} className="mx-auto mb-3 text-slate-500" />
-      <p className="text-slate-300 text-sm font-medium">{label}</p>
-      <p className="text-slate-600 text-xs mt-1">끌어다 놓거나 클릭하여 선택</p>
+
+      {result && (
+        <div className={clsx('card p-5', result.errors.length > 0 ? 'border-amber-100 bg-amber-50/30' : 'border-emerald-100 bg-emerald-50/30')}>
+          <div className="flex items-center gap-2 mb-3">
+            {result.errors.length > 0 ? <AlertCircle size={18} className="text-amber-600" /> : <CheckCircle2 size={18} className="text-emerald-600" />}
+            <p className="font-bold text-gray-900">업로드 완료</p>
+          </div>
+          <p className="text-sm text-gray-700">
+            <b className="text-emerald-600">{result.upserted}건</b> 등록/업데이트 완료
+            {result.errors.length > 0 && <span className="text-red-500 ml-2">/ {result.errors.length}건 오류</span>}
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ─── 사용자 관리 탭 ─── */
+function UsersTab() {
+  const [users, setUsers] = useState<UserRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [showPw, setShowPw] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    async function load() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+      const { data } = await db.from('profiles').select('*').order('role').order('department').order('full_name')
+      setUsers(data ?? [])
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  const filtered = users.filter(u => {
+    if (!search) return true
+    const s = search.toLowerCase()
+    return (
+      u.full_name?.toLowerCase().includes(s) ||
+      u.email?.toLowerCase().includes(s) ||
+      u.employee_id?.toLowerCase().includes(s) ||
+      u.department?.toLowerCase().includes(s)
+    )
+  })
+
+  const ROLE_KO: Record<string, string> = { admin: '관리자', controller: '통제책임자', owner: '담당자' }
+  const ROLE_CLS: Record<string, string> = { admin: 'badge-purple', controller: 'badge-blue', owner: 'badge-green' }
+
+  async function toggleActive(user: UserRow) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+    await db.from('profiles').update({ is_active: !user.is_active }).eq('id', user.id)
+    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_active: !u.is_active } : u))
+  }
+
+  function downloadUsersCSV() {
+    const headers = ['사번', '이름', '이메일', '부서', '역할', '초기비밀번호', '활성여부', '등록일']
+    const rows = filtered.map(u => [
+      u.employee_id ?? '', u.full_name ?? '', u.email, u.department ?? '',
+      ROLE_KO[u.role] ?? u.role, u.initial_password ?? u.employee_id ?? '',
+      u.is_active ? '활성' : '비활성', u.created_at.slice(0, 10)
+    ])
+    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = '사용자목록.csv'; a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-brand-500" /></div>
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-3">
+        <div className="relative flex-1">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="이름, 사번, 이메일, 부서 검색..." className="form-input pl-9 text-sm" />
+        </div>
+        <button onClick={downloadUsersCSV} className="btn-secondary text-xs px-3 py-2">
+          <Download size={14} />사용자 목록 다운로드
+        </button>
+      </div>
+
+      <div className="card overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-50 flex justify-between text-xs text-gray-500">
+          <span>총 <b className="text-gray-700">{filtered.length}</b>명</span>
+          <span>관리자 {users.filter(u=>u.role==='admin').length} | 통제책임자 {users.filter(u=>u.role==='controller').length} | 담당자 {users.filter(u=>u.role==='owner').length}</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>사번</th><th>이름</th><th>이메일</th><th>부서</th>
+                <th>역할</th><th>초기 비밀번호</th><th>상태</th><th className="text-center">조작</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(user => (
+                <tr key={user.id}>
+                  <td className="font-mono text-xs text-gray-600">{user.employee_id ?? '-'}</td>
+                  <td className="font-semibold text-sm text-gray-800">{user.full_name ?? '-'}</td>
+                  <td className="text-xs text-gray-500">{user.email}</td>
+                  <td className="text-xs text-gray-600">{user.department ?? '-'}</td>
+                  <td><span className={ROLE_CLS[user.role] ?? 'badge-gray'}>{ROLE_KO[user.role] ?? user.role}</span></td>
+                  <td>
+                    <div className="flex items-center gap-1">
+                      <code className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                        {showPw[user.id] ? (user.initial_password ?? user.employee_id ?? '***') : '••••••'}
+                      </code>
+                      <button onClick={() => setShowPw(p => ({ ...p, [user.id]: !p[user.id] }))}
+                        className="text-gray-400 hover:text-gray-600">
+                        {showPw[user.id] ? <EyeOff size={12} /> : <Eye size={12} />}
+                      </button>
+                    </div>
+                  </td>
+                  <td>
+                    <span className={user.is_active ? 'badge-green' : 'badge-gray'}>
+                      {user.is_active ? '활성' : '비활성'}
+                    </span>
+                  </td>
+                  <td className="text-center">
+                    <button
+                      onClick={() => toggleActive(user)}
+                      className={clsx('text-xs px-2 py-1 rounded-lg transition-all',
+                        user.is_active ? 'text-red-600 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'
+                      )}
+                    >
+                      {user.is_active ? '비활성화' : '활성화'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ─── 통제활동 관리 탭 ─── */
+function ActivitiesTab() {
+  const [activities, setActivities] = useState<ActivityRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [processing, setProcessing] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function load() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+      const { data } = await db.from('activities').select('id, control_code, owner_name, department, title, submission_status, controller_name, active')
+        .order('control_code').order('department')
+      setActivities(data ?? [])
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  const filtered = activities.filter(a => {
+    if (!search) return true
+    const s = search.toLowerCase()
+    return a.control_code?.toLowerCase().includes(s) || a.owner_name?.toLowerCase().includes(s) || a.department?.toLowerCase().includes(s) || a.title?.toLowerCase().includes(s)
+  })
+
+  async function resetStatus(id: string) {
+    if (!confirm('이 통제활동의 상신여부를 미완료로 초기화하시겠습니까?')) return
+    setProcessing(id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+    await db.from('activities').update({ submission_status: '미완료' }).eq('id', id)
+    setActivities(prev => prev.map(a => a.id === id ? { ...a, submission_status: '미완료' } : a))
+    setProcessing(null)
+  }
+
+  const STATUS_MAP: Record<string, string> = { '미완료': 'badge-yellow', '완료': 'badge-blue', '승인': 'badge-green', '반려': 'badge-red' }
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-brand-500" /></div>
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-3">
+        <div className="relative flex-1">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="통제번호, 담당자, 부서 검색..." className="form-input pl-9 text-sm" />
+        </div>
+      </div>
+      <div className="card overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-50 text-xs text-gray-500">
+          총 <b className="text-gray-700">{filtered.length}</b>건
+        </div>
+        <div className="overflow-x-auto">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>통제번호</th><th>담당자</th><th>부서</th><th>통제활동명</th>
+                <th>승인자</th><th>상신여부</th><th className="text-center">관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(a => (
+                <tr key={a.id}>
+                  <td><code className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{a.control_code}</code></td>
+                  <td className="text-sm font-medium text-gray-800">{a.owner_name ?? '-'}</td>
+                  <td className="text-xs text-gray-500">{a.department ?? '-'}</td>
+                  <td className="text-xs text-gray-600 max-w-[200px] truncate" title={a.title ?? ''}>{a.title ?? '-'}</td>
+                  <td className="text-xs text-gray-500">{a.controller_name ?? '-'}</td>
+                  <td><span className={STATUS_MAP[a.submission_status] ?? 'badge-gray'}>{a.submission_status}</span></td>
+                  <td className="text-center">
+                    <button
+                      onClick={() => resetStatus(a.id)}
+                      disabled={processing === a.id || a.submission_status === '미완료'}
+                      className="text-xs px-2 py-1 text-orange-600 hover:bg-orange-50 rounded-lg transition-all disabled:opacity-30"
+                    >
+                      {processing === a.id ? <Loader2 size={11} className="animate-spin inline" /> : '초기화'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ─── 증빙 다운로드 탭 ─── */
+function FilesTab() {
+  const [files, setFiles] = useState<{ id: string; file_name: string; file_path: string; unique_key: string | null; uploaded_at: string | null; owner?: { full_name: string | null } }[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+
+  useEffect(() => {
+    async function load() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+      const { data } = await db.from('evidence_uploads')
+        .select('id, file_name, file_path, unique_key, uploaded_at, owner:owner_id(full_name)')
+        .order('uploaded_at', { ascending: false })
+        .limit(500)
+      setFiles(data ?? [])
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  const filtered = files.filter(f => {
+    if (!search) return true
+    const s = search.toLowerCase()
+    return f.file_name?.toLowerCase().includes(s) || f.unique_key?.toLowerCase().includes(s)
+  })
+
+  async function downloadFile(path: string, name: string) {
+    const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 60)
+    if (data?.signedUrl) {
+      const a = document.createElement('a'); a.href = data.signedUrl; a.download = name; a.click()
+    }
+  }
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-brand-500" /></div>
+
+  return (
+    <div className="space-y-4">
+      <div className="relative">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="파일명, 고유키 검색..." className="form-input pl-9 text-sm" />
+      </div>
+      <div className="card overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-50 text-xs text-gray-500">총 <b className="text-gray-700">{filtered.length}</b>개 파일</div>
+        <div className="overflow-x-auto">
+          <table className="data-table">
+            <thead>
+              <tr><th>파일명</th><th>고유키</th><th>담당자</th><th>업로드일</th><th className="text-center">다운로드</th></tr>
+            </thead>
+            <tbody>
+              {filtered.map(f => (
+                <tr key={f.id}>
+                  <td className="text-xs text-gray-700 max-w-[250px] truncate" title={f.file_name}>{f.file_name}</td>
+                  <td className="text-xs text-gray-500 font-mono">{f.unique_key ?? '-'}</td>
+                  <td className="text-xs text-gray-600">{f.owner?.full_name ?? '-'}</td>
+                  <td className="text-xs text-gray-400">{f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('ko-KR') : '-'}</td>
+                  <td className="text-center">
+                    <button onClick={() => downloadFile(f.file_path, f.file_name)}
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-brand-50 text-brand-700 rounded-lg text-xs hover:bg-brand-100 transition-all">
+                      <Download size={11} />다운로드
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

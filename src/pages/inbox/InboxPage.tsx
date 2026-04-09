@@ -1,205 +1,373 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Inbox, Clock, ChevronRight, Loader2, CheckCircle2 } from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
+import {
+  Inbox, CheckCircle2, XCircle, Clock, MessageSquare,
+  Loader2, RefreshCw, Eye
+} from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import clsx from 'clsx'
+import EvidenceUploadModal from '../evidence/EvidenceUploadModal'
 
-interface RequestItem {
+interface ApprovalItem {
   id: string
-  unique_key: string
-  control_code: string
+  unique_key: string | null
+  control_code: string | null
+  activity_id: string | null
   status: string
+  submitted_at: string | null
+  decided_at: string | null
   owner_comment: string | null
-  submitted_at: string
-  owner: { full_name: string | null; department: string | null } | null
-  activity: { title: string; control_code: string } | null
-  upload_count: number
+  controller_comment: string | null
+  activity?: {
+    id: string
+    control_code: string
+    owner_name: string | null
+    department: string | null
+    title: string | null
+    description: string | null
+    controller_name: string | null
+    controller_email: string | null
+    kpi_score: number | null
+    submission_status: string
+    unique_key: string | null
+    owner_id: string | null
+    controller_id: string | null
+    owner_email: string | null
+  }
 }
 
-const STATUS_UI: Record<string, { label: string; color: string }> = {
-  submitted: { label: '결재 대기', color: 'text-yellow-400 bg-yellow-950/50 border-yellow-800' },
-  approved:  { label: '승인 완료', color: 'text-green-400 bg-green-950/50 border-green-800' },
-  rejected:  { label: '반려',      color: 'text-red-400 bg-red-950/50 border-red-800' },
+const STATUS_MAP: Record<string, { label: string; cls: string }> = {
+  submitted: { label: '결재 대기', cls: 'badge-yellow' },
+  approved:  { label: '승인완료',  cls: 'badge-green' },
+  rejected:  { label: '반려',      cls: 'badge-red' },
 }
-
-type FilterTab = 'submitted' | 'approved' | 'rejected' | 'all'
 
 export default function InboxPage() {
   const { profile } = useAuth()
-  const navigate = useNavigate()
-  const [items, setItems] = useState<RequestItem[]>([])
+  const [items,   setItems]   = useState<ApprovalItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<FilterTab>('submitted')
+  const [processing, setProcessing] = useState<string | null>(null)
+  const [commentMap, setCommentMap] = useState<Record<string, string>>({})
+  const [selectedActivity, setSelectedActivity] = useState<ApprovalItem['activity'] | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
 
-  useEffect(() => { if (profile) loadInbox() }, [profile, tab])
-
-  async function loadInbox() {
+  const fetchInbox = useCallback(async () => {
     if (!profile) return
-    if (profile.role === 'owner') { setLoading(false); return }
     setLoading(true)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
 
-    let q = db
-      .from('approval_requests')
-      .select(`
-        id, unique_key, control_code, status, owner_comment, submitted_at,
-        owner:profiles!approval_requests_owner_id_fkey(full_name, department)
-      `)
-      .order('submitted_at', { ascending: false })
+    let q = db.from('approval_requests').select(`
+      *,
+      activity:activity_id (
+        id, control_code, owner_name, department, title, description,
+        controller_name, controller_email, kpi_score, submission_status,
+        unique_key, owner_id, controller_id, owner_email
+      )
+    `)
 
-    // 통제책임자는 본인에게 배정된 것만
     if (profile.role === 'controller') {
-      q = q.eq('controller_id', profile.id)
+      if (profile.full_name) {
+        // 직접 activity join으로 필터 대신 controller_id 사용
+        q = q.eq('controller_id', profile.id)
+      }
+    } else if (profile.role === 'owner') {
+      q = q.eq('owner_id', profile.id)
+    }
+    // admin은 전체
+
+    q = q.order('submitted_at', { ascending: false })
+    const { data: rawData } = await q
+    if (!rawData) { setLoading(false); return }
+
+    // activity_id가 없는 경우 unique_key로 activities를 별도 조회
+    const missingKeys = rawData
+      .filter((r: ApprovalItem) => !r.activity && r.unique_key)
+      .map((r: ApprovalItem) => r.unique_key!)
+
+    let actByKey: Record<string, ApprovalItem['activity']> = {}
+    if (missingKeys.length > 0) {
+      const { data: acts } = await db.from('activities').select('*').in('unique_key', missingKeys)
+      ;(acts ?? []).forEach((a: NonNullable<ApprovalItem['activity']>) => {
+        if (a.unique_key) actByKey[a.unique_key] = a
+      })
     }
 
-    if (tab !== 'all') q = q.eq('status', tab)
-
-    const { data, error } = await q
-    if (error) { console.error(error); setLoading(false); return }
-
-    // 각 요청의 업로드 수 집계
-    const enriched: RequestItem[] = []
-    for (const r of data ?? []) {
-      const { count } = await db
-        .from('evidence_uploads')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'uploaded')
-        .in('population_item_id',
-          db.from('population_items').select('id').eq('unique_key', r.unique_key)
-        )
-      // activity 제목 조회
-      const { data: act } = await db
-        .from('activities')
-        .select('title, control_code')
-        .eq('unique_key', r.unique_key)
-        .maybeSingle()
-      enriched.push({ ...r, upload_count: count ?? 0, activity: act ?? null })
-    }
-    setItems(enriched)
+    const merged = rawData.map((r: ApprovalItem) => ({
+      ...r,
+      activity: r.activity ?? (r.unique_key ? actByKey[r.unique_key] : null)
+    }))
+    setItems(merged)
     setLoading(false)
+  }, [profile])
+
+  useEffect(() => { fetchInbox() }, [fetchInbox])
+
+  async function handleDecision(item: ApprovalItem, decision: 'approved' | 'rejected') {
+    const comment = commentMap[item.id] ?? ''
+    if (decision === 'rejected' && !comment.trim()) {
+      alert('반려 시 사유를 입력해주세요.')
+      return
+    }
+    if (!confirm(decision === 'approved'
+      ? `"${item.activity?.title ?? item.control_code}"을 승인하시겠습니까?`
+      : `반려 처리하시겠습니까?\n사유: ${comment}`
+    )) return
+
+    setProcessing(item.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+
+    try {
+      // 1. approval_requests 업데이트
+      await db.from('approval_requests')
+        .update({
+          status: decision,
+          controller_comment: comment,
+          decided_at: new Date().toISOString(),
+        })
+        .eq('id', item.id)
+
+      // 2. activities submission_status 업데이트
+      if (item.activity_id) {
+        await db.from('activities')
+          .update({
+            submission_status: decision === 'approved' ? '승인' : '반려',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', item.activity_id)
+      }
+
+      // 3. 이메일 알림 발송
+      try {
+        const ownerEmail = item.activity?.owner_email
+        if (ownerEmail) {
+          await supabase.functions.invoke('send-approval-email', {
+            body: {
+              type: decision,
+              to: ownerEmail,
+              ownerName: item.activity?.owner_name ?? '',
+              controllerName: profile?.full_name ?? '',
+              controlCode: item.control_code ?? '',
+              activityTitle: item.activity?.title ?? '',
+              comment,
+              portalUrl: window.location.origin,
+            }
+          })
+        }
+      } catch { /* 이메일 실패해도 계속 */ }
+
+      fetchInbox()
+    } catch {
+      alert('처리 중 오류가 발생했습니다.')
+    }
+    setProcessing(null)
   }
 
-  if (profile?.role === 'owner') {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white">결재함</h1>
-          <p className="text-slate-400 text-sm mt-1">승인 대기 중인 결재 요청</p>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center">
-          <Inbox size={36} className="text-slate-700 mx-auto mb-3" />
-          <p className="text-slate-400 text-sm">증빙담당자는 결재함을 사용하지 않습니다</p>
-          <button onClick={() => navigate('/evidence')}
-            className="mt-4 text-brand-400 hover:text-brand-300 text-sm font-medium transition-colors"
-          >
-            증빙결재로 이동 →
-          </button>
-        </div>
-      </div>
-    )
+  async function handleAdminCancel(item: ApprovalItem) {
+    if (!confirm('관리자 권한으로 이 결재를 취소(초기화)하시겠습니까?')) return
+    setProcessing(item.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+    await db.from('approval_requests').update({ status: 'submitted' }).eq('id', item.id)
+    if (item.activity_id) {
+      await db.from('activities').update({ submission_status: '완료' }).eq('id', item.activity_id)
+    }
+    setProcessing(null)
+    fetchInbox()
   }
 
-  const counts = { submitted: 0, approved: 0, rejected: 0, all: items.length }
-  items.forEach(i => { if (i.status in counts) counts[i.status as keyof typeof counts]++ })
+  function openViewModal(item: ApprovalItem) {
+    if (item.activity) {
+      setSelectedActivity(item.activity)
+      setModalOpen(true)
+    }
+  }
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center py-24 gap-3">
+      <Loader2 size={28} className="animate-spin text-brand-500" />
+      <p className="text-gray-400 text-sm">데이터 로딩 중...</p>
+    </div>
+  )
+
+  const pending  = items.filter(i => i.status === 'submitted').length
+  const approved = items.filter(i => i.status === 'approved').length
+  const rejected = items.filter(i => i.status === 'rejected').length
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="space-y-5">
+      {/* 헤더 */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white">결재함</h1>
-          <p className="text-slate-400 text-sm mt-1">증빙 결재 요청 목록</p>
+          <h1 className="text-xl font-black text-gray-900 flex items-center gap-2">
+            <Inbox size={22} className="text-brand-600" />
+            {profile?.role === 'controller' ? '내승인함' : '결재 현황'}
+          </h1>
+          <p className="text-gray-500 text-sm mt-0.5">
+            {profile?.role === 'controller'
+              ? '담당자가 상신한 증빙 결재를 처리합니다'
+              : '전체 결재 현황을 관리합니다'}
+          </p>
         </div>
-        {counts.submitted > 0 && (
-          <span className="text-xs font-medium bg-yellow-950/50 border border-yellow-800 text-yellow-400 px-3 py-1.5 rounded-full">
-            대기 {counts.submitted}건
-          </span>
-        )}
+        <button onClick={fetchInbox} className="btn-ghost text-xs px-3 py-2">
+          <RefreshCw size={14} />새로고침
+        </button>
       </div>
 
-      {/* 탭 필터 */}
-      <div className="flex gap-2 flex-wrap">
-        {([
-          ['submitted', '결재 대기'],
-          ['approved',  '승인 완료'],
-          ['rejected',  '반려'],
-          ['all',       '전체'],
-        ] as [FilterTab, string][]).map(([key, label]) => (
-          <button key={key} onClick={() => setTab(key)}
-            className={clsx('px-4 py-1.5 rounded-full text-sm font-medium border transition-all',
-              tab === key
-                ? 'bg-brand-600 border-brand-500 text-white'
-                : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
-            )}
-          >
-            {label}
-            {counts[key] > 0 && <span className="ml-1.5 text-xs opacity-70">({counts[key]})</span>}
-          </button>
-        ))}
+      {/* 통계 카드 */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="card p-4">
+          <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center mb-2">
+            <Clock size={16} />
+          </div>
+          <p className="text-xs text-gray-500">결재 대기</p>
+          <p className="text-xl font-black text-gray-900">{pending}<span className="text-xs text-gray-400 font-normal ml-0.5">건</span></p>
+        </div>
+        <div className="card p-4">
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2">
+            <CheckCircle2 size={16} />
+          </div>
+          <p className="text-xs text-gray-500">승인완료</p>
+          <p className="text-xl font-black text-gray-900">{approved}<span className="text-xs text-gray-400 font-normal ml-0.5">건</span></p>
+        </div>
+        <div className="card p-4">
+          <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center mb-2">
+            <XCircle size={16} />
+          </div>
+          <p className="text-xs text-gray-500">반려</p>
+          <p className="text-xl font-black text-gray-900">{rejected}<span className="text-xs text-gray-400 font-normal ml-0.5">건</span></p>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-16"><Loader2 size={28} className="text-brand-500 animate-spin" /></div>
-      ) : items.length === 0 ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center">
-          <CheckCircle2 size={36} className="text-slate-700 mx-auto mb-3" />
-          <p className="text-slate-400 text-sm">해당 결재 건이 없습니다</p>
+      {/* 결재 목록 */}
+      {items.length === 0 ? (
+        <div className="card flex flex-col items-center justify-center py-16 text-gray-400">
+          <Inbox size={40} className="mb-3 text-gray-200" />
+          <p className="font-medium text-gray-500">결재 항목이 없습니다</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {items.map(item => {
-            const st = STATUS_UI[item.status] ?? STATUS_UI.submitted
+            const si = STATUS_MAP[item.status] ?? STATUS_MAP.submitted
+            const isPending = item.status === 'submitted'
+            const act = item.activity
             return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  // activity ID를 찾아서 work 페이지로 이동
-                  navigateToWork(item.unique_key)
-                }}
-                className="w-full bg-slate-900 border border-slate-800 hover:border-slate-600 rounded-xl px-4 md:px-5 py-4 flex items-center gap-4 transition-all text-left group"
-              >
-                <div className={clsx('w-10 h-10 rounded-lg flex items-center justify-center shrink-0',
-                  item.status === 'submitted' ? 'bg-yellow-950/50' : item.status === 'approved' ? 'bg-green-950/50' : 'bg-red-950/50'
-                )}>
-                  <Clock size={20} className={
-                    item.status === 'submitted' ? 'text-yellow-400' : item.status === 'approved' ? 'text-green-400' : 'text-red-400'
-                  } />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-mono text-brand-400 bg-brand-950/50 border border-brand-900 px-2 py-0.5 rounded shrink-0">
-                      {item.control_code}
-                    </span>
-                    <p className="text-white text-sm font-medium truncate">
-                      {item.activity?.title ?? item.control_code}
+              <div key={item.id} className={clsx(
+                'card p-5 transition-all',
+                isPending && 'border-amber-100 bg-amber-50/30'
+              )}>
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div className="flex-1">
+                    {/* 상단: 통제번호 + 상태 */}
+                    <div className="flex items-center gap-2 flex-wrap mb-2">
+                      <code className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                        {act?.control_code ?? item.control_code ?? '-'}
+                      </code>
+                      <span className={si.cls}>{si.label}</span>
+                      {isPending && (
+                        <span className="flex items-center gap-1 text-xs text-amber-600">
+                          <Clock size={11} />결재 대기 중
+                        </span>
+                      )}
+                    </div>
+
+                    {/* 통제활동명 */}
+                    <p className="text-sm font-bold text-gray-900 mb-1">
+                      {act?.title ?? '(활동명 없음)'}
                     </p>
+
+                    {/* 메타 */}
+                    <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                      <span>담당자: <b className="text-gray-700">{act?.owner_name ?? '-'}</b></span>
+                      <span>부서: <b className="text-gray-700">{act?.department ?? '-'}</b></span>
+                      {item.submitted_at && (
+                        <span>상신일: {new Date(item.submitted_at).toLocaleDateString('ko-KR')}</span>
+                      )}
+                      {item.decided_at && (
+                        <span>결재일: {new Date(item.decided_at).toLocaleDateString('ko-KR')}</span>
+                      )}
+                    </div>
+
+                    {/* 코멘트 */}
+                    {item.controller_comment && (
+                      <div className="mt-2 flex items-start gap-1.5 text-xs text-gray-500 bg-gray-50 rounded-lg p-2">
+                        <MessageSquare size={11} className="shrink-0 mt-0.5" />
+                        <span>{item.controller_comment}</span>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-slate-500 text-xs mt-0.5">
-                    제출자: {item.owner?.full_name ?? '-'} · {item.owner?.department ?? ''}
-                    {item.upload_count > 0 && ` · 증빙 ${item.upload_count}건`}
-                  </p>
+
+                  {/* 우측 액션 */}
+                  <div className="flex flex-col gap-2 shrink-0 min-w-[180px]">
+                    {/* 증빙 확인 버튼 */}
+                    <button
+                      onClick={() => openViewModal(item)}
+                      className="btn-secondary text-xs py-2"
+                    >
+                      <Eye size={13} />증빙 확인
+                    </button>
+
+                    {/* 결재 처리 (controller만, 대기 중일 때) */}
+                    {profile?.role === 'controller' && isPending && (
+                      <>
+                        <textarea
+                          value={commentMap[item.id] ?? ''}
+                          onChange={e => setCommentMap(p => ({ ...p, [item.id]: e.target.value }))}
+                          placeholder="결재 의견 입력 (반려 시 필수)"
+                          rows={2}
+                          className="form-input text-xs resize-none"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleDecision(item, 'approved')}
+                            disabled={!!processing}
+                            className="btn-success flex-1 text-xs py-2"
+                          >
+                            {processing === item.id
+                              ? <Loader2 size={13} className="animate-spin" />
+                              : <CheckCircle2 size={13} />}
+                            승인
+                          </button>
+                          <button
+                            onClick={() => handleDecision(item, 'rejected')}
+                            disabled={!!processing}
+                            className="btn-danger flex-1 text-xs py-2"
+                          >
+                            {processing === item.id
+                              ? <Loader2 size={13} className="animate-spin" />
+                              : <XCircle size={13} />}
+                            반려
+                          </button>
+                        </div>
+                      </>
+                    )}
+
+                    {/* 관리자: 취소 버튼 */}
+                    {profile?.role === 'admin' && item.status !== 'submitted' && (
+                      <button
+                        onClick={() => handleAdminCancel(item)}
+                        className="btn-ghost text-xs py-2 text-orange-600 hover:bg-orange-50"
+                      >
+                        결재 취소 (관리자)
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className={clsx('text-xs font-medium px-2.5 py-1 rounded-full border hidden sm:inline', st.color)}>
-                    {st.label}
-                  </span>
-                  <span className="text-slate-500 text-xs">
-                    {new Date(item.submitted_at).toLocaleDateString('ko-KR')}
-                  </span>
-                  <ChevronRight size={16} className="text-slate-600 group-hover:text-slate-400" />
-                </div>
-              </button>
+              </div>
             )
           })}
         </div>
       )}
+
+      {/* 증빙 확인 모달 */}
+      {modalOpen && selectedActivity && (
+        <EvidenceUploadModal
+          activity={selectedActivity}
+          onClose={() => { setModalOpen(false); setSelectedActivity(null) }}
+          viewOnly={true}
+        />
+      )}
     </div>
   )
-
-  async function navigateToWork(uniqueKey: string) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data } = await (supabase as any).from('activities').select('id').eq('unique_key', uniqueKey).maybeSingle()
-    if (data?.id) navigate(`/evidence/work/${data.id}`)
-  }
 }

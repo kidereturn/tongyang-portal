@@ -1,0 +1,151 @@
+import { TrendingUp, Award, BarChart2, Star } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+
+const KPI_DATA = [
+  { dept: '안양공장', score: 92, rank: 1, activities: 18, completed: 17 },
+  { dept: '인천공장', score: 87, rank: 2, activities: 15, completed: 13 },
+  { dept: '파주공장', score: 85, rank: 3, activities: 20, completed: 17 },
+  { dept: '본사재무', score: 78, rank: 4, activities: 25, completed: 19 },
+  { dept: '양산공장', score: 75, rank: 5, activities: 16, completed: 12 },
+  { dept: '영업관리', score: 72, rank: 6, activities: 12, completed: 9 },
+]
+
+const CHART_DATA = [
+  { month: '1월', 목표: 80, 실적: 65 },
+  { month: '2월', 목표: 80, 실적: 72 },
+  { month: '3월', 목표: 85, 실적: 78 },
+  { month: '4월', 목표: 85, 실적: 85 },
+  { month: '5월', 목표: 90, 실적: 82 },
+  { month: '6월', 목표: 90, 실적: 88 },
+]
+
+export default function KpiPage() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-xl font-black text-gray-900 flex items-center gap-2">
+          <TrendingUp size={22} className="text-brand-600" />KPI 결과
+        </h1>
+        <p className="text-gray-500 text-sm mt-0.5">내부회계관리제도 운영 KPI 현황</p>
+      </div>
+
+      {/* KPI 요약 */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: '전체 완료율', value: '82%', icon: TrendingUp, color: 'brand', change: '+5%' },
+          { label: '통제활동 수', value: '420', icon: BarChart2, color: 'blue', change: '' },
+          { label: '최고 점수 부서', value: '안양공장', icon: Award, color: 'yellow', change: '92점' },
+          { label: '평균 KPI 점수', value: '81.5', icon: Star, color: 'green', change: '점' },
+        ].map(s => (
+          <div key={s.label} className="card p-4">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${
+              s.color === 'brand' ? 'bg-brand-50 text-brand-600' :
+              s.color === 'blue' ? 'bg-blue-50 text-blue-600' :
+              s.color === 'yellow' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
+            }`}>
+              <s.icon size={16} />
+            </div>
+            <p className="text-xs text-gray-500">{s.label}</p>
+            <p className="text-xl font-black text-gray-900">{s.value}<span className="text-xs text-gray-400 ml-0.5">{s.change}</span></p>
+          </div>
+        ))}
+      </div>
+
+      {/* 차트 + 순위표 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* 월별 KPI 추이 */}
+        <div className="card p-5">
+          <p className="font-bold text-gray-900 mb-4">월별 KPI 달성률 추이</p>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={CHART_DATA} barSize={14}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis dataKey="month" tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} domain={[0, 100]} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 12 }}
+              />
+              <Bar dataKey="목표" fill="#e0e7ff" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="실적" fill="#4f46e5" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* 부서별 순위 */}
+        <div className="card p-5">
+          <p className="font-bold text-gray-900 mb-4">부서별 점수 순위</p>
+          <div className="space-y-3">
+            {KPI_DATA.map((d, i) => (
+              <div key={d.dept} className="flex items-center gap-3">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
+                  i === 0 ? 'bg-amber-100 text-amber-700' :
+                  i === 1 ? 'bg-gray-100 text-gray-600' :
+                  i === 2 ? 'bg-orange-100 text-orange-700' : 'bg-gray-50 text-gray-500'
+                }`}>
+                  {i + 1}
+                </div>
+                <div className="flex-1">
+                  <div className="flex justify-between mb-1 text-xs">
+                    <span className="font-semibold text-gray-800">{d.dept}</span>
+                    <span className="text-gray-500">{d.completed}/{d.activities}건 ({d.score}점)</span>
+                  </div>
+                  <div className="bg-gray-100 rounded-full h-1.5">
+                    <div
+                      className={`h-1.5 rounded-full ${i === 0 ? 'bg-amber-400' : i < 3 ? 'bg-brand-500' : 'bg-gray-400'}`}
+                      style={{ width: `${d.score}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 상세 테이블 */}
+      <div className="card overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-50">
+          <p className="font-bold text-gray-900">통제활동별 KPI 상세</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>순위</th><th>부서</th><th>KPI 점수</th><th>통제활동 수</th><th>완료</th><th>완료율</th><th>비고</th>
+              </tr>
+            </thead>
+            <tbody>
+              {KPI_DATA.map((d, i) => (
+                <tr key={d.dept}>
+                  <td className="text-center">
+                    <span className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-xs font-black ${
+                      i === 0 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'
+                    }`}>{i + 1}</span>
+                  </td>
+                  <td className="font-semibold text-sm">{d.dept}</td>
+                  <td>
+                    <span className={`badge ${d.score >= 90 ? 'badge-green' : d.score >= 80 ? 'badge-blue' : 'badge-yellow'}`}>
+                      {d.score}점
+                    </span>
+                  </td>
+                  <td className="text-center">{d.activities}</td>
+                  <td className="text-center">{d.completed}</td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-gray-100 rounded-full h-1.5 max-w-[80px]">
+                        <div className="bg-brand-500 h-1.5 rounded-full" style={{ width: `${Math.round(d.completed/d.activities*100)}%` }} />
+                      </div>
+                      <span className="text-xs text-gray-600">{Math.round(d.completed/d.activities*100)}%</span>
+                    </div>
+                  </td>
+                  <td className="text-xs text-gray-400">
+                    {i === 0 ? '🏆 최우수' : i < 3 ? '우수' : ''}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
