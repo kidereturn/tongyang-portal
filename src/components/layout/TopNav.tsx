@@ -32,6 +32,32 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/chatbot',    icon: Bot,              label: 'AI챗봇' },
 ]
 
+// 모바일 하단 탭: 역할별로 핵심 5개만
+function getMobileTabItems(role: string | undefined): NavItem[] {
+  if (role === 'controller') return [
+    { to: '/dashboard', icon: LayoutDashboard, label: '대시보드' },
+    { to: '/inbox',     icon: Inbox,           label: '내승인함' },
+    { to: '/courses',   icon: BookOpen,        label: '내강좌' },
+    { to: '/kpi',       icon: TrendingUp,      label: 'KPI' },
+    { to: '/chatbot',   icon: Bot,             label: 'AI챗봇' },
+  ]
+  if (role === 'admin') return [
+    { to: '/dashboard', icon: LayoutDashboard, label: '대시보드' },
+    { to: '/evidence',  icon: FileCheck2,      label: '증빙관리' },
+    { to: '/inbox',     icon: Inbox,           label: '승인함' },
+    { to: '/admin',     icon: Settings,        label: '관리자' },
+    { to: '/chatbot',   icon: Bot,             label: 'AI챗봇' },
+  ]
+  // owner (default)
+  return [
+    { to: '/dashboard', icon: LayoutDashboard, label: '대시보드' },
+    { to: '/evidence',  icon: FileCheck2,      label: '증빙관리' },
+    { to: '/courses',   icon: BookOpen,        label: '내강좌' },
+    { to: '/kpi',       icon: TrendingUp,      label: 'KPI' },
+    { to: '/chatbot',   icon: Bot,             label: 'AI챗봇' },
+  ]
+}
+
 export default function TopNav() {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
@@ -43,6 +69,7 @@ export default function TopNav() {
   const visibleItems = NAV_ITEMS.filter(item =>
     !item.roles || item.roles.includes(profile?.role ?? '')
   )
+  const mobileTabItems = getMobileTabItems(profile?.role)
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -230,6 +257,36 @@ export default function TopNav() {
           </div>
         )}
       </header>
+
+      {/* 모바일 하단 탭 바 */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]">
+        <div className="flex items-stretch h-16">
+          {mobileTabItems.map(({ to, icon: Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) => clsx(
+                'flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all duration-150',
+                isActive
+                  ? 'text-brand-600'
+                  : 'text-gray-400 active:text-gray-600'
+              )}
+            >
+              {({ isActive }) => (
+                <>
+                  <div className={clsx(
+                    'w-10 h-7 flex items-center justify-center rounded-full transition-all duration-200',
+                    isActive ? 'bg-brand-50' : ''
+                  )}>
+                    <Icon size={isActive ? 22 : 20} />
+                  </div>
+                  <span className={clsx(isActive && 'font-semibold')}>{label}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
+      </nav>
     </>
   )
 }

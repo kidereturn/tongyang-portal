@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
   Inbox, CheckCircle2, XCircle, Clock, MessageSquare,
-  Loader2, RefreshCw, Eye
+  RefreshCw, Eye, Loader2
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
@@ -185,9 +185,36 @@ export default function InboxPage() {
   }
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center py-24 gap-3">
-      <Loader2 size={28} className="animate-spin text-brand-500" />
-      <p className="text-gray-400 text-sm">데이터 로딩 중...</p>
+    <div className="space-y-5 pb-mobile-tab lg:pb-0">
+      <div className="flex justify-between items-center">
+        <div className="space-y-1.5">
+          <div className="skeleton h-6 w-28 rounded" />
+          <div className="skeleton h-4 w-48 rounded" />
+        </div>
+        <div className="skeleton h-8 w-20 rounded-lg" />
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        {[1,2,3].map(i => (
+          <div key={i} className="card p-4 space-y-2">
+            <div className="skeleton h-8 w-8 rounded-lg" />
+            <div className="skeleton h-3 w-16 rounded" />
+            <div className="skeleton h-6 w-12 rounded" />
+          </div>
+        ))}
+      </div>
+      {[1,2,3].map(i => (
+        <div key={i} className="card p-5 space-y-3">
+          <div className="flex gap-2">
+            <div className="skeleton h-5 w-24 rounded-full" />
+            <div className="skeleton h-5 w-16 rounded-full" />
+          </div>
+          <div className="skeleton h-4 w-64 rounded" />
+          <div className="flex gap-4">
+            <div className="skeleton h-3 w-24 rounded" />
+            <div className="skeleton h-3 w-20 rounded" />
+          </div>
+        </div>
+      ))}
     </div>
   )
 
@@ -196,7 +223,7 @@ export default function InboxPage() {
   const rejected = items.filter(i => i.status === 'rejected').length
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-mobile-tab lg:pb-0">
       {/* 헤더 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>

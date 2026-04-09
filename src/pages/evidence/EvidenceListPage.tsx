@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   FileCheck2, Upload, CheckCircle2, Clock,
   Search, RefreshCw, Download, Filter,
-  AlertCircle, Loader2, ChevronRight
+  AlertCircle, ChevronRight
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
@@ -106,14 +106,38 @@ export default function EvidenceListPage() {
   }
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center py-24 gap-3">
-      <Loader2 size={28} className="animate-spin text-brand-500" />
-      <p className="text-gray-400 text-sm">데이터 로딩 중...</p>
+    <div className="space-y-5 pb-mobile-tab lg:pb-0">
+      <div className="flex justify-between items-center">
+        <div className="space-y-1.5">
+          <div className="skeleton h-6 w-24 rounded" />
+          <div className="skeleton h-4 w-48 rounded" />
+        </div>
+        <div className="skeleton h-8 w-24 rounded-lg" />
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[1,2,3,4].map(i => (
+          <div key={i} className="card p-4 space-y-2">
+            <div className="skeleton h-8 w-8 rounded-lg" />
+            <div className="skeleton h-3 w-16 rounded" />
+            <div className="skeleton h-6 w-12 rounded" />
+          </div>
+        ))}
+      </div>
+      <div className="card overflow-hidden">
+        {[1,2,3,4,5,6].map(i => (
+          <div key={i} className="p-4 border-b border-gray-50 flex items-center gap-4">
+            <div className="skeleton h-4 w-24 rounded" />
+            <div className="skeleton h-4 w-32 rounded" />
+            <div className="skeleton h-4 w-40 rounded" />
+            <div className="skeleton h-4 w-20 rounded ml-auto" />
+          </div>
+        ))}
+      </div>
     </div>
   )
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-mobile-tab lg:pb-0">
       {/* 헤더 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>

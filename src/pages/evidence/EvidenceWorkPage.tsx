@@ -123,7 +123,8 @@ export default function EvidenceWorkPage() {
     const db = supabase as any
 
     const ext = uploadFile.name.split('.').pop()
-    const path = `evidence/${profile.id}/${modalItem.id}_${Date.now()}.${ext}`
+    // Storage policy: first folder must be auth.uid() (profile.id)
+    const path = `${profile.id}/${modalItem.id}_${Date.now()}.${ext}`
 
     const { error: storErr } = await supabase.storage.from('evidence').upload(path, uploadFile, { upsert: true })
     if (storErr) { setError('파일 업로드 실패: ' + storErr.message); setUploading(false); return }

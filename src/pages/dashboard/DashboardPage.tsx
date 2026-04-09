@@ -5,11 +5,12 @@ import {
 } from 'recharts'
 import {
   FileCheck2, Clock, CheckCircle2, XCircle, TrendingUp,
-  Users, AlertTriangle, Loader2, ArrowRight, Bell,
+  Users, AlertTriangle, ArrowRight, Bell,
   Activity, LayoutDashboard
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { useCountUp } from '../../hooks/useCountUp'
 import { Link } from 'react-router-dom'
 import clsx from 'clsx'
 
@@ -22,6 +23,43 @@ interface ActivityStat { title: string; total: number; approved: number }
 
 const PIE_COLORS = ['#f59e0b', '#6366f1', '#22c55e', '#ef4444']
 
+function StatCard({
+  icon: Icon, color, label, value, unit, to, loaded
+}: {
+  icon: React.ElementType; color: string; label: string
+  value: number; unit: string; to: string; loaded: boolean
+}) {
+  const animated = useCountUp(value, 900, loaded)
+  return (
+    <Link to={to} className="card p-5 hover:shadow-md hover:-translate-y-0.5 transition-all group">
+      {loaded ? (
+        <>
+          <div className={clsx('w-10 h-10 rounded-xl flex items-center justify-center mb-3',
+            color === 'brand' ? 'bg-brand-50 text-brand-600' :
+            color === 'amber' ? 'bg-amber-50 text-amber-600' :
+            color === 'green' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
+          )}>
+            <Icon size={20} />
+          </div>
+          <p className="text-xs text-gray-500 mb-0.5">{label}</p>
+          <p className="text-2xl font-black text-gray-900" style={{ animation: 'countUp 0.4s ease-out' }}>
+            {animated.toLocaleString()}<span className="text-sm text-gray-400 font-normal ml-1">{unit}</span>
+          </p>
+          <p className="text-xs text-gray-300 group-hover:text-brand-400 transition-colors mt-2 flex items-center gap-0.5">
+            바로가기 <ArrowRight size={10} />
+          </p>
+        </>
+      ) : (
+        <>
+          <div className="skeleton w-10 h-10 rounded-xl mb-3" />
+          <div className="skeleton h-3 w-16 mb-2 rounded" />
+          <div className="skeleton h-7 w-20 rounded" />
+        </>
+      )}
+    </Link>
+  )
+}
+
 export default function DashboardPage() {
   const { profile } = useAuth()
   const [stats,    setStats]    = useState<Stats>({ total: 0, submitted: 0, approved: 0, rejected: 0 })
@@ -29,6 +67,12 @@ export default function DashboardPage() {
   const [actStats, setActStats] = useState<ActivityStat[]>([])
   const [userCount, setUserCount] = useState(0)
   const [loading,  setLoading]  = useState(true)
+
+  const approvalRate = stats.total > 0
+    ? Math.round((stats.approved / Math.max(stats.approved + stats.rejected, 1)) * 100)
+    : 0
+  const animatedRate = useCountUp(approvalRate, 1000, !loading)
+  const animatedUsers = useCountUp(userCount, 900, !loading)
 
   useEffect(() => { fetchAll() }, [profile])
 
@@ -91,10 +135,6 @@ export default function DashboardPage() {
     setLoading(false)
   }
 
-  const approvalRate = stats.total > 0
-    ? Math.round((stats.approved / Math.max(stats.approved + stats.rejected, 1)) * 100)
-    : 0
-
   const pieData = [
     { name: '결재대기', value: stats.submitted },
     { name: '검토중',   value: Math.max(0, stats.total - stats.submitted - stats.approved - stats.rejected) },
@@ -110,36 +150,38 @@ export default function DashboardPage() {
     return '좋은 저녁이에요'
   }
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center py-24 gap-3">
-      <Loader2 size={28} className="animate-spin text-brand-500" />
-      <p className="text-gray-400 text-sm">대시보드 로딩 중...</p>
-    </div>
-  )
-
   const ROLE_KO: Record<string, string> = { admin: '관리자', controller: '통제책임자', owner: '증빙담당자' }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-mobile-tab lg:pb-0">
       {/* 인사 배너 */}
       <div className="rounded-2xl bg-gradient-to-r from-brand-600 via-brand-700 to-indigo-700 p-6 text-white relative overflow-hidden">
         <div className="absolute right-0 top-0 bottom-0 w-64 opacity-10">
           <LayoutDashboard size={180} className="absolute -right-8 -top-4" />
         </div>
         <div className="relative">
-          <p className="text-brand-200 text-sm font-medium">{greeting()}, {ROLE_KO[profile?.role ?? ''] ?? ''}</p>
-          <h2 className="text-2xl font-black text-white mt-0.5">
-            {profile?.full_name ?? '사용자'}님
-          </h2>
-          <p className="text-brand-100/80 text-sm mt-2">
-            {profile?.department && <span className="mr-2">{profile.department}</span>}
-            {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
-          </p>
-          {stats.submitted > 0 && (
-            <div className="flex items-center gap-2 mt-3 bg-white/10 backdrop-blur rounded-xl px-4 py-2 w-fit">
-              <Bell size={14} className="text-yellow-300" />
-              <span className="text-sm text-white">처리 대기 중인 건이 <b className="text-yellow-300">{stats.submitted}건</b> 있습니다</span>
-            </div>
+          {loading ? (
+            <>
+              <div className="skeleton h-4 w-32 mb-2 rounded" style={{ background: 'rgba(255,255,255,0.2)', animation: 'shimmer 1.4s infinite linear', backgroundSize: '400px 100%' }} />
+              <div className="skeleton h-8 w-40 mb-2 rounded" style={{ background: 'rgba(255,255,255,0.2)', animation: 'shimmer 1.4s infinite linear', backgroundSize: '400px 100%' }} />
+            </>
+          ) : (
+            <>
+              <p className="text-brand-200 text-sm font-medium">{greeting()}, {ROLE_KO[profile?.role ?? ''] ?? ''}</p>
+              <h2 className="text-2xl font-black text-white mt-0.5">
+                {profile?.full_name ?? '사용자'}님
+              </h2>
+              <p className="text-brand-100/80 text-sm mt-2">
+                {profile?.department && <span className="mr-2">{profile.department}</span>}
+                {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+              </p>
+              {stats.submitted > 0 && (
+                <div className="flex items-center gap-2 mt-3 bg-white/10 backdrop-blur rounded-xl px-4 py-2 w-fit">
+                  <Bell size={14} className="text-yellow-300" />
+                  <span className="text-sm text-white">처리 대기 중인 건이 <b className="text-yellow-300">{stats.submitted}건</b> 있습니다</span>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -147,66 +189,85 @@ export default function DashboardPage() {
       {/* KPI 카드 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { icon: FileCheck2,   color: 'brand',  label: '전체',    value: stats.total,     unit: '건', to: '/evidence' },
-          { icon: Clock,        color: 'amber',  label: '결재대기', value: stats.submitted, unit: '건', to: profile?.role === 'controller' ? '/inbox' : '/evidence' },
-          { icon: CheckCircle2, color: 'green',  label: '승인완료', value: stats.approved,  unit: '건', to: '/inbox' },
-          { icon: XCircle,      color: 'red',    label: '반려',     value: stats.rejected,  unit: '건', to: '/inbox' },
+          { icon: FileCheck2,   color: 'brand', label: '전체',    value: stats.total,     unit: '건', to: '/evidence' },
+          { icon: Clock,        color: 'amber', label: '결재대기', value: stats.submitted, unit: '건', to: profile?.role === 'controller' ? '/inbox' : '/evidence' },
+          { icon: CheckCircle2, color: 'green', label: '승인완료', value: stats.approved,  unit: '건', to: '/inbox' },
+          { icon: XCircle,      color: 'red',   label: '반려',     value: stats.rejected,  unit: '건', to: '/inbox' },
         ].map(s => (
-          <Link to={s.to} key={s.label} className="card p-5 hover:shadow-md hover:-translate-y-0.5 transition-all group">
-            <div className={clsx('w-10 h-10 rounded-xl flex items-center justify-center mb-3',
-              s.color === 'brand' ? 'bg-brand-50 text-brand-600' :
-              s.color === 'amber' ? 'bg-amber-50 text-amber-600' :
-              s.color === 'green' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
-            )}>
-              <s.icon size={20} />
-            </div>
-            <p className="text-xs text-gray-500 mb-0.5">{s.label}</p>
-            <p className="text-2xl font-black text-gray-900">
-              {s.value.toLocaleString()}<span className="text-sm text-gray-400 font-normal ml-1">{s.unit}</span>
-            </p>
-            <p className="text-xs text-gray-300 group-hover:text-brand-400 transition-colors mt-2 flex items-center gap-0.5">
-              바로가기 <ArrowRight size={10} />
-            </p>
-          </Link>
+          <StatCard key={s.label} {...s} loaded={!loading} />
         ))}
       </div>
 
       {/* 승인율 + 사용자수 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="card p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp size={16} className="text-brand-500" />
-            <p className="text-sm font-semibold text-gray-600">승인율</p>
-          </div>
-          <p className="text-4xl font-black text-gray-900">{approvalRate}<span className="text-xl text-gray-400 ml-0.5">%</span></p>
-          <div className="mt-3 bg-gray-100 rounded-full h-2.5">
-            <div
-              className="bg-gradient-to-r from-brand-500 to-emerald-500 h-2.5 rounded-full transition-all duration-700"
-              style={{ width: `${approvalRate}%` }}
-            />
-          </div>
-          <p className="text-xs text-gray-400 mt-2">승인 {stats.approved}건 · 반려 {stats.rejected}건</p>
+          {loading ? (
+            <div className="space-y-3">
+              <div className="skeleton h-4 w-24 rounded" />
+              <div className="skeleton h-10 w-32 rounded" />
+              <div className="skeleton h-2.5 w-full rounded-full" />
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingUp size={16} className="text-brand-500" />
+                <p className="text-sm font-semibold text-gray-600">승인율</p>
+              </div>
+              <p className="text-4xl font-black text-gray-900" style={{ animation: 'countUp 0.5s ease-out' }}>
+                {animatedRate}<span className="text-xl text-gray-400 ml-0.5">%</span>
+              </p>
+              <div className="mt-3 bg-gray-100 rounded-full h-2.5">
+                <div
+                  className="bg-gradient-to-r from-brand-500 to-emerald-500 h-2.5 rounded-full transition-all duration-1000"
+                  style={{ width: `${approvalRate}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-2">승인 {stats.approved}건 · 반려 {stats.rejected}건</p>
+            </>
+          )}
         </div>
 
         {profile?.role === 'admin' && (
           <>
             <div className="card p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <Users size={16} className="text-brand-500" />
-                <p className="text-sm font-semibold text-gray-600">등록 사용자</p>
-              </div>
-              <p className="text-4xl font-black text-gray-900">{userCount}<span className="text-xl text-gray-400 ml-1">명</span></p>
-              <Link to="/admin" className="text-xs text-brand-500 hover:underline mt-3 flex items-center gap-0.5">
-                사용자 관리 <ArrowRight size={10} />
-              </Link>
+              {loading ? (
+                <div className="space-y-3">
+                  <div className="skeleton h-4 w-24 rounded" />
+                  <div className="skeleton h-10 w-28 rounded" />
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Users size={16} className="text-brand-500" />
+                    <p className="text-sm font-semibold text-gray-600">등록 사용자</p>
+                  </div>
+                  <p className="text-4xl font-black text-gray-900" style={{ animation: 'countUp 0.5s ease-out' }}>
+                    {animatedUsers}<span className="text-xl text-gray-400 ml-1">명</span>
+                  </p>
+                  <Link to="/admin" className="text-xs text-brand-500 hover:underline mt-3 flex items-center gap-0.5">
+                    사용자 관리 <ArrowRight size={10} />
+                  </Link>
+                </>
+              )}
             </div>
             <div className="card p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle size={16} className="text-amber-500" />
-                <p className="text-sm font-semibold text-gray-600">처리 필요</p>
-              </div>
-              <p className="text-4xl font-black text-gray-900">{stats.submitted}<span className="text-xl text-gray-400 ml-1">건</span></p>
-              <p className="text-xs text-gray-400 mt-3">결재 대기 중인 증빙</p>
+              {loading ? (
+                <div className="space-y-3">
+                  <div className="skeleton h-4 w-24 rounded" />
+                  <div className="skeleton h-10 w-20 rounded" />
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertTriangle size={16} className="text-amber-500" />
+                    <p className="text-sm font-semibold text-gray-600">처리 필요</p>
+                  </div>
+                  <p className="text-4xl font-black text-gray-900">
+                    {stats.submitted}<span className="text-xl text-gray-400 ml-1">건</span>
+                  </p>
+                  <p className="text-xs text-gray-400 mt-3">결재 대기 중인 증빙</p>
+                </>
+              )}
             </div>
           </>
         )}
@@ -219,7 +280,17 @@ export default function DashboardPage() {
             <Activity size={15} className="text-brand-500" />
             <p className="font-bold text-gray-900 text-sm">월별 증빙 현황 (최근 6개월)</p>
           </div>
-          {monthly.every(m => m.제출 === 0) ? (
+          {loading ? (
+            <div className="space-y-2 pt-4">
+              {[80, 60, 90, 50, 70, 85].map((w, i) => (
+                <div key={i} className="flex items-end gap-2">
+                  <div className="skeleton rounded" style={{ height: `${w * 0.4}px`, width: '40px' }} />
+                  <div className="skeleton rounded" style={{ height: `${w * 0.6}px`, width: '40px' }} />
+                  <div className="skeleton rounded" style={{ height: `${w * 0.2}px`, width: '40px' }} />
+                </div>
+              ))}
+            </div>
+          ) : monthly.every(m => m.제출 === 0) ? (
             <div className="flex items-center justify-center h-48 text-gray-300 text-sm">데이터 없음</div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
@@ -240,7 +311,16 @@ export default function DashboardPage() {
             <FileCheck2 size={15} className="text-brand-500" />
             <p className="font-bold text-gray-900 text-sm">증빙 상태 분포</p>
           </div>
-          {stats.total === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center h-48 gap-8">
+              <div className="skeleton w-32 h-32 rounded-full" />
+              <div className="space-y-2">
+                {[1,2,3,4].map(i => (
+                  <div key={i} className="skeleton h-3 w-20 rounded" />
+                ))}
+              </div>
+            </div>
+          ) : stats.total === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-gray-300 text-sm gap-2">
               <FileCheck2 size={32} className="text-gray-200" />
               아직 데이터가 없습니다
@@ -260,7 +340,7 @@ export default function DashboardPage() {
       </div>
 
       {/* 활동별 통계 */}
-      {actStats.length > 0 && (
+      {actStats.length > 0 && !loading && (
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Activity size={15} className="text-brand-500" />
@@ -286,7 +366,7 @@ export default function DashboardPage() {
       )}
 
       {/* 빠른 링크 (admin) */}
-      {profile?.role === 'admin' && (
+      {profile?.role === 'admin' && !loading && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { to: '/admin', label: 'RCM 파일 업로드', desc: '사용자 일괄 등록', icon: FileCheck2, color: 'brand' },
