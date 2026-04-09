@@ -1,7 +1,7 @@
 # 동양 내부회계 포털 — AI 인수인계 컨텍스트
 
 > 이 파일 하나 + `src/` 폴더를 AI에게 주면 즉시 이어서 개발 가능합니다.
-> 마지막 저장: **2026-04-09 저녁**
+> 마지막 저장: **2026-04-09 저녁 (체크포인트 2차)**
 
 ---
 
@@ -11,8 +11,10 @@
 - **목적:** 내부회계관리제도 증빙 업로드 및 결재 시스템
 - **스택:** React 18 + Vite + TypeScript + Tailwind CSS + Supabase + Vercel
 - **로컬 경로:** `C:\Users\tyinc\Documents\Claude_Project\tongyang-portal`
+- **GitHub:** `https://github.com/kidereturn/tongyang-portal`
 - **Supabase 프로젝트 ID:** `okaqopssfjjysgyrntnc` (리전: ap-northeast-1 도쿄)
 - **로컬 개발 서버:** `npm run dev` → http://localhost:5173
+- **Vercel 배포:** GitHub main 브랜치 push 시 자동 배포 (vercel.com/dashboard 에서 URL 확인)
 - **상세 설계:** `SPEC.md` 참고
 
 ---
@@ -108,28 +110,30 @@ approval_requests -- id, unique_key, control_code, activity_id, owner_id, contro
 src/
 ├── lib/supabase.ts
 ├── context/AuthProvider.tsx
-├── hooks/useAuth.ts
-├── App.tsx                     ← 라우팅 (모든 페이지 등록)
+├── hooks/
+│   ├── useAuth.ts
+│   └── useCountUp.ts               ← 카운터 애니메이션 훅 (NEW)
+├── App.tsx                          ← 라우팅 (모든 페이지 등록)
 ├── main.tsx
-├── index.css                   ← 전역 스타일 (btn-primary, card, badge 등)
+├── index.css                        ← 전역 스타일 (btn-primary, card, badge, skeleton 등)
 ├── components/layout/
-│   ├── Layout.tsx              ← TopNav + main 레이아웃
-│   └── TopNav.tsx              ← 상단 네비게이션 바 (역할별 메뉴 분기)
+│   ├── Layout.tsx                   ← TopNav + main 레이아웃
+│   └── TopNav.tsx                   ← 상단 네비 + 모바일 하단 탭 바 (역할별)
 └── pages/
-    ├── auth/LoginPage.tsx      ← 2단 레이아웃 (좌: 브랜딩, 우: 로그인폼)
-    ├── dashboard/DashboardPage.tsx
+    ├── auth/LoginPage.tsx           ← 2단 레이아웃 (좌: 브랜딩, 우: 로그인폼)
+    ├── dashboard/DashboardPage.tsx  ← 스켈레톤 로더 + 카운터 애니메이션
     ├── evidence/
-    │   ├── EvidenceListPage.tsx  ← 증빙관리 (A~I열 테이블, 역할 필터링)
-    │   └── EvidenceUploadModal.tsx ← 팝업: 모집단 매핑 + 파일 업로드 + 결재상신
-    ├── inbox/InboxPage.tsx     ← 내승인함 (승인/반려 + 증빙확인)
-    ├── admin/AdminPage.tsx     ← 관리자 (RCM/모집단 업로드, 사용자, 파일다운로드)
+    │   ├── EvidenceListPage.tsx     ← 증빙관리 (A~I열 테이블, 역할 필터링, 스켈레톤)
+    │   └── EvidenceUploadModal.tsx  ← 팝업: 모집단 매핑 + 파일 업로드 + 결재상신
+    ├── inbox/InboxPage.tsx          ← 내승인함 (스켈레톤 로더, 승인/반려 + 증빙확인)
+    ├── admin/AdminPage.tsx          ← 관리자 (RCM/모집단 업로드, 사용자, 파일다운로드)
     └── extra/
-        ├── CoursesPage.tsx     ← 내강좌
-        ├── LearningPage.tsx    ← 학습현황
-        ├── MapPage.tsx         ← 지도 (카카오/네이버 API 연동 예정)
-        ├── NewsPage.tsx        ← 뉴스·분석 + DART 공시
-        ├── KpiPage.tsx         ← KPI 결과
-        └── ChatbotPage.tsx     ← AI 챗봇 (NotebookLM 연동 예정)
+        ├── CoursesPage.tsx          ← 내강좌
+        ├── LearningPage.tsx         ← 학습현황
+        ├── MapPage.tsx              ← 지도 (카카오/네이버 API 연동 예정)
+        ├── NewsPage.tsx             ← 뉴스·분석 + DART 공시
+        ├── KpiPage.tsx              ← KPI 결과
+        └── ChatbotPage.tsx          ← AI 챗봇 (NotebookLM 연동 예정)
 ```
 
 ---
@@ -170,6 +174,7 @@ src/
 - [ ] full_name null인 사용자 이름 표시 (관리자 업로드 후 자동 해결)
 - [ ] 빙고 퀴즈 기능 미구현
 - [ ] 그룹웨어 SSO 연동 (외부 지원 필요)
+- [ ] Vercel 배포 URL 확인 필요 (vercel.com/dashboard → tongyang-portal 프로젝트)
 
 ---
 
@@ -204,5 +209,24 @@ npm run dev
 - **폰트:** Pretendard Variable (CDN)
 - **컬러:** brand(indigo #4f46e5), emerald(성공), amber(경고), red(오류)
 - **레이아웃:** 상단 고정 NavBar + 최대 max-w-screen-2xl 콘텐츠 영역
-- **컴포넌트 클래스:** `.btn-primary`, `.btn-secondary`, `.btn-danger`, `.btn-success`, `.btn-ghost`, `.card`, `.card-hover`, `.badge-*`, `.form-input`, `.data-table`, `.modal-overlay`, `.modal-box`
-- **애니메이션:** fadeIn, scaleIn, slideDown (CSS @keyframes)
+- **컴포넌트 클래스:** `.btn-primary`, `.btn-secondary`, `.btn-danger`, `.btn-success`, `.btn-ghost`, `.card`, `.card-hover`, `.badge-*`, `.form-input`, `.data-table`, `.modal-overlay`, `.modal-box`, `.skeleton`
+- **애니메이션:** fadeIn, scaleIn, slideDown, shimmer(스켈레톤), countUp (CSS @keyframes)
+- **모바일:** 하단 고정 탭 바 (역할별 5개, `lg:hidden`), `pb-mobile-tab` 클래스로 여백 확보
+
+---
+
+## 15. 최근 작업 이력 (2026-04-09)
+
+### 1차 체크포인트 (저녁)
+- 전체 UI 재설계 (TopNav 기반, Pretendard 폰트)
+- 증빙관리 / 업로드모달 / 내승인함 / 관리자 페이지 완성
+- 내강좌, 학습현황, 지도, 뉴스분석, KPI결과, AI챗봇 페이지 신규
+- SPEC.md / CONTEXT.md 문서화
+- GitHub push 완료 (`cf1b8c5`)
+
+### 2차 체크포인트 (저녁 이후)
+- **스켈레톤 로더**: 대시보드·증빙관리·내승인함 shimmer 효과
+- **카운터 애니메이션**: useCountUp 훅, 대시보드 KPI 숫자 count-up
+- **모바일 하단 탭 바**: 역할별 5개 핵심 메뉴 (TopNav 내 `lg:hidden`)
+- GitHub push 완료 (`5d92cc8`)
+- Vercel 자동 배포 트리거됨 (URL은 vercel.com/dashboard 에서 확인)
