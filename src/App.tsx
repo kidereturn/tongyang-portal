@@ -1,19 +1,20 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Suspense, lazy } from 'react'
 import { useAuth } from './hooks/useAuth'
+import { Loader2 } from 'lucide-react'
+import Layout from './components/layout/Layout'
 
-import LoginPage      from './pages/auth/LoginPage'
-import DashboardPage  from './pages/dashboard/DashboardPage'
-import EvidenceListPage from './pages/evidence/EvidenceListPage'
-import InboxPage      from './pages/inbox/InboxPage'
-import AdminPage      from './pages/admin/AdminPage'
-import CoursesPage    from './pages/extra/CoursesPage'
-import KpiPage        from './pages/extra/KpiPage'
-import NewsPage       from './pages/extra/NewsPage'
-import MapPage        from './pages/extra/MapPage'
-import ChatbotPage    from './pages/extra/ChatbotPage'
-import LearningPage   from './pages/extra/LearningPage'
-import Layout         from './components/layout/Layout'
-import { Loader2 }   from 'lucide-react'
+const LoginPage       = lazy(() => import('./pages/auth/LoginPage'))
+const DashboardPage   = lazy(() => import('./pages/dashboard/DashboardPage'))
+const EvidenceListPage = lazy(() => import('./pages/evidence/EvidenceListPage'))
+const InboxPage       = lazy(() => import('./pages/inbox/InboxPage'))
+const AdminPage       = lazy(() => import('./pages/admin/AdminPage'))
+const CoursesPage     = lazy(() => import('./pages/extra/CoursesPage'))
+const KpiPage         = lazy(() => import('./pages/extra/KpiPage'))
+const NewsPage        = lazy(() => import('./pages/extra/NewsPage'))
+const MapPage         = lazy(() => import('./pages/extra/MapPage'))
+const ChatbotPage     = lazy(() => import('./pages/extra/ChatbotPage'))
+const LearningPage    = lazy(() => import('./pages/extra/LearningPage'))
 
 function LoadingScreen() {
   return (
@@ -53,25 +54,27 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <Suspense fallback={<LoadingScreen />}>
+        <Routes>
+          <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
 
-        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard"  element={<DashboardPage />} />
-          <Route path="evidence"   element={<EvidenceListPage />} />
-          <Route path="inbox"      element={<InboxPage />} />
-          <Route path="courses"    element={<CoursesPage />} />
-          <Route path="learning"   element={<LearningPage />} />
-          <Route path="map"        element={<MapPage />} />
-          <Route path="news"       element={<NewsPage />} />
-          <Route path="kpi"        element={<KpiPage />} />
-          <Route path="chatbot"    element={<ChatbotPage />} />
-          <Route path="admin/*"    element={<AdminRoute><AdminPage /></AdminRoute>} />
-        </Route>
+          <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard"  element={<DashboardPage />} />
+            <Route path="evidence"   element={<EvidenceListPage />} />
+            <Route path="inbox"      element={<InboxPage />} />
+            <Route path="courses"    element={<CoursesPage />} />
+            <Route path="learning"   element={<LearningPage />} />
+            <Route path="map"        element={<MapPage />} />
+            <Route path="news"       element={<NewsPage />} />
+            <Route path="kpi"        element={<KpiPage />} />
+            <Route path="chatbot"    element={<ChatbotPage />} />
+            <Route path="admin/*"    element={<AdminRoute><AdminPage /></AdminRoute>} />
+          </Route>
 
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   )
 }
