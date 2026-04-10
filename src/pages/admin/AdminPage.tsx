@@ -44,6 +44,8 @@ const TAB_ITEMS: { key: Tab; label: string; icon: React.ElementType }[] = [
 
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('upload-rcm')
+  const [refreshKey, setRefreshKey] = useState(0)
+  const refresh = () => setRefreshKey(k => k + 1)
 
   return (
     <div className="space-y-5">
@@ -75,17 +77,17 @@ export default function AdminPage() {
       </div>
 
       {/* 탭 콘텐츠 */}
-      {tab === 'upload-rcm'        && <RcmUploadTab />}
-      {tab === 'upload-population' && <PopulationUploadTab />}
-      {tab === 'users'             && <UsersTab />}
-      {tab === 'activities'        && <ActivitiesTab />}
+      {tab === 'upload-rcm'        && <RcmUploadTab onDone={refresh} />}
+      {tab === 'upload-population' && <PopulationUploadTab onDone={refresh} />}
+      {tab === 'users'             && <UsersTab refreshKey={refreshKey} />}
+      {tab === 'activities'        && <ActivitiesTab refreshKey={refreshKey} />}
       {tab === 'files'             && <FilesTab />}
     </div>
   )
 }
 
 /* ─── RCM 업로드 탭 ─── */
-function RcmUploadTab() {
+function RcmUploadTab({ onDone }: { onDone: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [result, setResult] = useState<{ created: number; updated: number; errors: string[] } | null>(null)
@@ -188,7 +190,11 @@ function RcmUploadTab() {
       // 2단계: activities 저장
       for (const row of rows) {
         try {
-          const uniqueKey = String(row['고유키'] ?? '').trim()
+          // 고유키 = 통제번호 + 관련부서 (두 파일 통일 형식)
+          const controlCode = String(row['통제번호'] ?? '').trim()
+          const dept = String(row['관련부서'] ?? '').trim()
+          const uniqueKey = controlCode && dept ? controlCode + dept
+            : String(row['고유키'] ?? '').trim()
           if (!uniqueKey) continue
 
           const actData: Record<string, unknown> = { active: true }
@@ -220,6 +226,7 @@ function RcmUploadTab() {
 
       setResult({ created, updated, errors })
       setUploading(false)
+      onDone()
     }
     reader.readAsBinaryString(file)
   }
@@ -344,7 +351,7 @@ function RcmUploadTab() {
 }
 
 /* ─── 모집단 업로드 탭 ─── */
-function PopulationUploadTab() {
+function PopulationUploadTab({ onDone }: { onDone: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [result, setResult] = useState<{ upserted: number; errors: string[] } | null>(null)
@@ -385,7 +392,11 @@ function PopulationUploadTab() {
       // J: 추가정보2, K: 추가정보3, L: 추가정보4, M: 고유키
       for (const row of rows) {
         try {
-          const uniqueKey = String(row['고유키'] ?? row['M'] ?? '').trim()
+          // 고유키 = 통제번호(B열) + 관련부서(D열) — RCM과 동일 형식으로 통일
+          const controlCode = String(row['통제번호'] ?? row['B'] ?? '').trim()
+          const dept = String(row['관련부서'] ?? row['D'] ?? '').trim()
+          const uniqueKey = controlCode && dept ? controlCode + dept
+            : String(row['고유키'] ?? row['M'] ?? '').trim()
           if (!uniqueKey) continue
 
           const transactionDateRaw = row['거래일'] ?? row['G'] ?? ''
@@ -420,6 +431,7 @@ function PopulationUploadTab() {
 
       setResult({ upserted, errors })
       setUploading(false)
+      onDone()
     }
     reader.readAsBinaryString(file)
   }
@@ -498,7 +510,7 @@ function PopulationUploadTab() {
 }
 
 /* ─── 사용자 관리 탭 ─── */
-function UsersTab() {
+function UsersTab({ refreshKey }: { refreshKey: number }) {
   const [users, setUsers] = useState<UserRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -506,6 +518,7 @@ function UsersTab() {
 
   useEffect(() => {
     async function load() {
+      setLoading(true)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = supabase as any
       const { data } = await db.from('profiles').select('*').order('role').order('department').order('full_name')
@@ -513,7 +526,7 @@ function UsersTab() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [refreshKey])
 
   const filtered = users.filter(u => {
     if (!search) return true
@@ -623,7 +636,7 @@ function UsersTab() {
 }
 
 /* ─── 통제활동 관리 탭 ─── */
-function ActivitiesTab() {
+function ActivitiesTab({ refreshKey }: { refreshKey: number }) {
   const [activities, setActivities] = useState<ActivityRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -631,6 +644,7 @@ function ActivitiesTab() {
 
   useEffect(() => {
     async function load() {
+      setLoading(true)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = supabase as any
       const { data } = await db.from('activities').select('id, control_code, owner_name, department, title, submission_status, controller_name, active')
@@ -639,7 +653,7 @@ function ActivitiesTab() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [refreshKey])
 
   const filtered = activities.filter(a => {
     if (!search) return true
