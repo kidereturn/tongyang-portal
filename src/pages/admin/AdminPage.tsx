@@ -360,16 +360,24 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
       function toDateStr(val: unknown): string | null {
         if (!val) return null
 
+        function formatDateParts(year: number, month: number, day: number): string {
+          return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+        }
+
         /** Excel 시리얼 → YYYY-MM-DD */
         function serialToDate(n: number): string | null {
           if (n < 1 || n > 100000) return null
-          const d = new Date(new Date(1899, 11, 30).getTime() + n * 86400000)
-          return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10)
+          const d = new Date(Date.UTC(1899, 11, 30) + n * 86400000)
+          return isNaN(d.getTime())
+            ? null
+            : formatDateParts(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate())
         }
 
         // JS Date 객체
         if (val instanceof Date) {
-          return isNaN(val.getTime()) ? null : val.toISOString().slice(0, 10)
+          return isNaN(val.getTime())
+            ? null
+            : formatDateParts(val.getFullYear(), val.getMonth() + 1, val.getDate())
         }
         // 숫자: Excel 시리얼
         if (typeof val === 'number') {
@@ -385,10 +393,21 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
         // YYYY-MM-DD 또는 한국어 날짜: 앞 10자만
         const datePart = s.slice(0, 10)
         if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
-          const d = new Date(datePart)
-          return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10)
+          return datePart
         }
         return null
+      }
+
+      /** 모집단 원문값을 문자열 그대로 보존 */
+      function toTextStr(val: unknown): string | null {
+        if (val === null || val === undefined) return null
+        if (val instanceof Date) {
+          return isNaN(val.getTime())
+            ? null
+            : `${val.getFullYear()}-${String(val.getMonth() + 1).padStart(2, '0')}-${String(val.getDate()).padStart(2, '0')}`
+        }
+        const text = String(val).trim()
+        return text || null
       }
 
       for (let i = 0; i < rows.length; i++) {
@@ -408,8 +427,10 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
             dept_code: String(row['부서코드'] ?? '').trim() || null,
             related_dept: dept || null,
             sample_id: sampleId || null,
-            transaction_id: toDateStr(row['Transaction ID']),   // null if not a date
-            transaction_date: toDateStr(row['거래일']),
+            // 실제 업로드 파일에서는 날짜가 Transaction ID 컬럼에 들어오는 케이스가 있어
+            // 거래일이 비어 있을 때만 날짜형 값으로 보조 해석한다.
+            transaction_id: toTextStr(row['Transaction ID']),
+            transaction_date: toDateStr(row['거래일']) ?? toDateStr(row['Transaction ID']),
             description: String(row['거래설명'] ?? '').trim() || null,
             extra_info: String(row['추가 정보 1'] ?? '').trim() || null,
             extra_info_2: String(row['추가 정보 2'] ?? '').trim() || null,
