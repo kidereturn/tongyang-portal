@@ -7,9 +7,10 @@ interface Message {
   time: string
 }
 
-// Gemini API 설정
+// Gemini API 설정 - gemini-2.0-flash 우선, 할당량 초과 시 1.5-flash 자동 전환
 const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`
+const GEMINI_URL_2 = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`
+const GEMINI_URL_15 = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`
 
 // 시스템 프롬프트: 동양 내부회계 전문 어시스턴트
 const SYSTEM_PROMPT = `당신은 (주)동양의 내부회계관리제도(ICFR) 전문 AI 어시스턴트입니다.
@@ -52,22 +53,34 @@ async function callGemini(messages: Message[]): Promise<string> {
     })),
   ]
 
-  const res = await fetch(GEMINI_URL, {
+  const requestBody = JSON.stringify({
+    contents,
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 1024,
+      topP: 0.95,
+    },
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    ],
+  })
+
+  // gemini-2.0-flash 우선 시도
+  let res = await fetch(GEMINI_URL_2, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents,
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 1024,
-        topP: 0.95,
-      },
-      safetySettings: [
-        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-      ],
-    }),
+    body: requestBody,
   })
+
+  // 할당량 초과(429) 시 gemini-1.5-flash로 재시도
+  if (res.status === 429) {
+    res = await fetch(GEMINI_URL_15, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: requestBody,
+    })
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
