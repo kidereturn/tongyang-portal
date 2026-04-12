@@ -421,13 +421,18 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
       ))
 
       if (uniqueKeysToReplace.length > 0) {
-        const { error: deleteError } = await db
-          .from('population_items')
-          .delete()
-          .in('unique_key', uniqueKeysToReplace)
+        const DELETE_BATCH = 100
+        for (let start = 0; start < uniqueKeysToReplace.length; start += DELETE_BATCH) {
+          const deleteBatch = uniqueKeysToReplace.slice(start, start + DELETE_BATCH)
+          const { error: deleteError } = await db
+            .from('population_items')
+            .delete()
+            .in('unique_key', deleteBatch)
 
-        if (deleteError) {
-          errors.push(`기존 모집단 삭제 실패: ${deleteError.message}`)
+          if (deleteError) {
+            errors.push(`기존 모집단 삭제 실패: ${deleteError.message}`)
+            break
+          }
         }
       }
 
