@@ -90,6 +90,7 @@ export default function AdminPage() {
 function RcmUploadTab({ onDone }: { onDone: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState<{ current: number; total: number; phase: string } | null>(null)
   const [result, setResult] = useState<{ created: number; updated: number; errors: string[] } | null>(null)
   const [preview, setPreview] = useState<Record<string, string>[]>([])
 
@@ -110,6 +111,7 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
     const file = fileRef.current?.files?.[0]
     if (!file) return
     setUploading(true)
+    setResult(null)
 
     const reader = new FileReader()
     reader.onload = async ev => {
@@ -122,75 +124,54 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = supabase as any
 
-      // 컬럼 매핑 (엑셀 헤더 → DB 필드)
       const colMap: Record<string, string> = {
-        '통제번호': 'control_code',
-        '담당자': 'owner_name',
-        '관련부서': 'department',
-        '통제활동명': 'title',
-        '제출 증빙에 대한 설명': 'description',
-        '승인자': 'controller_name',
-        'KPI 점수': 'kpi_score',
-        '상신여부': 'submission_status',
-        '담당자 사번': 'owner_employee_id',
-        '담당자 mail': 'owner_email',
-        '담당자 CP': 'owner_phone',
-        '승인자 사번': 'controller_employee_id',
-        '승인자 mail': 'controller_email',
-        '승인자 CP': 'controller_phone',
-        '통제부서': 'control_department',
-        '주기': 'cycle',
-        '핵심/비핵심': 'key_control_raw',
-        '수동/자동': 'manual_control_raw',
-        '배점': 'base_score',
-        '환산점수': 'converted_score',
-        '고유키': 'unique_key',
-        '테스트 문서': 'test_document',
+        '통제번호': 'control_code', '담당자': 'owner_name', '관련부서': 'department',
+        '통제활동명': 'title', '제출 증빙에 대한 설명': 'description',
+        '승인자': 'controller_name', 'KPI 점수': 'kpi_score', '상신여부': 'submission_status',
+        '담당자 사번': 'owner_employee_id', '담당자 mail': 'owner_email',
+        '담당자 CP': 'owner_phone', '승인자 사번': 'controller_employee_id',
+        '승인자 mail': 'controller_email', '승인자 CP': 'controller_phone',
+        '통제부서': 'control_department', '주기': 'cycle',
+        '핵심/비핵심': 'key_control_raw', '수동/자동': 'manual_control_raw',
+        '배점': 'base_score', '환산점수': 'converted_score',
+        '고유키': 'unique_key', '테스트 문서': 'test_document',
       }
 
-      // 1단계: 사용자 일괄 생성/업데이트
+      // 1단계: 사용자 일괄 생성
+      setProgress({ current: 0, total: rows.length, phase: '사용자 계정 등록 중...' })
       const userMap: Record<string, { name: string; email: string; phone: string; role: 'owner' | 'controller' }> = {}
       for (const row of rows) {
         const ownerEmpId = String(row['담당자 사번'] ?? '').trim()
-        const ownerEmail = String(row['담당자 mail'] ?? '').trim()
-        const ownerName  = String(row['담당자'] ?? '').trim()
-        const ownerPhone = String(row['담당자 CP'] ?? '').trim()
-        if (ownerEmpId) {
-          userMap[ownerEmpId] = { name: ownerName, email: ownerEmail, phone: ownerPhone, role: 'owner' }
+        if (ownerEmpId) userMap[ownerEmpId] = {
+          name: String(row['담당자'] ?? '').trim(),
+          email: String(row['담당자 mail'] ?? '').trim(),
+          phone: String(row['담당자 CP'] ?? '').trim(),
+          role: 'owner'
         }
         const ctrlEmpId = String(row['승인자 사번'] ?? '').trim()
-        const ctrlEmail = String(row['승인자 mail'] ?? '').trim()
-        const ctrlName  = String(row['승인자'] ?? '').trim()
-        const ctrlPhone = String(row['승인자 CP'] ?? '').trim()
-        if (ctrlEmpId) {
-          userMap[ctrlEmpId] = { name: ctrlName, email: ctrlEmail, phone: ctrlPhone, role: 'controller' }
+        if (ctrlEmpId) userMap[ctrlEmpId] = {
+          name: String(row['승인자'] ?? '').trim(),
+          email: String(row['승인자 mail'] ?? '').trim(),
+          phone: String(row['승인자 CP'] ?? '').trim(),
+          role: 'controller'
         }
       }
-
-      // Edge Function으로 bulk user create 호출
       try {
         const { data: bulkResult } = await supabase.functions.invoke('bulk-create-users', {
           body: { users: Object.entries(userMap).map(([empId, u]) => ({
-            employee_id: empId,
-            email: u.email || `${empId}@tongyanginc.co.kr`,
-            full_name: u.name,
-            phone: u.phone,
-            role: u.role,
-            initial_password: empId,
+            employee_id: empId, email: u.email || `${empId}@tongyanginc.co.kr`,
+            full_name: u.name, phone: u.phone, role: u.role, initial_password: empId,
           })) }
         })
-        if (bulkResult) {
-          created += bulkResult.created ?? 0
-          updated += bulkResult.updated ?? 0
-        }
-      } catch (e) {
-        errors.push(`사용자 생성 오류: ${e}`)
-      }
+        if (bulkResult) { created += bulkResult.created ?? 0; updated += bulkResult.updated ?? 0 }
+      } catch (e) { errors.push(`사용자 생성 오류: ${e}`) }
 
-      // 2단계: activities 저장
-      for (const row of rows) {
+      // 2단계: activities 저장 (배치 50개셈)
+      const BATCH = 50
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i]
+        setProgress({ current: i + 1, total: rows.length, phase: `통제활동 등록 중 (${i + 1}/${rows.length})` })
         try {
-          // 고유키 = 통제번호 + 관련부서 (두 파일 통일 형식)
           const controlCode = String(row['통제번호'] ?? '').trim()
           const dept = String(row['관련부서'] ?? '').trim()
           const uniqueKey = controlCode && dept ? controlCode + dept
@@ -207,32 +188,31 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
             } else if (dbCol === 'manual_control_raw') {
               actData['manual_control'] = String(val ?? '').includes('수동')
             } else if (dbCol === 'submission_status') {
-              // 초기 업로드 시 미완료로 설정
               actData[dbCol] = '미완료'
             } else {
               actData[dbCol] = String(val ?? '').trim() || null
             }
           }
-
-          // unique_key는 항상 명시적으로 설정 (colMap null 방지)
           actData['unique_key'] = uniqueKey
 
-          const { error } = await db.from('activities')
-            .upsert(actData, { onConflict: 'unique_key' })
-
-          if (error) errors.push(`${uniqueKey}: ${error.message}`)
+          const { error } = await db.from('activities').upsert(actData, { onConflict: 'unique_key' })
+          if (error) errors.push(`[${uniqueKey}] ${error.message}`)
           else created++
-        } catch (e) {
-          errors.push(String(e))
-        }
+        } catch (e) { errors.push(String(e)) }
+
+        // 페이지 렌더링 허용 (50개마다)
+        if ((i + 1) % BATCH === 0) await new Promise(r => setTimeout(r, 0))
       }
 
+      setProgress(null)
       setResult({ created, updated, errors })
       setUploading(false)
       onDone()
     }
     reader.readAsBinaryString(file)
   }
+
+  const pct = progress ? Math.round((progress.current / progress.total) * 100) : 0
 
   return (
     <div className="space-y-5">
@@ -242,18 +222,14 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
           <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">RCM_증빙_사용자_업로드_최종.xlsx</code> 파일을 업로드하면
           사용자(담당자/승인자) 계정이 자동 생성되고 통제활동이 등록됩니다.
         </p>
-
-        {/* 컬럼 안내 */}
         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-5">
-          <p className="text-xs font-semibold text-blue-700 mb-2">📋 파일 컬럼 구조</p>
+          <p className="text-xs font-semibold text-blue-700 mb-2">📋 파일 컴럼 구조</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-blue-600">
             {[
-              { col: 'A', label: '통제번호' },    { col: 'B', label: '담당자' },
-              { col: 'C', label: '관련부서' },    { col: 'D', label: '통제활동명' },
-              { col: 'E', label: '증빙 설명' },   { col: 'G', label: '승인자' },
+              { col: 'A', label: '통제번호' }, { col: 'B', label: '담당자' },
+              { col: 'C', label: '관련부서' }, { col: 'D', label: '통제활동명' },
               { col: 'J', label: '담당자 사번' }, { col: 'K', label: '담당자 mail' },
-              { col: 'M', label: '승인자 사번' }, { col: 'N', label: '승인자 mail' },
-              { col: 'V', label: '고유키' },      { col: '…', label: '기타 18개 컬럼' },
+              { col: 'M', label: '승인자 사번' }, { col: 'V', label: '고유키' },
             ].map(item => (
               <span key={item.col} className="flex items-center gap-1">
                 <b className="bg-blue-100 text-blue-800 px-1 rounded font-mono">{item.col}</b>
@@ -262,26 +238,33 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
             ))}
           </div>
         </div>
-
         <div className="flex gap-3">
           <div className="flex-1">
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleFileChange}
-              className="form-input text-sm"
-            />
+            <input ref={fileRef} type="file" accept=".xlsx,.xls"
+              onChange={handleFileChange} className="form-input text-sm" disabled={uploading} />
           </div>
-          <button
-            onClick={handleUpload}
-            disabled={uploading}
-            className="btn-primary shrink-0"
-          >
+          <button onClick={handleUpload} disabled={uploading} className="btn-primary shrink-0">
             {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
             {uploading ? '처리 중...' : '업로드'}
           </button>
         </div>
+
+        {/* 진행바 */}
+        {uploading && progress && (
+          <div className="mt-4 space-y-1.5">
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>{progress.phase}</span>
+              <span className="font-semibold text-gray-900">{pct}%</span>
+            </div>
+            <div className="bg-gray-100 rounded-full h-2.5 overflow-hidden">
+              <div
+                className="h-2.5 bg-gradient-to-r from-brand-500 to-brand-600 rounded-full transition-all duration-300"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-400">{progress.current} / {progress.total} 행 처리됨</p>
+          </div>
+        )}
       </div>
 
       {/* 미리보기 */}
@@ -290,20 +273,12 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
           <p className="text-sm font-semibold text-gray-700 mb-3">파일 미리보기 (상위 5행)</p>
           <div className="overflow-x-auto">
             <table className="data-table text-xs">
-              <thead>
-                <tr>
-                  {Object.keys(preview[0]).slice(0, 10).map(h => (
-                    <th key={h}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
+              <thead><tr>{Object.keys(preview[0]).slice(0, 10).map(h => <th key={h}>{h}</th>)}</tr></thead>
               <tbody>
                 {preview.map((row, i) => (
-                  <tr key={i}>
-                    {Object.values(row).slice(0, 10).map((v, j) => (
-                      <td key={j} className="truncate max-w-[120px]" title={String(v)}>{String(v)}</td>
-                    ))}
-                  </tr>
+                  <tr key={i}>{Object.values(row).slice(0, 10).map((v, j) => (
+                    <td key={j} className="truncate max-w-[120px]" title={String(v)}>{String(v)}</td>
+                  ))}</tr>
                 ))}
               </tbody>
             </table>
@@ -313,37 +288,23 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
 
       {/* 결과 */}
       {result && (
-        <div className={clsx(
-          'card p-5',
-          result.errors.length > 0 ? 'border-amber-100 bg-amber-50/30' : 'border-emerald-100 bg-emerald-50/30'
-        )}>
+        <div className={clsx('card p-5', result.errors.length > 0 ? 'border-amber-100 bg-amber-50/30' : 'border-emerald-100 bg-emerald-50/30')}>
           <div className="flex items-center gap-2 mb-3">
-            {result.errors.length > 0
-              ? <AlertCircle size={18} className="text-amber-600" />
-              : <CheckCircle2 size={18} className="text-emerald-600" />}
+            {result.errors.length > 0 ? <AlertCircle size={18} className="text-amber-600" /> : <CheckCircle2 size={18} className="text-emerald-600" />}
             <p className="font-bold text-gray-900">업로드 완료</p>
           </div>
           <div className="grid grid-cols-3 gap-3 mb-3">
-            <div className="text-center">
-              <p className="text-2xl font-black text-emerald-600">{result.created}</p>
-              <p className="text-xs text-gray-500">생성/등록</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-black text-blue-600">{result.updated}</p>
-              <p className="text-xs text-gray-500">업데이트</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-black text-red-500">{result.errors.length}</p>
-              <p className="text-xs text-gray-500">오류</p>
-            </div>
+            <div className="text-center"><p className="text-2xl font-black text-emerald-600">{result.created}</p><p className="text-xs text-gray-500">등록/업데이트</p></div>
+            <div className="text-center"><p className="text-2xl font-black text-blue-600">{result.updated}</p><p className="text-xs text-gray-500">사용자 생성</p></div>
+            <div className="text-center"><p className="text-2xl font-black text-red-500">{result.errors.length}</p><p className="text-xs text-gray-500">오류</p></div>
           </div>
           {result.errors.length > 0 && (
-            <div className="bg-red-50 rounded-lg p-3 space-y-1">
-              {result.errors.slice(0, 5).map((e, i) => (
-                <p key={i} className="text-xs text-red-600">{e}</p>
+            <div className="bg-red-50 rounded-lg p-3 space-y-1 max-h-40 overflow-y-auto">
+              {result.errors.slice(0, 10).map((e, i) => (
+                <p key={i} className="text-xs text-red-600 font-mono">{e}</p>
               ))}
-              {result.errors.length > 5 && (
-                <p className="text-xs text-red-400">...외 {result.errors.length - 5}건</p>
+              {result.errors.length > 10 && (
+                <p className="text-xs text-red-400">...외 {result.errors.length - 10}건 더 있음</p>
               )}
             </div>
           )}
@@ -353,10 +314,13 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
   )
 }
 
+
+
 /* ─── 모집단 업로드 탭 ─── */
 function PopulationUploadTab({ onDone }: { onDone: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null)
   const [result, setResult] = useState<{ upserted: number; errors: string[] } | null>(null)
   const [preview, setPreview] = useState<Record<string, string>[]>([])
 
@@ -372,6 +336,179 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
     }
     reader.readAsBinaryString(file)
   }
+
+  async function handleUpload() {
+    const file = fileRef.current?.files?.[0]
+    if (!file) return
+    setUploading(true)
+    setResult(null)
+
+    const reader = new FileReader()
+    reader.onload = async ev => {
+      const wb = XLSX.read(ev.target?.result, { type: 'binary' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' })
+
+      let upserted = 0
+      const errors: string[] = []
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+      const BATCH = 50
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i]
+        setProgress({ current: i + 1, total: rows.length })
+        try {
+          const controlCode = String(row['통제번호'] ?? '').trim()
+          const dept = String(row['관련부서'] ?? '').trim()
+          const uniqueKey = controlCode && dept ? controlCode + dept
+            : String(row['고유키'] ?? '').trim()
+          const sampleId = String(row['Sample ID'] ?? '').trim()
+          if (!uniqueKey) continue
+
+          // 날짜 파싱: "한국어 형식" 처리
+          const transRaw = String(row['거래일'] ?? '').trim()
+          const dateStr = transRaw.split(' ')[0].trim()
+          let transactionDate: string | null = null
+          if (dateStr) {
+            const d = new Date(dateStr)
+            if (!isNaN(d.getTime())) transactionDate = d.toISOString().slice(0, 10)
+          }
+
+          const itemData = {
+            unique_key: uniqueKey,
+            control_code: controlCode || null,
+            dept_code: String(row['부서코드'] ?? '').trim() || null,
+            related_dept: dept || null,
+            sample_id: sampleId || null,
+            transaction_id: String(row['Transaction ID'] ?? '').split(' ')[0] || null,
+            transaction_date: transactionDate,
+            description: String(row['거래설명'] ?? '').trim() || null,
+            extra_info: String(row['추가 정보 1'] ?? '').trim() || null,
+            extra_info_2: String(row['추가 정보 2'] ?? '').trim() || null,
+            extra_info_3: String(row['추가 정보 3'] ?? '').trim() || null,
+            extra_info_4: String(row['추가 정보 4'] ?? '').trim() || null,
+          }
+
+          // sample_id가 있으면 삭제 후 삽입 (unique constraint 문제 피해)
+          if (sampleId) {
+            await db.from('population_items').delete().eq('sample_id', sampleId)
+          }
+          const { error } = await db.from('population_items').insert(itemData)
+          if (error) errors.push(`[${sampleId || uniqueKey}] ${error.message}`)
+          else upserted++
+        } catch (e) { errors.push(String(e)) }
+
+        if ((i + 1) % BATCH === 0) await new Promise(r => setTimeout(r, 0))
+      }
+
+      setProgress(null)
+      setResult({ upserted, errors })
+      setUploading(false)
+      onDone()
+    }
+    reader.readAsBinaryString(file)
+  }
+
+  const pct = progress ? Math.round((progress.current / progress.total) * 100) : 0
+
+  return (
+    <div className="space-y-5">
+      <div className="card p-6">
+        <h3 className="text-base font-bold text-gray-900 mb-1">모집단 데이터 업로드</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">모집단_업로드_최종_Final.xlsx</code> 파일을 업로드합니다.
+          M열 고유키와 RCM의 V열 고유키가 자동으로 매핑됩니다.
+        </p>
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-5">
+          <p className="text-xs font-semibold text-blue-700 mb-2">📋 파일 컴럼 구조</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-blue-600">
+            {[
+              { col: 'A', label: '통제번호' }, { col: 'C', label: '부서코드' },
+              { col: 'D', label: '관련부서' }, { col: 'E', label: 'Sample ID' },
+              { col: 'F', label: 'Transaction ID' }, { col: 'G', label: '거래일' },
+              { col: 'H', label: '거래설명' }, { col: 'L', label: '고유키' },
+            ].map(item => (
+              <span key={item.col} className="flex items-center gap-1">
+                <b className="bg-blue-100 text-blue-800 px-1 rounded font-mono">{item.col}</b>
+                {item.label}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <input ref={fileRef} type="file" accept=".xlsx,.xls"
+              onChange={handleFileChange} className="form-input text-sm" disabled={uploading} />
+          </div>
+          <button onClick={handleUpload} disabled={uploading} className="btn-primary shrink-0">
+            {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+            {uploading ? '처리 중...' : '업로드'}
+          </button>
+        </div>
+
+        {/* 진행바 */}
+        {uploading && progress && (
+          <div className="mt-4 space-y-1.5">
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>모집단 데이터 등록 중...</span>
+              <span className="font-semibold text-gray-900">{pct}%</span>
+            </div>
+            <div className="bg-gray-100 rounded-full h-2.5 overflow-hidden">
+              <div
+                className="h-2.5 bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-200"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-400">{progress.current.toLocaleString()} / {progress.total.toLocaleString()} 행 처리됨</p>
+          </div>
+        )}
+      </div>
+
+      {preview.length > 0 && (
+        <div className="card p-5">
+          <p className="text-sm font-semibold text-gray-700 mb-3">파일 미리보기</p>
+          <div className="overflow-x-auto">
+            <table className="data-table text-xs">
+              <thead><tr>{Object.keys(preview[0]).slice(0, 10).map(h => <th key={h}>{h}</th>)}</tr></thead>
+              <tbody>
+                {preview.map((row, i) => (
+                  <tr key={i}>{Object.values(row).slice(0, 10).map((v, j) => (
+                    <td key={j} className="truncate max-w-[120px]" title={String(v)}>{String(v)}</td>
+                  ))}</tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {result && (
+        <div className={clsx('card p-5', result.errors.length > 0 ? 'border-amber-100 bg-amber-50/30' : 'border-emerald-100 bg-emerald-50/30')}>
+          <div className="flex items-center gap-2 mb-3">
+            {result.errors.length > 0 ? <AlertCircle size={18} className="text-amber-600" /> : <CheckCircle2 size={18} className="text-emerald-600" />}
+            <p className="font-bold text-gray-900">업로드 완료</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="text-center"><p className="text-2xl font-black text-emerald-600">{result.upserted.toLocaleString()}</p><p className="text-xs text-gray-500">등록 성공</p></div>
+            <div className="text-center"><p className="text-2xl font-black text-red-500">{result.errors.length.toLocaleString()}</p><p className="text-xs text-gray-500">오류</p></div>
+          </div>
+          {result.errors.length > 0 && (
+            <div className="bg-red-50 rounded-lg p-3 space-y-1 max-h-48 overflow-y-auto">
+              <p className="text-xs font-semibold text-red-700 mb-1">오류 상세 (첫 10건):</p>
+              {result.errors.slice(0, 10).map((e, i) => (
+                <p key={i} className="text-xs text-red-600 font-mono break-all">{e}</p>
+              ))}
+              {result.errors.length > 10 && (
+                <p className="text-xs text-red-400">...외 {result.errors.length - 10}건 더</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
   async function handleUpload() {
     const file = fileRef.current?.files?.[0]
