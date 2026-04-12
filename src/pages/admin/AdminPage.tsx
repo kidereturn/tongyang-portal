@@ -81,7 +81,7 @@ export default function AdminPage() {
       {tab === 'upload-population' && <PopulationUploadTab onDone={refresh} />}
       {tab === 'users'             && <UsersTab refreshKey={refreshKey} />}
       {tab === 'activities'        && <ActivitiesTab refreshKey={refreshKey} />}
-      {tab === 'files'             && <FilesTab />}
+      {tab === 'files'             && <FilesDownloadTab />}
     </div>
   )
 }
@@ -805,8 +805,16 @@ function ActivitiesTab({ refreshKey }: { refreshKey: number }) {
 }
 
 /* ─── 증빙 다운로드 탭 ─── */
-function FilesTab() {
-  const [files, setFiles] = useState<{ id: string; file_name: string; file_path: string; unique_key: string | null; uploaded_at: string | null; owner?: { full_name: string | null } }[]>([])
+export function FilesTab() {
+  const [files, setFiles] = useState<{
+    id: string
+    file_name: string
+    original_file_name?: string | null
+    file_path: string
+    unique_key: string | null
+    uploaded_at: string | null
+    owner?: { full_name: string | null }
+  }[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
@@ -815,7 +823,7 @@ function FilesTab() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = supabase as any
       const { data } = await db.from('evidence_uploads')
-        .select('id, file_name, file_path, unique_key, uploaded_at, owner:owner_id(full_name)')
+        .select('id, file_name, original_file_name, file_path, unique_key, uploaded_at, owner:owner_id(full_name)')
         .order('uploaded_at', { ascending: false })
         .limit(500)
       setFiles(data ?? [])
@@ -824,17 +832,24 @@ function FilesTab() {
     load()
   }, [])
 
-  const filtered = files.filter(f => {
+  const filtered = files.filter(file => {
     if (!search) return true
     const s = search.toLowerCase()
-    return f.file_name?.toLowerCase().includes(s) || f.unique_key?.toLowerCase().includes(s)
+    return (
+      (file.original_file_name ?? file.file_name).toLowerCase().includes(s) ||
+      file.file_name.toLowerCase().includes(s) ||
+      (file.unique_key ?? '').toLowerCase().includes(s)
+    )
   })
 
   async function downloadFile(path: string, name: string) {
     const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 60)
-    if (data?.signedUrl) {
-      const a = document.createElement('a'); a.href = data.signedUrl; a.download = name; a.click()
-    }
+    if (!data?.signedUrl) return
+
+    const a = document.createElement('a')
+    a.href = data.signedUrl
+    a.download = name
+    a.click()
   }
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-brand-500" /></div>
@@ -863,6 +878,240 @@ function FilesTab() {
                     <button onClick={() => downloadFile(f.file_path, f.file_name)}
                       className="inline-flex items-center gap-1 px-2 py-1 bg-brand-50 text-brand-700 rounded-lg text-xs hover:bg-brand-100 transition-all">
                       <Download size={11} />다운로드
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FilesDownloadTab() {
+  const [files, setFiles] = useState<{
+    id: string
+    file_name: string
+    original_file_name?: string | null
+    file_path: string
+    unique_key: string | null
+    uploaded_at: string | null
+    owner?: { full_name: string | null }
+  }[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [ownerFilter, setOwnerFilter] = useState('all')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [downloading, setDownloading] = useState(false)
+
+  useEffect(() => {
+    async function load() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+      const { data } = await db.from('evidence_uploads')
+        .select('id, file_name, original_file_name, file_path, unique_key, uploaded_at, owner:owner_id(full_name)')
+        .order('uploaded_at', { ascending: false })
+        .limit(500)
+      setFiles(data ?? [])
+      setLoading(false)
+    }
+
+    load()
+  }, [])
+
+  const ownerOptions = Array.from(
+    new Set(
+      files
+        .map(file => file.owner?.full_name)
+        .filter((value): value is string => Boolean(value))
+    )
+  ).sort((a, b) => a.localeCompare(b, 'ko'))
+
+  const filtered = files.filter(file => {
+    const ownerName = file.owner?.full_name ?? ''
+    const displayName = file.original_file_name ?? file.file_name
+    const uploadedDate = file.uploaded_at ? file.uploaded_at.slice(0, 10) : ''
+
+    const matchesSearch = !search || [
+      displayName,
+      file.file_name,
+      file.unique_key ?? '',
+      ownerName,
+    ].some(value => value.toLowerCase().includes(search.toLowerCase()))
+
+    const matchesOwner = ownerFilter === 'all' || ownerName === ownerFilter
+    const matchesFrom = !dateFrom || (uploadedDate && uploadedDate >= dateFrom)
+    const matchesTo = !dateTo || (uploadedDate && uploadedDate <= dateTo)
+
+    return matchesSearch && matchesOwner && matchesFrom && matchesTo
+  })
+
+  const allVisibleSelected = filtered.length > 0 && filtered.every(file => selectedIds.includes(file.id))
+
+  function toggleSelected(fileId: string) {
+    setSelectedIds(previous =>
+      previous.includes(fileId)
+        ? previous.filter(id => id !== fileId)
+        : [...previous, fileId]
+    )
+  }
+
+  function toggleSelectAllVisible() {
+    if (allVisibleSelected) {
+      setSelectedIds(previous => previous.filter(id => !filtered.some(file => file.id === id)))
+      return
+    }
+
+    setSelectedIds(previous => Array.from(new Set([...previous, ...filtered.map(file => file.id)])))
+  }
+
+  async function downloadFile(path: string, name: string) {
+    const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 60)
+    if (!data?.signedUrl) return
+
+    const anchor = document.createElement('a')
+    anchor.href = data.signedUrl
+    anchor.download = name
+    anchor.click()
+  }
+
+  async function bulkDownload(targetFiles: typeof files) {
+    if (targetFiles.length === 0) return
+
+    setDownloading(true)
+    try {
+      for (const file of targetFiles) {
+        await downloadFile(file.file_path, file.original_file_name ?? file.file_name)
+        await new Promise(resolve => window.setTimeout(resolve, 150))
+      }
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  function resetFilters() {
+    setSearch('')
+    setOwnerFilter('all')
+    setDateFrom('')
+    setDateTo('')
+    setSelectedIds([])
+  }
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-brand-500" /></div>
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_220px_160px_160px_auto] gap-3">
+        <div className="relative">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="파일명, 고유키, 업로드자 검색..."
+            className="form-input pl-9 text-sm"
+          />
+        </div>
+
+        <select value={ownerFilter} onChange={e => setOwnerFilter(e.target.value)} className="form-input text-sm">
+          <option value="all">전체 업로드자</option>
+          {ownerOptions.map(owner => (
+            <option key={owner} value={owner}>{owner}</option>
+          ))}
+        </select>
+
+        <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="form-input text-sm" />
+        <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="form-input text-sm" />
+
+        <button onClick={resetFilters} className="btn-secondary text-xs px-3 py-2">
+          필터 초기화
+        </button>
+      </div>
+
+      <div className="card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="text-sm text-gray-600">
+          필터 결과 <b className="text-gray-900">{filtered.length.toLocaleString()}</b>건
+          <span className="mx-2 text-gray-300">|</span>
+          선택 <b className="text-gray-900">{selectedIds.length.toLocaleString()}</b>건
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => bulkDownload(filtered)}
+            disabled={downloading || filtered.length === 0}
+            className="btn-secondary text-xs px-3 py-2 disabled:opacity-40"
+          >
+            <Download size={14} />
+            필터 결과 일괄 다운로드
+          </button>
+
+          <button
+            onClick={() => bulkDownload(filtered.filter(file => selectedIds.includes(file.id)))}
+            disabled={downloading || selectedIds.length === 0}
+            className="btn-primary text-xs px-3 py-2 disabled:opacity-40"
+          >
+            {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+            선택 다운로드
+          </button>
+        </div>
+      </div>
+
+      <div className="card overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between text-xs text-gray-500">
+          <span>총 <b className="text-gray-700">{filtered.length.toLocaleString()}</b>개 파일</span>
+          <label className="inline-flex items-center gap-2 text-gray-600">
+            <input
+              type="checkbox"
+              checked={allVisibleSelected}
+              onChange={toggleSelectAllVisible}
+              className="rounded border-gray-300"
+            />
+            현재 필터 결과 전체 선택
+          </label>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th className="w-12 text-center">선택</th>
+                <th>파일명</th>
+                <th>고유키</th>
+                <th>업로드자</th>
+                <th>업로드일</th>
+                <th className="text-center">다운로드</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(file => (
+                <tr key={file.id}>
+                  <td className="text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(file.id)}
+                      onChange={() => toggleSelected(file.id)}
+                      className="rounded border-gray-300"
+                    />
+                  </td>
+                  <td className="text-xs text-gray-700 max-w-[320px] truncate" title={file.original_file_name ?? file.file_name}>
+                    {file.original_file_name ?? file.file_name}
+                  </td>
+                  <td className="text-xs text-gray-500 font-mono">{file.unique_key ?? '-'}</td>
+                  <td className="text-xs text-gray-600">{file.owner?.full_name ?? '-'}</td>
+                  <td className="text-xs text-gray-400">
+                    {file.uploaded_at ? new Date(file.uploaded_at).toLocaleDateString('ko-KR') : '-'}
+                  </td>
+                  <td className="text-center">
+                    <button
+                      onClick={() => downloadFile(file.file_path, file.original_file_name ?? file.file_name)}
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-brand-50 text-brand-700 rounded-lg text-xs hover:bg-brand-100 transition-all"
+                    >
+                      <Download size={11} />
+                      다운로드
                     </button>
                   </td>
                 </tr>

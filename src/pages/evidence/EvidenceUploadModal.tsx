@@ -1,11 +1,19 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  X, Upload, Save, Send, CheckCircle2, FileText,
-  Loader2, AlertCircle, Download, Trash2
+  X,
+  Upload,
+  Save,
+  Send,
+  CheckCircle2,
+  FileText,
+  Loader2,
+  AlertCircle,
+  Download,
+  Trash2,
 } from 'lucide-react'
+import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
-import clsx from 'clsx'
 
 interface Activity {
   id: string
@@ -16,6 +24,7 @@ interface Activity {
   description: string | null
   controller_name: string | null
   controller_email: string | null
+  controller_id?: string | null
   kpi_score: number | null
   submission_status: string
   unique_key: string | null
@@ -25,11 +34,13 @@ interface Activity {
 interface PopulationItem {
   id: string
   unique_key: string
-  transaction_id: string | null   // F열
-  transaction_date: string | null // G열
-  description: string | null      // H열
-  extra_info: string | null       // I열
-  extra_info_2: string | null     // J열
+  transaction_id: string | null
+  transaction_date: string | null
+  description: string | null
+  extra_info: string | null
+  extra_info_2?: string | null
+  extra_info_3?: string | null
+  extra_info_4?: string | null
   uploads: UploadedFile[]
 }
 
@@ -41,7 +52,6 @@ interface UploadedFile {
   uploaded_at?: string
   isNew?: boolean
   file?: File
-  progress?: number
 }
 
 interface Props {
@@ -50,187 +60,361 @@ interface Props {
   viewOnly?: boolean
 }
 
+interface StoredUploadRow {
+  id: string
+  file_name: string
+  original_file_name?: string | null
+  file_path: string
+  file_size: number | null
+  uploaded_at: string | null
+  population_item_id: string
+}
+
+function sanitizeFileName(fileName: string) {
+  return fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+}
+
+function formatFileSize(fileSize?: number) {
+  if (!fileSize) return ''
+  if (fileSize >= 1024 * 1024) {
+    return `${(fileSize / (1024 * 1024)).toFixed(1)}MB`
+  }
+  return `${Math.round(fileSize / 1024).toLocaleString('ko-KR')}KB`
+}
+
+function formatAdditionalValue(value: string | null | undefined) {
+  if (!value) return null
+  const normalized = value.replace(/,/g, '').trim()
+  if (/^-?\d+(\.\d+)?$/.test(normalized)) {
+    return Number(normalized).toLocaleString('ko-KR', { maximumFractionDigits: 20 })
+  }
+  return value
+}
+
+function getAdditionalInfoRows(item: PopulationItem) {
+  return [
+    { label: '추가정보 1', value: formatAdditionalValue(item.extra_info) },
+    { label: '추가정보 2', value: formatAdditionalValue(item.extra_info_2) },
+    { label: '추가정보 3', value: formatAdditionalValue(item.extra_info_3) },
+    { label: '추가정보 4', value: formatAdditionalValue(item.extra_info_4) },
+  ].filter(entry => entry.value)
+}
+
 export default function EvidenceUploadModal({ activity, onClose, viewOnly = false }: Props) {
   const { profile } = useAuth()
-  const [items,   setItems]   = useState<PopulationItem[]>([])
+  const [items, setItems] = useState<PopulationItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [saving,  setSaving]  = useState(false)
+  const [saving, setSaving] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
   const [error, setError] = useState('')
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
-  // 모집단 데이터 로드
   useEffect(() => {
     async function load() {
-      if (!activity.unique_key) { setLoading(false); return }
+      if (!activity.unique_key) {
+        setItems([])
+        setLoading(false)
+        return
+      }
+
+      setLoading(true)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = supabase as any
 
-      // 1. 모집단 행 조회 (고유키 매칭)
       const { data: popItems } = await db
         .from('population_items')
         .select('*')
         .eq('unique_key', activity.unique_key)
         .order('transaction_date')
 
-      // 2. 이미 업로드된 파일 조회
       const { data: uploads } = await db
         .from('evidence_uploads')
-        .select('*')
+        .select('id, file_name, original_file_name, file_path, file_size, uploaded_at, population_item_id')
         .eq('activity_id', activity.id)
 
       const uploadMap: Record<string, UploadedFile[]> = {}
-      ;(uploads ?? []).forEach((u: { population_item_id: string; file_name: string; file_path: string; file_size: number; uploaded_at: string; id: string }) => {
-        if (!uploadMap[u.population_item_id]) uploadMap[u.population_item_id] = []
-        uploadMap[u.population_item_id].push({
-          id: u.id,
-          file_name: u.file_name,
-          file_path: u.file_path,
-          file_size: u.file_size,
-          uploaded_at: u.uploaded_at,
+      ;((uploads ?? []) as StoredUploadRow[]).forEach(upload => {
+        if (!uploadMap[upload.population_item_id]) {
+          uploadMap[upload.population_item_id] = []
+        }
+
+        uploadMap[upload.population_item_id].push({
+          id: upload.id,
+          file_name: upload.original_file_name || upload.file_name,
+          file_path: upload.file_path,
+          file_size: upload.file_size ?? undefined,
+          uploaded_at: upload.uploaded_at ?? undefined,
         })
       })
 
-      setItems((popItems ?? []).map((p: PopulationItem) => ({
-        ...p,
-        uploads: uploadMap[p.id] ?? [],
-      })))
+      setItems(
+        ((popItems ?? []) as PopulationItem[]).map(item => ({
+          ...item,
+          uploads: uploadMap[item.id] ?? [],
+        }))
+      )
       setLoading(false)
     }
-    load()
-  }, [activity])
 
-  // 파일 선택
+    void load()
+  }, [activity.id, activity.unique_key])
+
+  const hasAnyUploads = useMemo(
+    () => items.some(item => item.uploads.length > 0),
+    [items]
+  )
+
+  const hasNewFiles = useMemo(
+    () => items.some(item => item.uploads.some(upload => upload.isNew)),
+    [items]
+  )
+
   function handleFileSelect(itemId: string, files: FileList | null) {
     if (!files || files.length === 0) return
-    setItems(prev => prev.map(item => {
-      if (item.id !== itemId) return item
-      const newFiles: UploadedFile[] = Array.from(files).map(f => ({
-        file_name: f.name,
-        file_path: '',
-        file_size: f.size,
-        isNew: true,
-        file: f,
-        progress: 0,
-      }))
-      return { ...item, uploads: [...item.uploads, ...newFiles] }
-    }))
+
+    setItems(previous =>
+      previous.map(item => {
+        if (item.id !== itemId) return item
+
+        const newUploads: UploadedFile[] = Array.from(files).map(file => ({
+          file_name: file.name,
+          file_path: '',
+          file_size: file.size,
+          isNew: true,
+          file,
+        }))
+
+        return { ...item, uploads: [...item.uploads, ...newUploads] }
+      })
+    )
   }
 
-  // 파일 제거 (새 파일만 제거, 기존 파일은 저장 시 반영)
   function removeFile(itemId: string, fileName: string) {
-    setItems(prev => prev.map(item => {
-      if (item.id !== itemId) return item
-      return { ...item, uploads: item.uploads.filter(u => !(u.isNew && u.file_name === fileName)) }
-    }))
+    setItems(previous =>
+      previous.map(item => {
+        if (item.id !== itemId) return item
+        return {
+          ...item,
+          uploads: item.uploads.filter(upload => !(upload.isNew && upload.file_name === fileName)),
+        }
+      })
+    )
   }
 
-  // 저장 (파일 업로드 + DB 저장)
-  async function handleSave() {
-    setSaving(true); setError('')
+  async function resolveControllerId() {
+    if (activity.controller_id) return activity.controller_id
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
 
-    try {
-      for (const item of items) {
-        const newUploads = item.uploads.filter(u => u.isNew && u.file)
-        for (const upload of newUploads) {
-          if (!upload.file) continue
+    if (activity.controller_email) {
+      const { data } = await db
+        .from('profiles')
+        .select('id')
+        .eq('email', activity.controller_email)
+        .maybeSingle()
 
-          // 파일명: {고유키}_{F열}_{날짜}_{원본파일명}
-          const date = new Date().toISOString().slice(0, 10)
-          const safeName = upload.file.name.replace(/[^a-zA-Z0-9가-힣._-]/g, '_')
-          const storagePath = `${profile!.id}/${item.id}_${date}_${safeName}`
-
-          // Supabase Storage 업로드
-          const { error: upErr } = await (supabase.storage as any)
-            .from('evidence')
-            .upload(storagePath, upload.file, { upsert: true })
-
-          if (upErr) { setError(`파일 업로드 실패: ${upload.file_name}`); continue }
-
-          // DB 저장 (고유키+F열+업로드일자 형식의 파일명)
-          const dbFileName = `${activity.unique_key ?? ''}_${item.transaction_id ?? item.id}_${date}_${upload.file.name}`
-          await db.from('evidence_uploads').insert({
-            population_item_id: item.id,
-            activity_id: activity.id,
-            owner_id: profile!.id,
-            file_path: storagePath,
-            file_name: dbFileName,
-            original_file_name: upload.file.name,
-            file_size: upload.file.size,
-            unique_key: activity.unique_key,
-            status: 'uploaded',
-          })
-        }
-      }
-
-      // isNew 플래그 제거 (저장 완료된 것으로 처리)
-      setItems(prev => prev.map(item => ({
-        ...item,
-        uploads: item.uploads.map(u => u.isNew ? { ...u, isNew: false } : u)
-      })))
-
-      setSavedMsg('저장되었습니다!')
-      setTimeout(() => setSavedMsg(''), 3000)
-    } catch {
-      setError('저장 중 오류가 발생했습니다.')
+      if (data?.id) return data.id as string
     }
-    setSaving(false)
+
+    if (activity.controller_name) {
+      const { data } = await db
+        .from('profiles')
+        .select('id')
+        .eq('full_name', activity.controller_name)
+        .maybeSingle()
+
+      if (data?.id) return data.id as string
+    }
+
+    return null
   }
 
-  // 결재상신
+  async function handleSave() {
+    if (!profile?.id) {
+      setError('로그인 정보가 확인되지 않아 업로드를 진행할 수 없습니다.')
+      return false
+    }
+
+    if (!hasNewFiles) {
+      setSavedMsg('저장할 새 파일이 없습니다.')
+      setTimeout(() => setSavedMsg(''), 2500)
+      return true
+    }
+
+    setSaving(true)
+    setError('')
+    setSavedMsg('')
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+    const uploadErrors: string[] = []
+    let uploadedCount = 0
+
+    try {
+      const nextItems: PopulationItem[] = []
+
+      for (const item of items) {
+        const persistedUploads = item.uploads.filter(upload => !upload.isNew)
+        const pendingUploads = item.uploads.filter(upload => upload.isNew)
+        const completedUploads: UploadedFile[] = []
+        const failedUploads: UploadedFile[] = []
+
+        for (const upload of pendingUploads) {
+          if (!upload.file) {
+            failedUploads.push(upload)
+            continue
+          }
+
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+          const safeName = sanitizeFileName(upload.file.name)
+          const storagePath = `${profile.id}/${item.id}/${timestamp}_${safeName}`
+
+          const { error: storageError } = await (supabase.storage as any)
+            .from('evidence')
+            .upload(storagePath, upload.file, { upsert: false })
+
+          if (storageError) {
+            uploadErrors.push(`${upload.file.name}: ${storageError.message}`)
+            failedUploads.push(upload)
+            continue
+          }
+
+          const dbFileName = `${activity.unique_key ?? ''}_${item.transaction_id ?? item.id}_${upload.file.name}`
+          const { data: savedUpload, error: insertError } = await db
+            .from('evidence_uploads')
+            .insert({
+              population_item_id: item.id,
+              activity_id: activity.id,
+              owner_id: profile.id,
+              file_path: storagePath,
+              file_name: dbFileName,
+              original_file_name: upload.file.name,
+              file_size: upload.file.size,
+              unique_key: activity.unique_key,
+              status: 'uploaded',
+            })
+            .select('id, file_name, original_file_name, file_path, file_size, uploaded_at')
+            .single()
+
+          if (insertError) {
+            await (supabase.storage as any).from('evidence').remove([storagePath])
+            uploadErrors.push(`${upload.file.name}: ${insertError.message}`)
+            failedUploads.push(upload)
+            continue
+          }
+
+          completedUploads.push({
+            id: savedUpload.id,
+            file_name: savedUpload.original_file_name || savedUpload.file_name,
+            file_path: savedUpload.file_path,
+            file_size: savedUpload.file_size ?? undefined,
+            uploaded_at: savedUpload.uploaded_at ?? undefined,
+          })
+          uploadedCount += 1
+        }
+
+        nextItems.push({
+          ...item,
+          uploads: [...persistedUploads, ...completedUploads, ...failedUploads],
+        })
+      }
+
+      setItems(nextItems)
+
+      if (uploadErrors.length > 0) {
+        setError(
+          uploadErrors.length === 1
+            ? `파일 업로드 실패: ${uploadErrors[0]}`
+            : `파일 업로드 실패 ${uploadErrors.length}건: ${uploadErrors[0]}`
+        )
+      }
+
+      if (uploadedCount > 0) {
+        setSavedMsg(`${uploadedCount.toLocaleString('ko-KR')}개 파일 업로드 성공`)
+        setTimeout(() => setSavedMsg(''), 3000)
+      }
+
+      return uploadErrors.length === 0
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : '저장 중 오류가 발생했습니다.')
+      return false
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function handleSubmit() {
     if (!activity.controller_email) {
-      setError('승인자 이메일 정보가 없습니다. 관리자에게 문의하세요.')
+      setError('승인자 이메일 정보가 없어 결재상신을 진행할 수 없습니다.')
       return
     }
-    const hasUploads = items.some(item => item.uploads.length > 0)
-    if (!hasUploads) {
+
+    if (!hasAnyUploads && !hasNewFiles) {
       setError('최소 하나 이상의 파일을 업로드해야 결재상신이 가능합니다.')
       return
     }
 
-    if (!confirm('결재상신을 진행하시겠습니까?\n승인자에게 이메일이 발송됩니다.')) return
+    if (!window.confirm('결재상신을 진행하시겠습니까?\n승인자에게 메일이 발송됩니다.')) return
 
-    setSubmitting(true); setError('')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabase as any
+    setSubmitting(true)
+    setError('')
 
     try {
-      // 1. 저장 먼저
-      await handleSave()
+      const saveOk = await handleSave()
+      if (!saveOk) return
 
-      // 2. activities 상신여부 = '완료' 업데이트
-      await db.from('activities')
-        .update({ submission_status: '완료', updated_at: new Date().toISOString() })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+      const controllerId = await resolveControllerId()
+
+      const { error: activityError } = await db
+        .from('activities')
+        .update({
+          submission_status: '완료',
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', activity.id)
 
-      // 3. approval_requests 생성 또는 업데이트
-      const existingReq = await db
+      if (activityError) throw activityError
+
+      const { data: existingRequest, error: requestLookupError } = await db
         .from('approval_requests')
         .select('id')
         .eq('activity_id', activity.id)
-        .single()
+        .maybeSingle()
 
-      if (existingReq.data) {
-        await db.from('approval_requests')
-          .update({ status: 'submitted', submitted_at: new Date().toISOString(), decided_at: null })
-          .eq('id', existingReq.data.id)
+      if (requestLookupError) throw requestLookupError
+
+      if (existingRequest?.id) {
+        const { error: requestUpdateError } = await db
+          .from('approval_requests')
+          .update({
+            status: 'submitted',
+            controller_id: controllerId,
+            submitted_at: new Date().toISOString(),
+            decided_at: null,
+          })
+          .eq('id', existingRequest.id)
+
+        if (requestUpdateError) throw requestUpdateError
       } else {
-        await db.from('approval_requests').insert({
-          unique_key: activity.unique_key,
-          control_code: activity.control_code,
-          activity_id: activity.id,
-          owner_id: profile!.id,
-          controller_id: null,
-          status: 'submitted',
-          submitted_at: new Date().toISOString(),
-        })
+        const { error: requestInsertError } = await db
+          .from('approval_requests')
+          .insert({
+            unique_key: activity.unique_key,
+            control_code: activity.control_code,
+            activity_id: activity.id,
+            owner_id: profile?.id ?? null,
+            controller_id: controllerId,
+            status: 'submitted',
+            submitted_at: new Date().toISOString(),
+          })
+
+        if (requestInsertError) throw requestInsertError
       }
 
-      // 4. 이메일 발송 (Edge Function 호출)
       try {
         await supabase.functions.invoke('send-approval-email', {
           body: {
@@ -241,24 +425,24 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
             activityTitle: activity.title ?? '',
             department: activity.department ?? '',
             portalUrl: window.location.origin,
-          }
+          },
         })
-      } catch { /* 이메일 발송 실패해도 계속 */ }
+      } catch {
+        // Keep the submission successful even if email delivery fails.
+      }
 
-      alert('결재상신이 완료되었습니다!\n승인자에게 이메일이 발송되었습니다.')
+      alert('결재상신이 완료되었습니다.')
       onClose(true)
-    } catch {
-      setError('결재상신 중 오류가 발생했습니다.')
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : '결재상신 중 오류가 발생했습니다.')
+    } finally {
+      setSubmitting(false)
     }
-    setSubmitting(false)
   }
 
-  const hasNewFiles = items.some(item => item.uploads.some(u => u.isNew))
-
   return (
-    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="modal-box w-[96vw] max-w-[1440px] max-h-[92vh]">
-        {/* 모달 헤더 */}
+    <div className="modal-overlay" onClick={event => { if (event.target === event.currentTarget) onClose() }}>
+      <div className="modal-box w-[98vw] max-w-[1560px] max-h-[94vh]">
         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-start justify-between z-10">
           <div>
             <h2 className="text-lg font-black text-gray-900">
@@ -273,20 +457,22 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
             </div>
             <p className="text-sm text-gray-500 mt-1">{activity.title}</p>
           </div>
-          <button onClick={() => onClose()} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all ml-4">
+
+          <button
+            onClick={() => onClose()}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all ml-4"
+          >
             <X size={18} />
           </button>
         </div>
 
-        {/* 제출 증빙 설명 */}
         {activity.description && (
           <div className="px-6 py-3 bg-blue-50 border-b border-blue-100">
-            <p className="text-xs text-blue-600 font-semibold mb-0.5">📋 제출 증빙에 대한 설명</p>
+            <p className="text-xs text-blue-600 font-semibold mb-0.5">제출 증빙에 대한 설명</p>
             <p className="text-sm text-blue-800">{activity.description}</p>
           </div>
         )}
 
-        {/* 에러 메시지 */}
         {error && (
           <div className="mx-6 mt-4 flex items-center gap-2 bg-red-50 border border-red-100 text-red-700 text-sm rounded-xl px-4 py-3">
             <AlertCircle size={15} />
@@ -294,7 +480,6 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
           </div>
         )}
 
-        {/* 저장 완료 메시지 */}
         {savedMsg && (
           <div className="mx-6 mt-4 flex items-center gap-2 bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm rounded-xl px-4 py-3">
             <CheckCircle2 size={15} />
@@ -302,7 +487,6 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
           </div>
         )}
 
-        {/* 모집단 테이블 */}
         <div className="p-6">
           {loading ? (
             <div className="flex items-center justify-center py-16">
@@ -311,104 +495,139 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
           ) : items.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
               <AlertCircle size={32} className="mx-auto mb-2 text-gray-200" />
-              <p>연결된 모집단 데이터가 없습니다</p>
-              <p className="text-xs mt-1">관리자에게 문의하세요 (고유키: {activity.unique_key ?? '없음'})</p>
+              <p>연결된 모집단 데이터가 없습니다.</p>
+              <p className="text-xs mt-1">관리자에게 문의해주세요. (고유키: {activity.unique_key ?? '없음'})</p>
             </div>
           ) : (
             <div className="space-y-4">
               <p className="text-sm font-semibold text-gray-700">
-                모집단 항목 <span className="text-brand-600">{items.length}건</span>
+                모집단 항목 <span className="text-brand-600">{items.length.toLocaleString('ko-KR')}건</span>
                 {!viewOnly && (
-                  <span className="text-xs text-gray-400 font-normal ml-2">각 항목별로 증빙 파일을 업로드하세요</span>
+                  <span className="text-xs text-gray-400 font-normal ml-2">각 항목별로 증빙 파일을 업로드해주세요</span>
                 )}
               </p>
-              <div className="overflow-auto border border-gray-100 rounded-xl max-h-[56vh]">
-                <table className="data-table min-w-[1240px]">
+
+              <div className="overflow-auto border border-slate-200 rounded-2xl max-h-[60vh] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+                <table className="data-table min-w-[1380px]">
                   <thead>
                     <tr>
-                      <th className="text-center w-10">#</th>
-                      <th className="min-w-[180px]">Transaction ID</th>
-                      <th className="min-w-[120px]">거래일</th>
-                      <th className="min-w-[360px]">거래 설명</th>
-                      <th className="min-w-[220px]">추가 정보</th>
-                      <th className="min-w-[320px]">업로드된 파일</th>
-                      {!viewOnly && <th className="text-center min-w-[100px]">업로드</th>}
+                      <th className="text-center w-12">#</th>
+                      <th className="min-w-[220px]">Transaction ID</th>
+                      <th className="min-w-[130px]">거래일</th>
+                      <th className="min-w-[420px]">거래 설명</th>
+                      <th className="min-w-[260px]">추가 정보</th>
+                      <th className="min-w-[360px]">업로드된 파일</th>
+                      {!viewOnly && <th className="text-center min-w-[110px]">업로드</th>}
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((item, idx) => (
-                      <tr key={item.id} className="align-top">
-                        <td className="text-center text-xs text-gray-400 pt-3">{idx + 1}</td>
-                        <td className="text-xs font-mono text-gray-600 pt-3 break-all whitespace-normal">
-                          {item.transaction_id ?? '-'}
-                        </td>
-                        <td className="text-xs text-gray-600 pt-3 whitespace-nowrap">
-                          {item.transaction_date ?? '-'}
-                        </td>
-                        <td className="text-xs text-gray-700 pt-3 whitespace-normal break-words leading-5">
-                          {item.description ?? '-'}
-                        </td>
-                        <td className="text-xs text-gray-500 pt-3 whitespace-normal break-words leading-5">
-                          {item.extra_info ? (
-                            <span>{item.extra_info}</span>
-                          ) : '-'}
-                        </td>
-                        <td className="pt-2">
-                          {item.uploads.length === 0 ? (
-                            <span className="text-xs text-gray-400">파일 없음</span>
-                          ) : (
-                            <div className="space-y-1">
-                              {item.uploads.map((f, fi) => (
-                                <div key={fi} className={clsx(
-                                  'flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs',
-                                  f.isNew ? 'bg-brand-50 border border-brand-100' : 'bg-gray-50'
-                                )}>
-                                  <FileText size={11} className={f.isNew ? 'text-brand-500' : 'text-gray-400'} />
-                                  <span className="text-gray-700 break-all whitespace-normal">
-                                    {f.file_name}
-                                  </span>
-                                  {f.file_size && (
-                                    <span className="text-gray-400 shrink-0">
-                                      {(f.file_size / 1024).toFixed(0)}KB
-                                    </span>
-                                  )}
-                                  {f.isNew && !viewOnly && (
-                                    <button
-                                      onClick={() => removeFile(item.id, f.file_name)}
-                                      className="ml-auto text-gray-400 hover:text-red-500 transition-colors"
-                                    >
-                                      <Trash2 size={11} />
-                                    </button>
-                                  )}
-                                  {!f.isNew && f.file_path && (
-                                    <FileDownloadBtn path={f.file_path} name={f.file_name} />
-                                  )}
-                                </div>
-                              ))}
-                            </div>
+                    {items.map((item, index) => {
+                      const additionalRows = getAdditionalInfoRows(item)
+
+                      return (
+                        <tr
+                          key={item.id}
+                          className={clsx(
+                            'align-top border-b border-slate-100',
+                            index % 2 === 0 ? 'bg-white' : 'bg-slate-50/70'
                           )}
-                        </td>
-                        {!viewOnly && (
-                          <td className="text-center pt-2">
-                            <input
-                              type="file"
-                              multiple
-                              ref={el => { fileInputRefs.current[item.id] = el }}
-                              onChange={e => handleFileSelect(item.id, e.target.files)}
-                              className="hidden"
-                              accept=".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png,.gif,.zip"
-                            />
-                            <button
-                              onClick={() => fileInputRefs.current[item.id]?.click()}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 transition-all"
-                            >
-                              <Upload size={11} />
-                              업로드
-                            </button>
+                        >
+                          <td className="text-center text-xs text-gray-400 pt-4">{index + 1}</td>
+                          <td className="pt-3">
+                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs font-mono text-gray-700 break-all whitespace-normal">
+                              {item.transaction_id ?? '-'}
+                            </div>
                           </td>
-                        )}
-                      </tr>
-                    ))}
+                          <td className="pt-3">
+                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs text-gray-700 whitespace-nowrap">
+                              {item.transaction_date ?? '-'}
+                            </div>
+                          </td>
+                          <td className="pt-3">
+                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs text-gray-700 whitespace-normal break-words leading-5">
+                              {item.description ?? '-'}
+                            </div>
+                          </td>
+                          <td className="pt-3">
+                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 min-h-[74px]">
+                              {additionalRows.length === 0 ? (
+                                <span className="text-xs text-gray-400">-</span>
+                              ) : (
+                                <div className="space-y-2">
+                                  {additionalRows.map(row => (
+                                    <div key={row.label} className="rounded-lg bg-slate-50 border border-slate-100 px-2.5 py-2">
+                                      <p className="text-[11px] font-semibold text-slate-500">{row.label}</p>
+                                      <p className="text-xs font-medium text-slate-800 break-words">{row.value}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="pt-3">
+                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 min-h-[74px]">
+                              {item.uploads.length === 0 ? (
+                                <span className="text-xs text-gray-400">파일 없음</span>
+                              ) : (
+                                <div className="space-y-2">
+                                  {item.uploads.map((upload, uploadIndex) => (
+                                    <div
+                                      key={`${upload.file_name}-${uploadIndex}`}
+                                      className={clsx(
+                                        'flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs border',
+                                        upload.isNew
+                                          ? 'bg-brand-50 border-brand-100'
+                                          : 'bg-slate-50 border-slate-100'
+                                      )}
+                                    >
+                                      <FileText size={12} className={upload.isNew ? 'text-brand-500' : 'text-slate-400'} />
+                                      <div className="min-w-0 flex-1">
+                                        <p className="text-gray-700 break-all whitespace-normal">{upload.file_name}</p>
+                                        {upload.file_size ? (
+                                          <p className="text-[11px] text-gray-400 mt-0.5">{formatFileSize(upload.file_size)}</p>
+                                        ) : null}
+                                      </div>
+
+                                      {upload.isNew && !viewOnly ? (
+                                        <button
+                                          onClick={() => removeFile(item.id, upload.file_name)}
+                                          className="text-gray-400 hover:text-red-500 transition-colors"
+                                        >
+                                          <Trash2 size={12} />
+                                        </button>
+                                      ) : null}
+
+                                      {!upload.isNew && upload.file_path ? (
+                                        <FileDownloadBtn path={upload.file_path} name={upload.file_name} />
+                                      ) : null}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          {!viewOnly && (
+                            <td className="text-center pt-3">
+                              <input
+                                type="file"
+                                multiple
+                                ref={element => { fileInputRefs.current[item.id] = element }}
+                                onChange={event => handleFileSelect(item.id, event.target.files)}
+                                className="hidden"
+                                accept=".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png,.gif,.zip"
+                              />
+                              <button
+                                onClick={() => fileInputRefs.current[item.id]?.click()}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 transition-all"
+                              >
+                                <Upload size={11} />
+                                업로드
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -416,35 +635,27 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
           )}
         </div>
 
-        {/* 하단 버튼 */}
         <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex items-center justify-between">
           <button onClick={() => onClose()} className="btn-ghost">
-            <X size={15} />닫기
+            <X size={15} />
+            닫기
           </button>
 
           {!viewOnly && (
             <div className="flex items-center gap-3">
-              {/* 저장 버튼 */}
               <button
                 onClick={handleSave}
                 disabled={saving || !hasNewFiles}
-                className={clsx(
-                  'btn-secondary',
-                  (!hasNewFiles) && 'opacity-40 cursor-not-allowed'
-                )}
+                className={clsx('btn-secondary', !hasNewFiles && 'opacity-40 cursor-not-allowed')}
               >
                 {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
                 중간 저장
               </button>
 
-              {/* 결재상신 버튼 */}
               <button
                 onClick={handleSubmit}
                 disabled={submitting || saving || activity.submission_status === '승인'}
-                className={clsx(
-                  'btn-primary',
-                  (activity.submission_status === '승인') && 'opacity-40 cursor-not-allowed'
-                )}
+                className={clsx('btn-primary', activity.submission_status === '승인' && 'opacity-40 cursor-not-allowed')}
               >
                 {submitting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
                 결재상신
@@ -457,20 +668,20 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
   )
 }
 
-// 파일 다운로드 버튼
 function FileDownloadBtn({ path, name }: { path: string; name: string }) {
   async function handleDownload() {
     const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 60)
-    if (data?.signedUrl) {
-      const a = document.createElement('a')
-      a.href = data.signedUrl
-      a.download = name
-      a.click()
-    }
+    if (!data?.signedUrl) return
+
+    const link = document.createElement('a')
+    link.href = data.signedUrl
+    link.download = name
+    link.click()
   }
+
   return (
-    <button onClick={handleDownload} className="ml-auto text-gray-400 hover:text-brand-600 transition-colors" title="다운로드">
-      <Download size={11} />
+    <button onClick={handleDownload} className="text-gray-400 hover:text-brand-600 transition-colors" title="다운로드">
+      <Download size={12} />
     </button>
   )
 }

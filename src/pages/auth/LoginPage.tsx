@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Eye, EyeOff, LogIn, AlertCircle, Shield } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { employeeEmailMap } from '../../data/employeeEmailMap'
 
 export default function LoginPage() {
   const [email,    setEmail]    = useState('')
@@ -15,17 +16,31 @@ export default function LoginPage() {
     setLoading(true)
 
     // 사번 입력 시 자동으로 이메일 형식으로 변환
-    let loginEmail = email.trim()
-    if (!loginEmail.includes('@')) {
-      loginEmail = `${loginEmail}@tongyanginc.co.kr`
+    const loginInput = email.trim().toLowerCase()
+    const employeeId = loginInput.includes('@') ? null : loginInput
+    const loginCandidates = employeeId
+      ? Array.from(new Set([
+          `${employeeId}@tongyanginc.co.kr`,
+          employeeEmailMap[employeeId],
+        ].filter(Boolean) as string[]))
+      : [loginInput]
+
+    let loginError: string | null = null
+
+    for (const loginEmail of loginCandidates) {
+      const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password })
+      if (!error) {
+        setLoading(false)
+        return
+      }
+      loginError = error.message
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password })
-    if (error) {
+    if (loginError) {
       setError(
-        error.message.includes('Invalid login credentials')
+        loginError.includes('Invalid login credentials')
           ? '아이디 또는 비밀번호가 올바르지 않습니다.'
-          : error.message
+          : loginError
       )
     }
     setLoading(false)
