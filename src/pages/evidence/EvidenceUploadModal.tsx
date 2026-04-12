@@ -257,7 +257,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
 
   return (
     <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="modal-box max-w-4xl">
+      <div className="modal-box w-[96vw] max-w-[1440px] max-h-[92vh]">
         {/* 모달 헤더 */}
         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-start justify-between z-10">
           <div>
@@ -322,16 +322,16 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                   <span className="text-xs text-gray-400 font-normal ml-2">각 항목별로 증빙 파일을 업로드하세요</span>
                 )}
               </p>
-              <div className="overflow-x-auto border border-gray-100 rounded-xl">
-                <table className="data-table">
+              <div className="overflow-auto border border-gray-100 rounded-xl max-h-[56vh]">
+                <table className="data-table min-w-[1240px]">
                   <thead>
                     <tr>
                       <th className="text-center w-10">#</th>
-                      <th>Transaction ID</th>
-                      <th>거래일</th>
-                      <th className="min-w-[200px]">거래 설명</th>
-                      <th>추가 정보</th>
-                      <th className="min-w-[200px]">업로드된 파일</th>
+                      <th className="min-w-[180px]">Transaction ID</th>
+                      <th className="min-w-[120px]">거래일</th>
+                      <th className="min-w-[360px]">거래 설명</th>
+                      <th className="min-w-[220px]">추가 정보</th>
+                      <th className="min-w-[320px]">업로드된 파일</th>
                       {!viewOnly && <th className="text-center min-w-[100px]">업로드</th>}
                     </tr>
                   </thead>
@@ -339,22 +339,18 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                     {items.map((item, idx) => (
                       <tr key={item.id} className="align-top">
                         <td className="text-center text-xs text-gray-400 pt-3">{idx + 1}</td>
-                        <td className="text-xs font-mono text-gray-600 pt-3">
-                          {item.transaction_id ? String(item.transaction_id).slice(0, 10) : '-'}
+                        <td className="text-xs font-mono text-gray-600 pt-3 break-all whitespace-normal">
+                          {item.transaction_id ?? '-'}
                         </td>
-                        <td className="text-xs text-gray-600 pt-3">
-                          {item.transaction_date ? String(item.transaction_date).slice(0, 10) : '-'}
+                        <td className="text-xs text-gray-600 pt-3 whitespace-nowrap">
+                          {item.transaction_date ?? '-'}
                         </td>
-                        <td className="text-xs text-gray-700 pt-3" title={item.description ?? ''}>
-                          {item.description && item.description.length > 40
-                            ? item.description.slice(0, 40) + '…'
-                            : item.description ?? '-'}
+                        <td className="text-xs text-gray-700 pt-3 whitespace-normal break-words leading-5">
+                          {item.description ?? '-'}
                         </td>
-                        <td className="text-xs text-gray-500 pt-3">
+                        <td className="text-xs text-gray-500 pt-3 whitespace-normal break-words leading-5">
                           {item.extra_info ? (
-                            <span title={item.extra_info}>
-                              {item.extra_info.length > 20 ? item.extra_info.slice(0, 20) + '…' : item.extra_info}
-                            </span>
+                            <span>{item.extra_info}</span>
                           ) : '-'}
                         </td>
                         <td className="pt-2">
@@ -368,7 +364,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                                   f.isNew ? 'bg-brand-50 border border-brand-100' : 'bg-gray-50'
                                 )}>
                                   <FileText size={11} className={f.isNew ? 'text-brand-500' : 'text-gray-400'} />
-                                  <span className="truncate max-w-[140px] text-gray-700" title={f.file_name}>
+                                  <span className="text-gray-700 break-all whitespace-normal">
                                     {f.file_name}
                                   </span>
                                   {f.file_size && (
