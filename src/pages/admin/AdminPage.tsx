@@ -359,28 +359,35 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
       /** 날짜값을 'YYYY-MM-DD' 문자열로 변환 (Date객체/숫자/문자열 모두 처리) */
       function toDateStr(val: unknown): string | null {
         if (!val) return null
-        // JS Date 객체인 경우
+
+        /** Excel 시리얼 → YYYY-MM-DD */
+        function serialToDate(n: number): string | null {
+          if (n < 1 || n > 100000) return null
+          const d = new Date(new Date(1899, 11, 30).getTime() + n * 86400000)
+          return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10)
+        }
+
+        // JS Date 객체
         if (val instanceof Date) {
-          if (isNaN(val.getTime())) return null
-          return val.toISOString().slice(0, 10)
+          return isNaN(val.getTime()) ? null : val.toISOString().slice(0, 10)
         }
-        // Excel 시리얼 숫자인 경우 (예: 45969)
+        // 숫자: Excel 시리얼
         if (typeof val === 'number') {
-          // Excel 날짜 기준: 1900-01-01 = 1 (Windows 기준)
-          const excelEpoch = new Date(1899, 11, 30)
-          const d = new Date(excelEpoch.getTime() + val * 86400000)
-          if (!isNaN(d.getTime()) && d.getFullYear() > 1900 && d.getFullYear() < 2100) {
-            return d.toISOString().slice(0, 10)
-          }
-          return null
+          return serialToDate(Math.floor(val))
         }
-        // 문자열인 경우
+        // 문자열
         const s = String(val).trim()
         if (!s) return null
-        // 앞 10자리만 추출 (YYYY-MM-DD 또는 "2025-01-15 오전...")
-        const datePart = s.slice(0, 10).trim()
-        const d = new Date(datePart)
-        if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10)
+        // 순수 숫자 문자열 → Excel 시리얼로 처리 (new Date("45969") = 연도 45969년 방지)
+        if (/^\d+$/.test(s)) {
+          return serialToDate(parseInt(s, 10))
+        }
+        // YYYY-MM-DD 또는 한국어 날짜: 앞 10자만
+        const datePart = s.slice(0, 10)
+        if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+          const d = new Date(datePart)
+          return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10)
+        }
         return null
       }
 
@@ -401,7 +408,7 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
             dept_code: String(row['부서코드'] ?? '').trim() || null,
             related_dept: dept || null,
             sample_id: sampleId || null,
-            transaction_id: toDateStr(row['Transaction ID']) || String(row['Transaction ID'] ?? '').slice(0, 20) || null,
+            transaction_id: toDateStr(row['Transaction ID']),   // null if not a date
             transaction_date: toDateStr(row['거래일']),
             description: String(row['거래설명'] ?? '').trim() || null,
             extra_info: String(row['추가 정보 1'] ?? '').trim() || null,
@@ -415,7 +422,10 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
             await db.from('population_items').delete().eq('sample_id', sampleId)
           }
           const { error } = await db.from('population_items').insert(itemData)
-          if (error) errors.push(`[${sampleId || uniqueKey}] ${error.message}`)
+          if (error) {
+            // 오류 시 전송값 포함 (디버깅)
+            errors.push(`[${sampleId || uniqueKey}] ${error.message} (TID=${JSON.stringify(itemData.transaction_id)} TDATE=${JSON.stringify(itemData.transaction_date)})`)
+          }
           else upserted++
         } catch (e) { errors.push(String(e)) }
 
