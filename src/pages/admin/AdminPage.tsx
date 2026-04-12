@@ -410,6 +410,27 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
         return text || null
       }
 
+      const uniqueKeysToReplace = Array.from(new Set(
+        rows.map(row => {
+          const controlCode = String(row['통제번호'] ?? '').trim()
+          const dept = String(row['관련부서'] ?? '').trim()
+          return controlCode && dept
+            ? controlCode + dept
+            : String(row['고유키'] ?? '').trim()
+        }).filter(Boolean)
+      ))
+
+      if (uniqueKeysToReplace.length > 0) {
+        const { error: deleteError } = await db
+          .from('population_items')
+          .delete()
+          .in('unique_key', uniqueKeysToReplace)
+
+        if (deleteError) {
+          errors.push(`기존 모집단 삭제 실패: ${deleteError.message}`)
+        }
+      }
+
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i]
         setProgress({ current: i + 1, total: rows.length })
@@ -421,31 +442,32 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
           const sampleId = String(row['Sample ID'] ?? '').trim()
           if (!uniqueKey) continue
 
+          const transactionText = toTextStr(row['Transaction ID'])
+          const transactionDate = toDateStr(row['거래일']) ?? toDateStr(row['Transaction ID'])
+          const stableSampleId = sampleId
+            ? `${sampleId}__${i + 1}`
+            : `${uniqueKey}__${i + 1}`
+
           const itemData = {
             unique_key: uniqueKey,
             control_code: controlCode || null,
             dept_code: String(row['부서코드'] ?? '').trim() || null,
             related_dept: dept || null,
-            sample_id: sampleId || null,
+            sample_id: stableSampleId,
             // 실제 업로드 파일에서는 날짜가 Transaction ID 컬럼에 들어오는 케이스가 있어
             // 거래일이 비어 있을 때만 날짜형 값으로 보조 해석한다.
-            transaction_id: toTextStr(row['Transaction ID']),
-            transaction_date: toDateStr(row['거래일']) ?? toDateStr(row['Transaction ID']),
+            transaction_id: transactionText,
+            transaction_date: transactionDate,
             description: String(row['거래설명'] ?? '').trim() || null,
             extra_info: String(row['추가 정보 1'] ?? '').trim() || null,
             extra_info_2: String(row['추가 정보 2'] ?? '').trim() || null,
             extra_info_3: String(row['추가 정보 3'] ?? '').trim() || null,
             extra_info_4: String(row['추가 정보 4'] ?? '').trim() || null,
           }
-
-          // sample_id가 있으면 삭제 후 삽입 (unique constraint 문제 피해)
-          if (sampleId) {
-            await db.from('population_items').delete().eq('sample_id', sampleId)
-          }
           const { error } = await db.from('population_items').insert(itemData)
           if (error) {
             // 오류 시 전송값 포함 (디버깅)
-            errors.push(`[${sampleId || uniqueKey}] ${error.message} (TID=${JSON.stringify(itemData.transaction_id)} TDATE=${JSON.stringify(itemData.transaction_date)})`)
+            errors.push(`[${sampleId || uniqueKey}] ${error.message} (TID=${JSON.stringify(transactionText)} TDATE=${JSON.stringify(transactionDate)})`)
           }
           else upserted++
         } catch (e) { errors.push(String(e)) }
