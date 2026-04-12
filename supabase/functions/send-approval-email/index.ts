@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
-const FROM_EMAIL = 'noreply@tongyanginc.co.kr'
+const FROM_EMAIL = 'onboarding@resend.dev'  // TODO: tongyanginc.co.kr 도메인 인증 후 변경
 const FROM_NAME = '동양 내부회계 LMS'
 
 interface EmailPayload {

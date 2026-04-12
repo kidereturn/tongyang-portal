@@ -214,6 +214,9 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
             }
           }
 
+          // unique_key는 항상 명시적으로 설정 (colMap null 방지)
+          actData['unique_key'] = uniqueKey
+
           const { error } = await db.from('activities')
             .upsert(actData, { onConflict: 'unique_key' })
 
@@ -402,7 +405,11 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
           const transactionDateRaw = row['거래일'] ?? row['G'] ?? ''
           let transactionDate: string | null = null
           if (transactionDateRaw) {
-            const d = new Date(String(transactionDateRaw))
+            // 한국어 날짜 형식 처리: "2025-01-15 오전 12:00:00" → "2025-01-15"
+            const dateStr = String(transactionDateRaw)
+              .split(' ')[0]  // 날짜 부분만 추출
+              .trim()
+            const d = new Date(dateStr)
             if (!isNaN(d.getTime())) transactionDate = d.toISOString().slice(0, 10)
           }
 
