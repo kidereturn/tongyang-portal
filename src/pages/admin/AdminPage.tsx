@@ -345,7 +345,8 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
 
     const reader = new FileReader()
     reader.onload = async ev => {
-      const wb = XLSX.read(ev.target?.result, { type: 'binary' })
+      // cellDates: true → Excel 날짜 셀을 JS Date 객체로 파싱
+      const wb = XLSX.read(ev.target?.result, { type: 'binary', cellDates: true })
       const ws = wb.Sheets[wb.SheetNames[0]]
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' })
 
@@ -354,6 +355,34 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = supabase as any
       const BATCH = 50
+
+      /** 날짜값을 'YYYY-MM-DD' 문자열로 변환 (Date객체/숫자/문자열 모두 처리) */
+      function toDateStr(val: unknown): string | null {
+        if (!val) return null
+        // JS Date 객체인 경우
+        if (val instanceof Date) {
+          if (isNaN(val.getTime())) return null
+          return val.toISOString().slice(0, 10)
+        }
+        // Excel 시리얼 숫자인 경우 (예: 45969)
+        if (typeof val === 'number') {
+          // Excel 날짜 기준: 1900-01-01 = 1 (Windows 기준)
+          const excelEpoch = new Date(1899, 11, 30)
+          const d = new Date(excelEpoch.getTime() + val * 86400000)
+          if (!isNaN(d.getTime()) && d.getFullYear() > 1900 && d.getFullYear() < 2100) {
+            return d.toISOString().slice(0, 10)
+          }
+          return null
+        }
+        // 문자열인 경우
+        const s = String(val).trim()
+        if (!s) return null
+        // 앞 10자리만 추출 (YYYY-MM-DD 또는 "2025-01-15 오전...")
+        const datePart = s.slice(0, 10).trim()
+        const d = new Date(datePart)
+        if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10)
+        return null
+      }
 
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i]
@@ -366,23 +395,14 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
           const sampleId = String(row['Sample ID'] ?? '').trim()
           if (!uniqueKey) continue
 
-          // 날짜 파싱: "한국어 형식" 처리
-          const transRaw = String(row['거래일'] ?? '').trim()
-          const dateStr = transRaw.split(' ')[0].trim()
-          let transactionDate: string | null = null
-          if (dateStr) {
-            const d = new Date(dateStr)
-            if (!isNaN(d.getTime())) transactionDate = d.toISOString().slice(0, 10)
-          }
-
           const itemData = {
             unique_key: uniqueKey,
             control_code: controlCode || null,
             dept_code: String(row['부서코드'] ?? '').trim() || null,
             related_dept: dept || null,
             sample_id: sampleId || null,
-            transaction_id: String(row['Transaction ID'] ?? '').split(' ')[0] || null,
-            transaction_date: transactionDate,
+            transaction_id: toDateStr(row['Transaction ID']) || String(row['Transaction ID'] ?? '').slice(0, 20) || null,
+            transaction_date: toDateStr(row['거래일']),
             description: String(row['거래설명'] ?? '').trim() || null,
             extra_info: String(row['추가 정보 1'] ?? '').trim() || null,
             extra_info_2: String(row['추가 정보 2'] ?? '').trim() || null,
