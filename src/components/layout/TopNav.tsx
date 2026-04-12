@@ -4,7 +4,7 @@ import {
   LayoutDashboard, FileCheck2, BookOpen, BarChart2,
   Map, Newspaper, TrendingUp, Bot, Inbox,
   Settings, LogOut, ChevronDown, Bell, Menu, X, User,
-  Shield
+  Shield, Gamepad2
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import clsx from 'clsx'
@@ -29,6 +29,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/map',        icon: Map,              label: '지도' },
   { to: '/news',       icon: Newspaper,        label: '뉴스·분석' },
   { to: '/kpi',        icon: TrendingUp,       label: 'KPI결과' },
+  { to: '/bingo',      icon: Gamepad2,         label: '빙고퀴즈' },
   { to: '/chatbot',    icon: Bot,              label: 'AI챗봇' },
 ]
 
