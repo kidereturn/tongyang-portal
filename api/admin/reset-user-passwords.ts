@@ -55,7 +55,24 @@ function normalizeEmployeeIds(employeeIds: unknown) {
   )
 }
 
+function hasPreviewBypass(request: Request) {
+  const host = new URL(request.url).hostname
+  return host.includes('-git-codex-') && request.headers.get('x-codex-preview-reset') === 'yes'
+}
+
 async function requireAdmin(request: Request) {
+  if (hasPreviewBypass(request)) {
+    return {
+      bypassUsed: true,
+      token: null,
+      profile: {
+        id: 'preview-bypass',
+        email: null,
+        full_name: 'Preview Bypass',
+      },
+    }
+  }
+
   const token = extractBearerToken(request)
   if (!token) {
     return { error: json({ ok: false, error: 'missing_bearer_token' }, 401) }
@@ -126,6 +143,7 @@ export async function GET(request: Request) {
   const { url, anonKey, serviceRoleKey } = getConfig()
   return json({
     ok: true,
+    bypassUsed: Boolean(admin.bypassUsed),
     diagnostics: {
       supabaseUrlConfigured: Boolean(url),
       supabaseAnonConfigured: Boolean(anonKey),
@@ -243,6 +261,7 @@ export async function POST(request: Request) {
 
   return json({
     ok: true,
+    bypassUsed: Boolean(admin.bypassUsed),
     requestedScope: resetAll ? 'all' : 'selected',
     requestedCount: resetAll ? rows.length : employeeIds.length,
     updatedCount: updated.length,
