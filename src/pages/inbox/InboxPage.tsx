@@ -138,24 +138,25 @@ export default function InboxPage() {
           .eq('id', item.activity_id)
       }
 
-      // 3. 이메일 알림 발송
+      // 3. 이메일 알림 발송 (send-approval-email Edge Function)
       try {
         const ownerEmail = item.activity?.owner_email
         if (ownerEmail) {
           await supabase.functions.invoke('send-approval-email', {
             body: {
-              type: decision,
-              to: ownerEmail,
-              ownerName: item.activity?.owner_name ?? '',
-              controllerName: profile?.full_name ?? '',
-              controlCode: item.control_code ?? '',
+              type: decision,                                    // 'approved' | 'rejected'
+              to: ownerEmail,                                    // 담당자 이메일
+              recipientName: item.activity?.owner_name ?? '',   // 담당자 이름
+              submitterName: item.activity?.owner_name ?? '',
+              controlCode: item.control_code ?? item.activity?.control_code ?? '',
               activityTitle: item.activity?.title ?? '',
-              comment,
-              portalUrl: window.location.origin,
+              uniqueKey: item.unique_key ?? '',
+              rejectedReason: decision === 'rejected' ? comment : undefined,
             }
           })
         }
-      } catch { /* 이메일 실패해도 계속 */ }
+      } catch { /* 이메일 실패해도 결재 처리는 유지 */ }
+
 
       fetchInbox()
     } catch {
