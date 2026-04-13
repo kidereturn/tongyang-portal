@@ -3,21 +3,49 @@ import { Suspense, lazy } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { Loader2 } from 'lucide-react'
 import Layout from './components/layout/Layout'
+import ErrorBoundary from './components/ErrorBoundary'
 
-const LoginPage       = lazy(() => import('./pages/auth/LoginPage'))
-const DashboardPage   = lazy(() => import('./pages/dashboard/DashboardPage'))
-const EvidenceListPage = lazy(() => import('./pages/evidence/EvidenceListPage'))
-const InboxPage       = lazy(() => import('./pages/inbox/InboxPage'))
-const AdminPage       = lazy(() => import('./pages/admin/AdminPage'))
-const CoursesPage     = lazy(() => import('./pages/extra/CoursesPage'))
-const KpiPage         = lazy(() => import('./pages/extra/KpiPage'))
-const NewsPage        = lazy(() => import('./pages/extra/NewsPage'))
-const MapPage         = lazy(() => import('./pages/extra/MapPage'))
-const ChatbotPage     = lazy(() => import('./pages/extra/ChatbotPage'))
-const LearningPage    = lazy(() => import('./pages/extra/LearningPage'))
-const BingoPage       = lazy(() => import('./pages/extra/BingoPage'))
-const WebtoonPage     = lazy(() => import('./pages/extra/WebtoonPage'))
-const ProfilePage     = lazy(() => import('./pages/profile/ProfilePage'))
+// Retry wrapper: on chunk-load failure, retry up to 2 times then hard reload
+function lazyRetry<T extends { default: React.ComponentType<any> }>(
+  importFn: () => Promise<T>,
+): React.LazyExoticComponent<T['default']> {
+  return lazy(async () => {
+    const reloadKey = `chunk_reload_${importFn.toString().slice(0, 60)}`
+    try {
+      return await importFn()
+    } catch (err) {
+      // One retry
+      try {
+        return await importFn()
+      } catch {
+        // If already reloaded for this chunk, throw to ErrorBoundary
+        if (sessionStorage.getItem(reloadKey)) {
+          sessionStorage.removeItem(reloadKey)
+          throw err
+        }
+        sessionStorage.setItem(reloadKey, '1')
+        window.location.reload()
+        // Return a never-resolving promise so React doesn't render before reload
+        return new Promise(() => {})
+      }
+    }
+  })
+}
+
+const LoginPage       = lazyRetry(() => import('./pages/auth/LoginPage'))
+const DashboardPage   = lazyRetry(() => import('./pages/dashboard/DashboardPage'))
+const EvidenceListPage = lazyRetry(() => import('./pages/evidence/EvidenceListPage'))
+const InboxPage       = lazyRetry(() => import('./pages/inbox/InboxPage'))
+const AdminPage       = lazyRetry(() => import('./pages/admin/AdminPage'))
+const CoursesPage     = lazyRetry(() => import('./pages/extra/CoursesPage'))
+const KpiPage         = lazyRetry(() => import('./pages/extra/KpiPage'))
+const NewsPage        = lazyRetry(() => import('./pages/extra/NewsPage'))
+const MapPage         = lazyRetry(() => import('./pages/extra/MapPage'))
+const ChatbotPage     = lazyRetry(() => import('./pages/extra/ChatbotPage'))
+const LearningPage    = lazyRetry(() => import('./pages/extra/LearningPage'))
+const BingoPage       = lazyRetry(() => import('./pages/extra/BingoPage'))
+const WebtoonPage     = lazyRetry(() => import('./pages/extra/WebtoonPage'))
+const ProfilePage     = lazyRetry(() => import('./pages/profile/ProfilePage'))
 
 function LoadingScreen() {
   return (
@@ -113,30 +141,32 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<LoadingScreen />}>
-        <Routes>
-          <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingScreen />}>
+          <Routes>
+            <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
 
-          <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard"  element={<DashboardPage />} />
-            <Route path="evidence"   element={<EvidenceListPage />} />
-            <Route path="inbox"      element={<InboxPage />} />
-            <Route path="courses"    element={<CoursesPage />} />
-            <Route path="learning"   element={<LearningPage />} />
-            <Route path="map"        element={<MapPage />} />
-            <Route path="news"       element={<NewsPage />} />
-            <Route path="kpi"        element={<KpiPage />} />
-            <Route path="chatbot"    element={<ChatbotPage />} />
-            <Route path="bingo"      element={<BingoPage />} />
-            <Route path="webtoon"    element={<WebtoonPage />} />
-            <Route path="profile"   element={<ProfilePage />} />
-            <Route path="admin/*"    element={<AdminRoute><AdminPage /></AdminRoute>} />
-          </Route>
+            <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard"  element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
+              <Route path="evidence"   element={<ErrorBoundary><EvidenceListPage /></ErrorBoundary>} />
+              <Route path="inbox"      element={<ErrorBoundary><InboxPage /></ErrorBoundary>} />
+              <Route path="courses"    element={<ErrorBoundary><CoursesPage /></ErrorBoundary>} />
+              <Route path="learning"   element={<ErrorBoundary><LearningPage /></ErrorBoundary>} />
+              <Route path="map"        element={<ErrorBoundary><MapPage /></ErrorBoundary>} />
+              <Route path="news"       element={<ErrorBoundary><NewsPage /></ErrorBoundary>} />
+              <Route path="kpi"        element={<ErrorBoundary><KpiPage /></ErrorBoundary>} />
+              <Route path="chatbot"    element={<ErrorBoundary><ChatbotPage /></ErrorBoundary>} />
+              <Route path="bingo"      element={<ErrorBoundary><BingoPage /></ErrorBoundary>} />
+              <Route path="webtoon"    element={<ErrorBoundary><WebtoonPage /></ErrorBoundary>} />
+              <Route path="profile"    element={<ErrorBoundary><ProfilePage /></ErrorBoundary>} />
+              <Route path="admin/*"    element={<AdminRoute><ErrorBoundary><AdminPage /></ErrorBoundary></AdminRoute>} />
+            </Route>
 
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </Suspense>
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
     </BrowserRouter>
   )
 }

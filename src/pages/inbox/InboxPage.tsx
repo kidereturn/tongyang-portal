@@ -57,45 +57,51 @@ export default function InboxPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
 
-    let q = db.from('approval_requests').select(`
-      *,
-      activity:activity_id (
-        id, control_code, owner_name, department, title, description,
-        controller_name, controller_email, kpi_score, submission_status,
-        unique_key, owner_id, controller_id, owner_email
-      )
-    `)
+    try {
+      let q = db.from('approval_requests').select(`
+        *,
+        activity:activity_id (
+          id, control_code, owner_name, department, title, description,
+          controller_name, controller_email, kpi_score, submission_status,
+          unique_key, owner_id, controller_id, owner_email
+        )
+      `)
 
-    if (profile.role === 'controller') {
-      q = q.eq('controller_id', profile.id)
-    } else if (profile.role === 'owner') {
-      q = q.eq('owner_id', profile.id)
+      if (profile.role === 'controller') {
+        q = q.eq('controller_id', profile.id)
+      } else if (profile.role === 'owner') {
+        q = q.eq('owner_id', profile.id)
+      }
+      // admin은 전체
+
+      q = q.order('submitted_at', { ascending: false })
+      const { data: rawData } = await q
+      if (!rawData) { setItems([]); return }
+
+      // activity_id가 없는 경우 unique_key로 activities를 별도 조회
+      const missingKeys = rawData
+        .filter((r: ApprovalItem) => !r.activity && r.unique_key)
+        .map((r: ApprovalItem) => r.unique_key!)
+
+      const actByKey: Record<string, ApprovalItem['activity']> = {}
+      if (missingKeys.length > 0) {
+        const { data: acts } = await db.from('activities').select('*').in('unique_key', missingKeys)
+        ;(acts ?? []).forEach((a: NonNullable<ApprovalItem['activity']>) => {
+          if (a.unique_key) actByKey[a.unique_key] = a
+        })
+      }
+
+      const merged = rawData.map((r: ApprovalItem) => ({
+        ...r,
+        activity: r.activity ?? (r.unique_key ? actByKey[r.unique_key] : null)
+      }))
+      setItems(merged)
+    } catch (err) {
+      console.error('[InboxPage] fetch error:', err)
+      setItems([])
+    } finally {
+      setLoading(false)
     }
-    // admin은 전체
-
-    q = q.order('submitted_at', { ascending: false })
-    const { data: rawData } = await q
-    if (!rawData) { setLoading(false); return }
-
-    // activity_id가 없는 경우 unique_key로 activities를 별도 조회
-    const missingKeys = rawData
-      .filter((r: ApprovalItem) => !r.activity && r.unique_key)
-      .map((r: ApprovalItem) => r.unique_key!)
-
-    let actByKey: Record<string, ApprovalItem['activity']> = {}
-    if (missingKeys.length > 0) {
-      const { data: acts } = await db.from('activities').select('*').in('unique_key', missingKeys)
-      ;(acts ?? []).forEach((a: NonNullable<ApprovalItem['activity']>) => {
-        if (a.unique_key) actByKey[a.unique_key] = a
-      })
-    }
-
-    const merged = rawData.map((r: ApprovalItem) => ({
-      ...r,
-      activity: r.activity ?? (r.unique_key ? actByKey[r.unique_key] : null)
-    }))
-    setItems(merged)
-    setLoading(false)
   }, [profile])
 
   useEffect(() => { fetchInbox() }, [fetchInbox])
