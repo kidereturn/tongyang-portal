@@ -453,21 +453,80 @@ function UserUploadTab({ onDone }: { onDone: () => void }) {
     reader.readAsBinaryString(file)
   }
 
+  const [updateResult, setUpdateResult] = useState<{ createdCount: number; updatedCount: number; errors: string[] } | null>(null)
+
+  async function handleUpdate() {
+    const file = fileRef.current?.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+    setUpdateResult(null)
+
+    const reader = new FileReader()
+    reader.onload = async loaded => {
+      const workbook = XLSX.read(loaded.target?.result, { type: 'binary' })
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '' })
+
+      const normalized: UserUploadInput[] = []
+      const seenIds = new Set<string>()
+
+      for (const row of rows) {
+        const employeeId = readText(row, ['사번', 'employee_id'])
+        const fullName = readText(row, ['이름', '성명', 'full_name'])
+        const role = readRole(readText(row, ['구분', '권한', 'role']))
+        const contactEmail = readText(row, ['이메일', 'e-mail', 'email', 'contact_email']) || null
+        const phone = readText(row, ['전화번호', '연락처', ' CP', 'CP', 'phone']) || null
+        const department = readText(row, ['소속팀', '관련부서', '부서', 'department']) || null
+        const isActive = readBoolean(readText(row, ['활성여부', 'is_active']))
+
+        if (!employeeId && !fullName) continue
+        if (!employeeId || !fullName || !role) continue
+        if (seenIds.has(employeeId)) continue
+        seenIds.add(employeeId)
+        normalized.push({ employee_id: employeeId, full_name: fullName, role, department, phone, contact_email: contactEmail, is_active: isActive })
+      }
+
+      const session = await supabase.auth.getSession()
+      const token = session.data.session?.access_token
+      if (!token) {
+        setUpdateResult({ createdCount: 0, updatedCount: 0, errors: ['관리자 세션 없음. 다시 로그인해주세요.'] })
+        setUploading(false)
+        return
+      }
+
+      try {
+        const response = await fetch('/api/admin/update-users', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+          body: JSON.stringify({ users: normalized }),
+        })
+        const payload = await response.json()
+        setUpdateResult({
+          createdCount: payload.createdCount ?? 0,
+          updatedCount: payload.updatedCount ?? 0,
+          errors: payload.errors ?? [payload.detail ?? payload.error ?? '업데이트 실패'],
+        })
+        if (response.ok && payload.ok) onDone()
+      } catch (error) {
+        setUpdateResult({ createdCount: 0, updatedCount: 0, errors: [error instanceof Error ? error.message : String(error)] })
+      } finally {
+        setUploading(false)
+      }
+    }
+    reader.readAsBinaryString(file)
+  }
+
   const clearedDataCount = Object.values(result?.clearedTables ?? {}).reduce((sum, count) => sum + count, 0)
 
   return (
     <div className="space-y-5">
       <div className="card p-6">
-        <h3 className="mb-1 text-base font-bold text-gray-900">사용자 초기 업로드</h3>
+        <h3 className="mb-1 text-base font-bold text-gray-900">사용자 업로드</h3>
         <p className="mb-4 text-sm text-gray-500">
-          이 기능은 새로 시작할 때 한 번 사용하는 초기화용 업로드입니다. 기존 사용자, 결재, 증빙, RCM, 모집단 데이터를
-          모두 비우고 템플릿 기준으로 다시 생성합니다.
+          형식: <code className="rounded bg-gray-100 px-1 text-xs">사번 | 이름 | 권한(담당자/승인자/관리자) | e-mail | CP | 관련부서</code>
+          <br />중복 사번은 자동으로 첫 번째만 사용합니다. 로그인 ID = 사번, 초기 비밀번호 = 사번.
         </p>
-
-        <div className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
-          로그인 ID는 모두 사번으로 맞춰지고, 초기 비밀번호도 사번으로 생성됩니다. 템플릿에 관리자 행이 없으면 현재
-          관리자 계정은 유지한 채 나머지 사용자만 새로 구성합니다.
-        </div>
 
         <div className="mb-4 flex flex-wrap gap-2">
           <button onClick={downloadTemplate} className="btn-secondary px-3 py-2 text-xs">
@@ -487,25 +546,47 @@ function UserUploadTab({ onDone }: { onDone: () => void }) {
               disabled={uploading}
             />
           </div>
-          <button onClick={handleUpload} disabled={uploading} className="btn-primary shrink-0">
+          <button onClick={handleUpdate} disabled={uploading} className="btn-primary shrink-0">
             {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
-            {uploading ? '처리 중...' : '전체 초기화 후 반영'}
+            {uploading ? '처리 중...' : '정보 업데이트'}
           </button>
+          <button onClick={handleUpload} disabled={uploading} className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100 shrink-0">
+            {uploading ? <Loader2 size={15} className="animate-spin" /> : '⚠'}
+            {uploading ? '' : '전체 초기화'}
+          </button>
+        </div>
+
+        <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          <strong>정보 업데이트</strong>: 기존 사용자 비밀번호 유지 + 이름/이메일/전화/소속팀 덮어쓰기. 신규 사번은 새로 생성.<br />
+          <strong>전체 초기화</strong>: 모든 데이터(사용자·결재·증빙·RCM·모집단) 삭제 후 재생성. 최초 1회만 사용.
         </div>
       </div>
 
       <PreviewTable rows={preview} />
 
+      {updateResult && (
+        <ResultCard
+          title="사용자 정보 업데이트 완료"
+          stats={[
+            { label: '정보 업데이트', value: updateResult.updatedCount, color: 'text-blue-600' },
+            { label: '신규 생성', value: updateResult.createdCount, color: 'text-emerald-600' },
+            { label: '오류', value: updateResult.errors.length, color: 'text-red-500' },
+          ]}
+          errors={updateResult.errors}
+          note="기존 사용자의 비밀번호는 변경되지 않았습니다."
+        />
+      )}
+
       {result && (
         <ResultCard
-          title="사용자 초기 업로드 완료"
+          title="전체 초기화 완료"
           stats={[
             { label: '생성된 사용자', value: result.createdCount, color: 'text-emerald-600' },
             { label: '삭제된 기존 계정', value: result.deletedAuthCount, color: 'text-blue-600' },
             { label: '초기화된 데이터', value: clearedDataCount + result.deletedStorageCount, color: 'text-red-500' },
           ]}
           errors={result.errors}
-          note="업로드 후에는 새 관리자 계정으로 다시 로그인해서 계속 작업하는 것을 권장합니다."
+          note="완료 후 관리자 계정으로 다시 로그인해주세요."
         />
       )}
     </div>
