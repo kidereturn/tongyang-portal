@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react'
-import { CheckCircle2, Gamepad2, RefreshCw, Sparkles } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { CheckCircle2, Gamepad2, Gift, RefreshCw, Sparkles, Trophy } from 'lucide-react'
 import clsx from 'clsx'
+import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 
 type QuizQuestion = {
   id: string
@@ -143,12 +145,15 @@ function checkAnswer(question: QuizQuestion, userAnswer: string): boolean {
 }
 
 export default function BingoPage() {
+  const { profile } = useAuth()
   const [questions] = useState<QuizQuestion[]>(getTodayQuizSet)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [subjectiveAnswer, setSubjectiveAnswer] = useState('')
   const [selectedChoice, setSelectedChoice] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [answers, setAnswers] = useState<Record<string, { correct: boolean }>>({})
+  const [showCelebration, setShowCelebration] = useState(false)
+  const notifiedRef = useRef(false)
 
   const activeQuestion = useMemo(
     () => questions.find(q => q.id === activeId) ?? null,
@@ -159,6 +164,71 @@ export default function BingoPage() {
   const totalAnswered = Object.keys(answers).length
   const allCompleted = totalAnswered === questions.length
   const allCorrect = correctCount === questions.length
+
+  // 만점 달성 시 축하 효과 + 관리자 알림
+  useEffect(() => {
+    if (allCorrect && allCompleted && !notifiedRef.current) {
+      notifiedRef.current = true
+      setShowCelebration(true)
+      notifyAdminPerfectScore()
+    }
+  }, [allCorrect, allCompleted])
+
+  async function notifyAdminPerfectScore() {
+    try {
+      const userName = profile?.full_name ?? '알 수 없음'
+      const employeeId = profile?.employee_id ?? ''
+      const dept = profile?.department ?? ''
+      const today = new Date().toLocaleDateString('ko-KR')
+
+      // 1) notifications 테이블에 알림 삽입 (모든 admin에게)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: admins } = await (supabase as any)
+        .from('profiles')
+        .select('id')
+        .eq('role', 'admin')
+        .eq('is_active', true)
+
+      if (admins && admins.length > 0) {
+        const notifications = admins.map((a: { id: string }) => ({
+          recipient_id: a.id,
+          sender_id: profile?.id ?? null,
+          title: `🏆 빙고퀴즈 만점자 발생! - ${userName} (${employeeId})`,
+          body: `${today} 빙고퀴즈에서 만점자가 나왔습니다.\n\n• 이름: ${userName}\n• 사번: ${employeeId}\n• 부서: ${dept}\n\n선물 지급을 검토해 주세요.`,
+          is_read: false,
+        }))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('notifications').insert(notifications)
+      }
+
+      // 2) 관리자 이메일로 알림 (Edge Function이 있을 경우)
+      try {
+        await supabase.functions.invoke('send-email', {
+          body: {
+            to: 'junghoon.ha@tongyanginc.co.kr',
+            subject: `[동양 LMS] 🏆 빙고퀴즈 만점자 발생 - ${userName}`,
+            html: `
+              <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px;">
+                <h2 style="color:#1e40af;">🏆 빙고퀴즈 만점자 알림</h2>
+                <table style="border-collapse:collapse;width:100%;margin:16px 0;">
+                  <tr><td style="padding:8px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">이름</td><td style="padding:8px;border:1px solid #e2e8f0;">${userName}</td></tr>
+                  <tr><td style="padding:8px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">사번</td><td style="padding:8px;border:1px solid #e2e8f0;">${employeeId}</td></tr>
+                  <tr><td style="padding:8px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">부서</td><td style="padding:8px;border:1px solid #e2e8f0;">${dept}</td></tr>
+                  <tr><td style="padding:8px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">달성일</td><td style="padding:8px;border:1px solid #e2e8f0;">${today}</td></tr>
+                </table>
+                <p style="color:#64748b;font-size:14px;">선물 지급을 검토해 주세요.</p>
+              </div>
+            `,
+          },
+        })
+      } catch {
+        // Edge Function 미배포 시 무시 — notifications 테이블에는 이미 저장됨
+        console.log('Email edge function not available, notification saved to DB')
+      }
+    } catch (err) {
+      console.error('Failed to notify admin:', err)
+    }
+  }
 
   function submitAnswer() {
     if (!activeQuestion) return
@@ -185,6 +255,8 @@ export default function BingoPage() {
     setSubjectiveAnswer('')
     setSelectedChoice('')
     setMessage(null)
+    setShowCelebration(false)
+    notifiedRef.current = false
   }
 
   return (
@@ -255,12 +327,51 @@ export default function BingoPage() {
           </div>
 
           {allCompleted && allCorrect && (
-            <div className="rounded-[28px] border border-emerald-200 bg-emerald-50 p-5 text-emerald-800">
-              <div className="flex items-center gap-2">
-                <Sparkles size={18} />
-                <p className="text-lg font-black">축하합니다! 오늘의 5문제를 모두 맞혔습니다!</p>
+            <div className={clsx(
+              'relative overflow-hidden rounded-[28px] border-2 border-yellow-300 bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 p-6 shadow-xl',
+              showCelebration && 'animate-bounce-once'
+            )}>
+              {/* 축하 배경 효과 */}
+              <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute -right-4 -top-4 text-6xl opacity-20">🎉</div>
+                <div className="absolute -bottom-2 -left-4 text-5xl opacity-20">🎊</div>
+                <div className="absolute right-1/3 top-1/4 text-4xl opacity-15">⭐</div>
               </div>
-              <p className="mt-2 text-sm">내부회계관리에 대한 이해도가 뛰어납니다.</p>
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-400/30">
+                    <Trophy size={24} className="text-yellow-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-amber-900">🎉 축하합니다!</p>
+                    <p className="text-sm font-semibold text-amber-700">오늘의 5문제를 모두 맞혔습니다!</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-2xl border border-yellow-200 bg-white/70 p-4">
+                  <div className="flex items-start gap-3">
+                    <Gift size={22} className="mt-0.5 shrink-0 text-rose-500" />
+                    <div>
+                      <p className="text-base font-black text-slate-800">🎁 선물을 보내드립니다!</p>
+                      <p className="mt-1 text-sm leading-6 text-slate-600">
+                        내부회계관리에 대한 뛰어난 이해력을 보여주셨습니다.<br />
+                        만점 달성 기념 선물이 준비되어 있으니, 곧 개별 안내드리겠습니다.
+                      </p>
+                      <p className="mt-2 text-xs text-slate-400">
+                        ※ 관리자에게 만점 달성 알림이 전송되었습니다.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex items-center gap-2">
+                  <Sparkles size={14} className="text-amber-500" />
+                  <p className="text-xs font-medium text-amber-600">
+                    {profile?.full_name ?? '사용자'}님, 정말 대단합니다! 앞으로도 내부회계 학습에 힘써주세요. 💪
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
