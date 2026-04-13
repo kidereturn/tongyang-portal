@@ -606,6 +606,7 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState<Record<string, string>[]>([])
   const [result, setResult] = useState<{ upserted: number; errors: string[] } | null>(null)
+  const [progress, setProgress] = useState({ current: 0, total: 0, phase: '' })
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -626,6 +627,7 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
 
     setUploading(true)
     setResult(null)
+    setProgress({ current: 0, total: 0, phase: '파일 읽는 중...' })
 
     const reader = new FileReader()
     reader.onload = async loaded => {
@@ -635,6 +637,8 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
       const errors: string[] = []
       let upserted = 0
       const db = supabase as any
+
+      setProgress({ current: 0, total: rows.length, phase: '사번 확인 중...' })
 
       const employeeIds = Array.from(
         new Set(
@@ -660,6 +664,8 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
         }
       }
 
+      setProgress({ current: 0, total: rows.length, phase: '프로필 매핑 중...' })
+
       // Build employee_id → profile id map for owner/controller linking
       const allEmployeeIds = Array.from(
         new Set(
@@ -679,7 +685,11 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
         }
       }
 
-      for (const row of rows) {
+      setProgress({ current: 0, total: rows.length, phase: '통제활동 등록 중...' })
+
+      for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+        const row = rows[rowIdx]
+        if (rowIdx % 5 === 0) setProgress({ current: rowIdx, total: rows.length, phase: '통제활동 등록 중...' })
         const controlCode = readText(row, ['통제번호', 'control_code'])
         const department = readText(row, ['관련부서', '부서', 'department'])
         const uniqueKey = controlCode && department ? `${controlCode}${department}` : readText(row, ['고유키', 'unique_key'])
@@ -721,6 +731,7 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
         else upserted += 1
       }
 
+      setProgress({ current: rows.length, total: rows.length, phase: '완료' })
       setResult({ upserted, errors })
       setUploading(false)
       onDone()
@@ -728,6 +739,8 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
 
     reader.readAsBinaryString(file)
   }
+
+  const pct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0
 
   return (
     <div className="space-y-5">
@@ -754,6 +767,21 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
             {uploading ? '처리 중...' : '업로드'}
           </button>
         </div>
+
+        {uploading && (
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between text-xs text-gray-600">
+              <span>{progress.phase}</span>
+              <span>{progress.current.toLocaleString()} / {progress.total.toLocaleString()} ({pct}%)</span>
+            </div>
+            <div className="h-2.5 w-full rounded-full bg-gray-100 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 transition-all duration-300"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <PreviewTable rows={preview} />
@@ -778,6 +806,7 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState<Record<string, string>[]>([])
   const [result, setResult] = useState<{ upserted: number; errors: string[] } | null>(null)
+  const [progress, setProgress] = useState({ current: 0, total: 0, phase: '' })
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -798,6 +827,7 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
 
     setUploading(true)
     setResult(null)
+    setProgress({ current: 0, total: 0, phase: '파일 읽는 중...' })
 
     const reader = new FileReader()
     reader.onload = async loaded => {
@@ -807,6 +837,8 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
       const errors: string[] = []
       let upserted = 0
       const db = supabase as any
+
+      setProgress({ current: 0, total: rows.length, phase: '기존 데이터 정리 중...' })
 
       const uniqueKeys = Array.from(
         new Set(
@@ -828,7 +860,10 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
         }
       }
 
+      setProgress({ current: 0, total: rows.length, phase: '모집단 등록 중...' })
+
       for (let index = 0; index < rows.length; index += 1) {
+        if (index % 10 === 0) setProgress({ current: index, total: rows.length, phase: '모집단 등록 중...' })
         const row = rows[index]
         const controlCode = readText(row, ['통제번호', 'control_code'])
         const department = readText(row, ['관련부서', 'department'])
@@ -864,6 +899,7 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
         }
       }
 
+      setProgress({ current: rows.length, total: rows.length, phase: '완료' })
       setResult({ upserted, errors })
       setUploading(false)
       onDone()
@@ -871,6 +907,8 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
 
     reader.readAsBinaryString(file)
   }
+
+  const pct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0
 
   return (
     <div className="space-y-5">
@@ -896,6 +934,21 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
             {uploading ? '처리 중...' : '업로드'}
           </button>
         </div>
+
+        {uploading && (
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between text-xs text-gray-600">
+              <span>{progress.phase}</span>
+              <span>{progress.current.toLocaleString()} / {progress.total.toLocaleString()} ({pct}%)</span>
+            </div>
+            <div className="h-2.5 w-full rounded-full bg-gray-100 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 transition-all duration-300"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <PreviewTable rows={preview} />
