@@ -6,6 +6,54 @@ function buildEmployeeLoginEmail(employeeId: string) {
   return `${employeeId.trim()}@tongyanginc.co.kr`
 }
 
+/* ── 도화선(fuse) 애니메이션 CSS ── */
+const fuseStyles = `
+@keyframes fuseBurn {
+  0% { width: 100%; }
+  100% { width: 0%; }
+}
+@keyframes sparkle {
+  0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
+}
+@keyframes sparkGlow {
+  0%, 100% { box-shadow: 0 0 4px 2px rgba(255,200,50,0.6), 0 0 12px 4px rgba(255,120,20,0.3); }
+  50% { box-shadow: 0 0 8px 4px rgba(255,200,50,0.9), 0 0 20px 8px rgba(255,120,20,0.5); }
+}
+@keyframes ember1 { 0% { transform: translate(0,0) scale(1); opacity:1; } 100% { transform: translate(-12px,-18px) scale(0); opacity:0; } }
+@keyframes ember2 { 0% { transform: translate(0,0) scale(1); opacity:1; } 100% { transform: translate(8px,-22px) scale(0); opacity:0; } }
+@keyframes ember3 { 0% { transform: translate(0,0) scale(1); opacity:1; } 100% { transform: translate(-6px,-14px) scale(0); opacity:0; } }
+.fuse-line {
+  height: 3px;
+  background: linear-gradient(90deg, #78716c 0%, #a8a29e 50%, #d6d3d1 100%);
+  border-radius: 2px;
+  animation: fuseBurn 8s linear infinite;
+  position: relative;
+}
+.fuse-line::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fbbf24, #f97316, #ef4444);
+  animation: sparkGlow 0.3s ease-in-out infinite;
+}
+.spark-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fbbf24;
+}
+.spark-particle:nth-child(1) { right: -8px; top: -8px; animation: ember1 0.6s ease-out infinite; }
+.spark-particle:nth-child(2) { right: -4px; top: -10px; animation: ember2 0.5s ease-out 0.15s infinite; }
+.spark-particle:nth-child(3) { right: -10px; top: -6px; animation: ember3 0.7s ease-out 0.3s infinite; }
+`
+
 export default function LoginPage() {
   const [employeeId, setEmployeeId] = useState('')
   const [password, setPassword] = useState('')
@@ -48,6 +96,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
+      <style>{fuseStyles}</style>
+
+      {/* Left panel */}
       <div className="relative hidden overflow-hidden bg-gradient-to-br from-[#1E3A5F] via-brand-800 to-brand-900 p-12 lg:flex lg:w-[55%] lg:flex-col lg:justify-between">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute left-20 top-20 h-64 w-64 rounded-full border border-white/30" />
@@ -60,14 +111,9 @@ export default function LoginPage() {
 
         <div className="relative">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10 backdrop-blur">
-              <span className="text-xl font-black text-white">TY</span>
-            </div>
-            <div>
-              <p className="text-lg font-bold leading-tight text-white">(주)동양 내부통제</p>
-              <p className="text-sm text-blue-200/70">증빙관리 포털</p>
-            </div>
+            <img src="/tongyang_ci_en.png" alt="TONGYANG" className="h-10 brightness-0 invert" />
           </div>
+          <p className="mt-2 text-sm text-blue-200/70">내부통제 증빙관리 포털</p>
         </div>
 
         <div className="relative">
@@ -87,7 +133,19 @@ export default function LoginPage() {
             내부통제 업무를 한곳에서 운영합니다.
           </p>
 
-          <div className="mt-10 flex gap-6">
+          {/* 도화선 애니메이션 */}
+          <div className="mt-10 flex items-center gap-4">
+            <div className="relative w-48">
+              <div className="fuse-line">
+                <span className="spark-particle" />
+                <span className="spark-particle" />
+                <span className="spark-particle" />
+              </div>
+            </div>
+            <span className="text-xs font-medium text-orange-300/80 tracking-wider">IGNITING COMPLIANCE</span>
+          </div>
+
+          <div className="mt-8 flex gap-6">
             {[
               { label: '통제활동', value: '420+' },
               { label: '등록 사용자', value: '300+' },
@@ -106,15 +164,11 @@ export default function LoginPage() {
         </div>
       </div>
 
+      {/* Right panel - login form */}
       <div className="flex flex-1 items-center justify-center bg-white p-8">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-brand-800">
-              <span className="text-base font-black text-white">TY</span>
-            </div>
-            <div>
-              <p className="text-base font-bold text-gray-900">(주)동양 내부통제 포털</p>
-            </div>
+            <img src="/tongyang_ci_en.png" alt="TONGYANG" className="h-8" />
           </div>
 
           <div className="mb-8">

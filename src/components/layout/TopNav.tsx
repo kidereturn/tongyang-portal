@@ -153,9 +153,7 @@ export default function TopNav() {
       <header className="fixed inset-x-0 top-0 z-40 border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur">
         <div className="mx-auto flex h-16 max-w-screen-2xl items-center gap-3 px-4 sm:px-6">
           <Link to="/dashboard" className="mr-2 flex items-center gap-3 shrink-0">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-600 to-indigo-700 shadow">
-              <span className="text-lg font-black text-white">동</span>
-            </div>
+            <img src="/tongyang_ci_en.png" alt="TONGYANG" className="h-8" />
             <div className="hidden lg:block">
               <p className="text-sm font-black leading-tight text-slate-900">(주)동양 내부회계 LMS</p>
               <p className="text-[10px] font-medium tracking-[0.14em] text-slate-400">

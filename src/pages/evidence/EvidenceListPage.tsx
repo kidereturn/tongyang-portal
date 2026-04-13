@@ -60,7 +60,7 @@ export default function EvidenceListPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
     try {
-      let q = db.from('activities').select('*').eq('active', true)
+      let q = db.from('activities').select('id, control_code, owner_name, department, title, description, controller_name, kpi_score, submission_status, unique_key, owner_id, controller_id, owner_email, controller_email, owner_employee_id, controller_employee_id').eq('active', true)
       if (profile.role === 'owner') {
         if (profile.employee_id) q = q.eq('owner_employee_id', profile.employee_id)
         else if (profile.full_name) q = q.eq('owner_name', profile.full_name)
@@ -73,7 +73,7 @@ export default function EvidenceListPage() {
       q = q.order('control_code').order('department')
 
       const timeout = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('evidence_timeout')), 5000)
+        setTimeout(() => reject(new Error('evidence_timeout')), 15000)
       })
 
       const { data } = await Promise.race([q, timeout]) as { data: Activity[] | null }

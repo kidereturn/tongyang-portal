@@ -34,12 +34,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function fetchProfile(userId: string) {
       try {
-        const { data } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error: fetchError } = await (supabase as any)
           .from('profiles')
           .select('*')
           .eq('id', userId)
           .maybeSingle()
         if (!mounted) return
+        if (fetchError) {
+          console.warn('Profile fetch error:', fetchError.message)
+          setState(prev => ({ ...prev, loading: false }))
+          return
+        }
         setState(prev => ({ ...prev, profile: data ?? null, loading: false }))
       } catch {
         if (mounted) setState(prev => ({ ...prev, loading: false }))

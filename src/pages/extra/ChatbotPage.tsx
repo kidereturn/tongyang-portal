@@ -83,6 +83,9 @@ async function callGemini(messages: Message[]): Promise<string> {
   }
 
   if (!res.ok) {
+    if (res.status === 429) {
+      throw new Error('API 호출 한도를 초과했습니다. 잠시 후 다시 시도해 주세요.')
+    }
     const err = await res.json().catch(() => ({}))
     throw new Error(err.error?.message ?? `API 오류 (${res.status})`)
   }
@@ -129,10 +132,17 @@ export default function ChatbotPage() {
         time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
       }])
     } catch (e: any) {
-      setError(e.message ?? 'AI 응답 중 오류가 발생했습니다.')
+      const rawMsg = e.message ?? 'AI 응답 중 오류가 발생했습니다.'
+      const isQuotaError = /quota|429|rate.?limit/i.test(rawMsg)
+      const displayError = isQuotaError
+        ? 'API 일일 사용량을 초과했습니다. 내일 다시 이용해 주세요.'
+        : rawMsg
+      setError(displayError)
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+        content: isQuotaError
+          ? 'API 일일 사용량 한도를 초과했습니다. 내일 다시 이용해 주세요.'
+          : '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
         time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
       }])
     } finally {

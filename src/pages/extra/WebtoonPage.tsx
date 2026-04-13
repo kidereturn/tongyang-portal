@@ -1,104 +1,100 @@
-import { BookOpen, ExternalLink, Image, Palette } from 'lucide-react';
+import { useState } from 'react'
+import { BookOpen, ChevronLeft, ChevronRight } from 'lucide-react'
+import clsx from 'clsx'
 
-const WEBTOONS = [
-  {
-    id: 'naver',
-    title: '내부회계 이야기',
-    platform: '네이버 웹툰',
-    badgeClass: 'badge-green',
-    gradientFrom: '#00C73C',
-    gradientTo: '#00A832',
-    url: 'https://comic.naver.com/webtoon/detail?titleId=822573&no=1',
-    description:
-      '내부회계관리제도의 핵심 개념을 쉽고 재미있게 풀어낸 웹툰입니다.',
-  },
-  {
-    id: 'kakao',
-    title: 'BLOCK-001',
-    platform: '카카오 웹툰',
-    badgeClass: 'badge-yellow',
-    gradientFrom: '#FEE500',
-    gradientTo: '#F5D800',
-    url: 'https://webtoon.kakao.com/viewer/BLOCK-001/269104',
-    description:
-      '블록체인과 내부통제를 소재로 한 흥미진진한 스토리의 웹툰입니다.',
-  },
-];
+const WEBTOON_PAGES = [
+  { id: 1, src: '/webtoon-1.jpg', alt: '내부회계 웹툰 1화' },
+  { id: 2, src: '/webtoon-2.jpg', alt: '내부회계 웹툰 2화' },
+]
 
 export default function WebtoonPage() {
+  const [current, setCurrent] = useState(0)
+
+  function goPrev() {
+    setCurrent(prev => Math.max(0, prev - 1))
+  }
+  function goNext() {
+    setCurrent(prev => Math.min(WEBTOON_PAGES.length - 1, prev + 1))
+  }
+
   return (
-    <div className="space-y-8">
-      {/* Hero Header */}
-      <div className="rounded-2xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 px-8 py-10 text-white shadow-xl">
+    <div className="space-y-6">
+      {/* Hero */}
+      <div className="rounded-[28px] bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 px-6 py-8 text-white shadow-2xl">
         <div className="flex items-center gap-3">
           <BookOpen className="h-8 w-8 opacity-80" />
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] opacity-70">
-            Webtoon
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] opacity-70">Webtoon</p>
         </div>
-        <h1 className="mt-3 text-3xl font-extrabold tracking-tight">
-          내부회계 웹툰
-        </h1>
+        <h1 className="mt-3 text-3xl font-extrabold tracking-tight">내부회계 웹툰</h1>
         <p className="mt-2 max-w-xl text-sm leading-relaxed opacity-80">
-          내부회계관리제도를 쉽고 재미있게 이해할 수 있는 웹툰 콘텐츠를
-          제공합니다.
+          내부회계관리제도를 쉽고 재미있게 이해할 수 있는 웹툰 콘텐츠입니다.
         </p>
       </div>
 
-      {/* Webtoon Cards Grid */}
-      <div className="grid gap-6 sm:grid-cols-2">
-        {WEBTOONS.map((webtoon) => (
-          <div key={webtoon.id} className="card flex flex-col overflow-hidden">
-            {/* Thumbnail Placeholder */}
-            <div
-              className="relative flex h-48 items-center justify-center"
-              style={{
-                background: `linear-gradient(135deg, ${webtoon.gradientFrom}, ${webtoon.gradientTo})`,
-              }}
+      {/* Viewer */}
+      <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl">
+        {/* Tab bar */}
+        <div className="flex items-center gap-1 border-b border-slate-100 px-5 py-3">
+          {WEBTOON_PAGES.map((page, idx) => (
+            <button
+              key={page.id}
+              onClick={() => setCurrent(idx)}
+              className={clsx(
+                'rounded-xl px-4 py-2 text-sm font-semibold transition',
+                idx === current
+                  ? 'bg-brand-600 text-white shadow'
+                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+              )}
             >
-              <div className="flex flex-col items-center gap-2 text-white">
-                <Palette className="h-12 w-12 opacity-70" />
-                <span className="text-sm font-bold opacity-90">
-                  {webtoon.platform}
-                </span>
-              </div>
-            </div>
-
-            {/* Card Body */}
-            <div className="flex flex-1 flex-col p-5">
-              <div className="mb-3 flex items-center gap-2">
-                <span className={webtoon.badgeClass}>{webtoon.platform}</span>
-              </div>
-              <h2 className="text-lg font-bold text-slate-900">
-                {webtoon.title}
-              </h2>
-              <p className="mt-1 flex-1 text-sm leading-relaxed text-slate-500">
-                {webtoon.description}
-              </p>
-              <a
-                href={webtoon.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary mt-4 inline-flex items-center justify-center gap-2"
-              >
-                보러가기
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            </div>
+              {idx + 1}화
+            </button>
+          ))}
+          <div className="ml-auto text-xs text-slate-400">
+            {current + 1} / {WEBTOON_PAGES.length}
           </div>
-        ))}
-      </div>
-
-      {/* 사내 제작 웹툰 Section */}
-      <div className="card p-6">
-        <div className="flex items-center gap-3">
-          <Image className="h-6 w-6 text-slate-400" />
-          <h2 className="text-lg font-bold text-slate-900">사내 제작 웹툰</h2>
         </div>
-        <p className="mt-3 text-sm leading-relaxed text-slate-500">
-          사내 제작 웹툰 콘텐츠가 준비 중입니다.
-        </p>
+
+        {/* Image */}
+        <div className="relative flex items-center justify-center bg-slate-50">
+          <img
+            src={WEBTOON_PAGES[current].src}
+            alt={WEBTOON_PAGES[current].alt}
+            className="max-h-[80vh] w-full object-contain"
+          />
+
+          {/* Navigation arrows */}
+          {current > 0 && (
+            <button
+              onClick={goPrev}
+              className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white backdrop-blur transition hover:bg-black/60"
+            >
+              <ChevronLeft size={24} />
+            </button>
+          )}
+          {current < WEBTOON_PAGES.length - 1 && (
+            <button
+              onClick={goNext}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white backdrop-blur transition hover:bg-black/60"
+            >
+              <ChevronRight size={24} />
+            </button>
+          )}
+        </div>
+
+        {/* Bottom bar */}
+        <div className="flex items-center justify-center gap-2 border-t border-slate-100 px-5 py-3">
+          {WEBTOON_PAGES.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrent(idx)}
+              className={clsx(
+                'h-2 rounded-full transition-all',
+                idx === current ? 'w-6 bg-brand-600' : 'w-2 bg-slate-300 hover:bg-slate-400'
+              )}
+            />
+          ))}
+        </div>
       </div>
     </div>
-  );
+  )
 }
