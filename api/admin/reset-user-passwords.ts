@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL
@@ -6,6 +8,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 type ResetRequestBody = {
   employeeIds?: string[]
+  resetPassword?: boolean
   scope?: 'all'
 }
 
@@ -53,6 +56,10 @@ function normalizeEmployeeIds(employeeIds: unknown) {
         .filter(Boolean)
     )
   )
+}
+
+function buildEmployeeLoginEmail(employeeId: string) {
+  return `${employeeId.trim()}@tongyanginc.co.kr`
 }
 
 function hasPreviewBypass(request: Request) {
@@ -181,6 +188,7 @@ export async function POST(request: Request) {
   }
 
   const employeeIds = normalizeEmployeeIds(body.employeeIds)
+  const resetPassword = body.resetPassword === true
   const resetAll = body.scope === 'all'
 
   if (!resetAll && employeeIds.length === 0) {
@@ -224,16 +232,33 @@ export async function POST(request: Request) {
   for (const row of rows) {
     const employeeId = row.employee_id?.trim()
     if (!employeeId) continue
+    const loginEmail = buildEmployeeLoginEmail(employeeId)
 
     try {
-      const { error: authError } = await adminClient.auth.admin.updateUserById(row.id, {
-        password: employeeId,
+      const updatePayload: {
+        email: string
+        email_confirm: true
+        password?: string
+        user_metadata: {
+          employee_id: string
+          full_name: string | null
+          role: string | null
+        }
+      } = {
+        email: loginEmail,
+        email_confirm: true,
         user_metadata: {
           employee_id: employeeId,
           full_name: row.full_name,
           role: row.role,
         },
-      })
+      }
+
+      if (resetPassword) {
+        updatePayload.password = employeeId
+      }
+
+      const { error: authError } = await adminClient.auth.admin.updateUserById(row.id, updatePayload)
 
       if (authError) {
         failed.push({ employeeId, reason: authError.message })
@@ -242,7 +267,14 @@ export async function POST(request: Request) {
 
       const { error: profileError } = await adminClient
         .from('profiles')
-        .update({ initial_password: employeeId })
+        .update(resetPassword
+          ? {
+              email: loginEmail,
+              initial_password: employeeId,
+            }
+          : {
+              email: loginEmail,
+            })
         .eq('id', row.id)
 
       if (profileError) {
@@ -263,6 +295,7 @@ export async function POST(request: Request) {
     ok: true,
     bypassUsed: Boolean(admin.bypassUsed),
     requestedScope: resetAll ? 'all' : 'selected',
+    resetPassword,
     requestedCount: resetAll ? rows.length : employeeIds.length,
     updatedCount: updated.length,
     failedCount: failed.length,

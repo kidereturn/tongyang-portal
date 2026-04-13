@@ -1,62 +1,64 @@
-import { useState, useRef, useEffect } from 'react'
-import { NavLink, useNavigate, Link } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard, FileCheck2, BookOpen, BarChart2,
-  Map, Newspaper, TrendingUp, Bot, Inbox,
-  Settings, LogOut, ChevronDown, Bell, Menu, X, User,
-  Shield, Gamepad2
+  BarChart2,
+  Bell,
+  BookOpen,
+  Bot,
+  ChevronDown,
+  FileCheck2,
+  Gamepad2,
+  Image,
+  Inbox,
+  LayoutDashboard,
+  LogOut,
+  Map,
+  Menu,
+  Newspaper,
+  Settings,
+  Shield,
+  TrendingUp,
+  User,
+  X,
 } from 'lucide-react'
-import { useAuth } from '../../hooks/useAuth'
 import clsx from 'clsx'
+import { useAuth } from '../../hooks/useAuth'
 
-const ROLE_KO: Record<string, string> = {
-  admin: '관리자', controller: '통제책임자', owner: '증빙담당자',
+type NavItem = {
+  to: string
+  label: string
+  icon: React.ElementType
+  roles?: Array<'admin' | 'controller' | 'owner'>
 }
-const ROLE_COLOR: Record<string, string> = {
+
+const NAV_ITEMS: NavItem[] = [
+  { to: '/dashboard', label: '통합대시보드', icon: LayoutDashboard },
+  { to: '/evidence', label: '증빙관리', icon: FileCheck2, roles: ['admin', 'owner'] },
+  { to: '/inbox', label: '내승인함', icon: Inbox, roles: ['admin', 'controller'] },
+  { to: '/courses', label: '내 강좌', icon: BookOpen },
+  { to: '/learning', label: '학습현황', icon: BarChart2 },
+  { to: '/map', label: '지도', icon: Map },
+  { to: '/news', label: '뉴스 분석', icon: Newspaper },
+  { to: '/kpi', label: 'KPI결과', icon: TrendingUp },
+  { to: '/bingo', label: '빙고퀴즈', icon: Gamepad2 },
+  { to: '/webtoon', label: '웹툰', icon: Image },
+  { to: '/chatbot', label: 'AI챗봇', icon: Bot },
+]
+
+const ROLE_LABEL: Record<string, string> = {
+  admin: '관리자',
+  controller: '승인자',
+  owner: '담당자',
+}
+
+const ROLE_CLASS: Record<string, string> = {
   admin: 'bg-purple-100 text-purple-700 border-purple-200',
   controller: 'bg-blue-100 text-blue-700 border-blue-200',
   owner: 'bg-emerald-100 text-emerald-700 border-emerald-200',
 }
 
-interface NavItem { to: string; icon: React.ElementType; label: string; roles?: string[] }
-
-const NAV_ITEMS: NavItem[] = [
-  { to: '/dashboard',  icon: LayoutDashboard, label: '통합대시보드' },
-  { to: '/evidence',   icon: FileCheck2,       label: '증빙관리',  roles: ['owner', 'admin'] },
-  { to: '/inbox',      icon: Inbox,            label: '내승인함',  roles: ['controller', 'admin'] },
-  { to: '/courses',    icon: BookOpen,         label: '내강좌' },
-  { to: '/learning',   icon: BarChart2,        label: '학습현황' },
-  { to: '/map',        icon: Map,              label: '지도' },
-  { to: '/news',       icon: Newspaper,        label: '뉴스·분석' },
-  { to: '/kpi',        icon: TrendingUp,       label: 'KPI결과' },
-  { to: '/bingo',      icon: Gamepad2,         label: '빙고퀴즈' },
-  { to: '/chatbot',    icon: Bot,              label: 'AI챗봇' },
-]
-
-// 모바일 하단 탭: 역할별로 핵심 5개만
-function getMobileTabItems(role: string | undefined): NavItem[] {
-  if (role === 'controller') return [
-    { to: '/dashboard', icon: LayoutDashboard, label: '대시보드' },
-    { to: '/inbox',     icon: Inbox,           label: '내승인함' },
-    { to: '/courses',   icon: BookOpen,        label: '내강좌' },
-    { to: '/kpi',       icon: TrendingUp,      label: 'KPI' },
-    { to: '/chatbot',   icon: Bot,             label: 'AI챗봇' },
-  ]
-  if (role === 'admin') return [
-    { to: '/dashboard', icon: LayoutDashboard, label: '대시보드' },
-    { to: '/evidence',  icon: FileCheck2,      label: '증빙관리' },
-    { to: '/inbox',     icon: Inbox,           label: '승인함' },
-    { to: '/admin',     icon: Settings,        label: '관리자' },
-    { to: '/chatbot',   icon: Bot,             label: 'AI챗봇' },
-  ]
-  // owner (default)
-  return [
-    { to: '/dashboard', icon: LayoutDashboard, label: '대시보드' },
-    { to: '/evidence',  icon: FileCheck2,      label: '증빙관리' },
-    { to: '/courses',   icon: BookOpen,        label: '내강좌' },
-    { to: '/kpi',       icon: TrendingUp,      label: 'KPI' },
-    { to: '/chatbot',   icon: Bot,             label: 'AI챗봇' },
-  ]
+function filterNavItems(role?: string | null) {
+  return NAV_ITEMS.filter(item => !item.roles || item.roles.includes((role ?? 'owner') as never))
 }
 
 export default function TopNav() {
@@ -66,20 +68,18 @@ export default function TopNav() {
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
 
+  const visibleItems = filterNavItems(profile?.role)
   const isAdmin = profile?.role === 'admin'
-  const visibleItems = NAV_ITEMS.filter(item =>
-    !item.roles || item.roles.includes(profile?.role ?? '')
-  )
-  const mobileTabItems = getMobileTabItems(profile?.role)
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+    function handleOutsideClick(event: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
         setProfileOpen(false)
       }
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [])
 
   async function handleSignOut() {
@@ -90,47 +90,46 @@ export default function TopNav() {
 
   return (
     <>
-      {/* 상단 네비게이션 바 */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-screen-2xl mx-auto px-4 h-16 flex items-center gap-2">
-
-          {/* 로고 */}
-          <Link to="/dashboard" className="flex items-center gap-3 shrink-0 mr-2">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center shadow-sm">
-              <span className="text-white font-black text-base">동</span>
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-screen-2xl items-center gap-3 px-4 sm:px-6">
+          <Link to="/dashboard" className="mr-2 flex items-center gap-3 shrink-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-600 to-indigo-700 shadow">
+              <span className="text-lg font-black text-white">동</span>
             </div>
             <div className="hidden lg:block">
-              <p className="text-gray-900 font-bold text-sm leading-tight">(주)동양 내부회계 LMS</p>
-              <p className="text-gray-400 text-[10px] font-medium tracking-wide">TONGYANG ACCOUNTING EDUTECH</p>
+              <p className="text-sm font-black leading-tight text-slate-900">(주)동양 내부회계 LMS</p>
+              <p className="text-[10px] font-medium tracking-[0.14em] text-slate-400">
+                TONGYANG ACCOUNTING EDUTECH
+              </p>
             </div>
           </Link>
 
-          {/* 데스크톱 네비 */}
-          <nav className="hidden lg:flex items-center gap-0.5 flex-1 overflow-x-auto">
-            {visibleItems.map(({ to, icon: Icon, label }) => (
+          <nav className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto lg:flex">
+            {visibleItems.map(item => (
               <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) => clsx(
-                  'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 whitespace-nowrap',
-                  isActive
-                    ? 'bg-brand-50 text-brand-700 font-semibold'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                )}
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  clsx(
+                    'inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold whitespace-nowrap transition',
+                    isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  )
+                }
               >
-                <Icon size={15} />
-                <span>{label}</span>
+                <item.icon size={15} />
+                <span>{item.label}</span>
               </NavLink>
             ))}
+
             {isAdmin && (
               <NavLink
                 to="/admin"
-                className={({ isActive }) => clsx(
-                  'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 whitespace-nowrap',
-                  isActive
-                    ? 'bg-purple-50 text-purple-700 font-semibold'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                )}
+                className={({ isActive }) =>
+                  clsx(
+                    'inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold whitespace-nowrap transition',
+                    isActive ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  )
+                }
               >
                 <Shield size={15} />
                 <span>관리자</span>
@@ -138,156 +137,121 @@ export default function TopNav() {
             )}
           </nav>
 
-          <div className="flex-1 lg:flex-none" />
-
-          {/* 알림 */}
-          <button className="relative w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-all">
-            <Bell size={18} />
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
-          </button>
-
-          {/* 프로필 드롭다운 */}
-          <div ref={profileRef} className="relative">
-            <button
-              onClick={() => setProfileOpen(!profileOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all"
-            >
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
-                <span className="text-white text-xs font-bold">
-                  {profile?.full_name?.charAt(0) ?? '?'}
-                </span>
-              </div>
-              <div className="hidden md:block text-left">
-                <p className="text-sm font-semibold text-gray-800 leading-tight">
-                  {profile?.full_name ?? '로딩 중...'}
-                </p>
-              </div>
-              {profile?.role && (
-                <span className={clsx('hidden sm:inline-flex badge border text-xs', ROLE_COLOR[profile.role] ?? 'badge-gray')}>
-                  {ROLE_KO[profile.role] ?? profile.role}
-                </span>
-              )}
-              <ChevronDown size={14} className={clsx('text-gray-400 transition-transform duration-150', profileOpen && 'rotate-180')} />
+          <div className="ml-auto flex items-center gap-2">
+            <button className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900">
+              <Bell size={18} />
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
             </button>
 
-            {profileOpen && (
-              <div className="absolute right-0 top-12 w-56 bg-white rounded-xl border border-gray-100 shadow-xl z-50"
-                style={{ animation: 'slideDown 0.15s ease-out' }}>
-                <div className="p-3 border-b border-gray-50">
-                  <p className="text-sm font-semibold text-gray-900">{profile?.full_name}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{profile?.department}</p>
-                  <p className="text-xs text-gray-400">{profile?.email}</p>
+            <div ref={profileRef} className="relative hidden sm:block">
+              <button
+                onClick={() => setProfileOpen(value => !value)}
+                className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-1.5 transition hover:border-slate-300 hover:bg-slate-50"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-black text-white">
+                  {profile?.full_name?.slice(0, 1) ?? '?'}
                 </div>
-                <div className="p-1.5">
-                  <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                    <User size={15} className="text-gray-400" />
-                    내 정보
-                  </button>
-                  {isAdmin && (
-                    <NavLink to="/admin" onClick={() => setProfileOpen(false)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                      <Settings size={15} className="text-gray-400" />
-                      관리자 설정
-                    </NavLink>
-                  )}
-                  <button
-                    onClick={handleSignOut}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-                  >
-                    <LogOut size={15} />
-                    로그아웃
-                  </button>
+                <div className="hidden text-left md:block">
+                  <p className="text-sm font-bold text-slate-900">{profile?.full_name ?? '사용자'}</p>
                 </div>
-              </div>
-            )}
-          </div>
+                {profile?.role && (
+                  <span className={clsx('badge border text-xs', ROLE_CLASS[profile.role] ?? 'badge-gray')}>
+                    {ROLE_LABEL[profile.role] ?? profile.role}
+                  </span>
+                )}
+                <ChevronDown size={14} className={clsx('text-slate-400 transition', profileOpen && 'rotate-180')} />
+              </button>
 
-          {/* 모바일 햄버거 */}
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-all"
-          >
-            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+              {profileOpen && (
+                <div className="absolute right-0 top-14 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                  <div className="border-b border-slate-100 px-4 py-3">
+                    <p className="text-sm font-bold text-slate-900">{profile?.full_name}</p>
+                    <p className="mt-1 text-xs text-slate-500">{profile?.department ?? '-'}</p>
+                    <p className="text-xs text-slate-400">{profile?.email ?? '-'}</p>
+                  </div>
+                  <div className="p-2">
+                    <button className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50">
+                      <User size={15} className="text-slate-400" />
+                      내 정보
+                    </button>
+                    {isAdmin && (
+                      <NavLink
+                        to="/admin"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+                      >
+                        <Settings size={15} className="text-slate-400" />
+                        관리자 설정
+                      </NavLink>
+                    )}
+                    <button
+                      onClick={handleSignOut}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-red-600 transition hover:bg-red-50"
+                    >
+                      <LogOut size={15} />
+                      로그아웃
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => setMobileOpen(value => !value)}
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 lg:hidden"
+            >
+              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
         </div>
 
-        {/* 모바일 메뉴 */}
         {mobileOpen && (
-          <div className="lg:hidden border-t border-gray-100 bg-white shadow-lg"
-            style={{ animation: 'slideDown 0.2s ease-out' }}>
-            <nav className="p-3 space-y-0.5">
-              {visibleItems.map(({ to, icon: Icon, label }) => (
+          <div className="border-t border-slate-100 bg-white lg:hidden">
+            <nav className="space-y-1 p-3">
+              {visibleItems.map(item => (
                 <NavLink
-                  key={to}
-                  to={to}
+                  key={item.to}
+                  to={item.to}
                   onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) => clsx(
-                    'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all',
-                    isActive
-                      ? 'bg-brand-50 text-brand-700 font-semibold'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  )}
+                  className={({ isActive }) =>
+                    clsx(
+                      'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition',
+                      isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-700 hover:bg-slate-50'
+                    )
+                  }
                 >
-                  <Icon size={17} />
-                  <span>{label}</span>
+                  <item.icon size={18} />
+                  <span>{item.label}</span>
                 </NavLink>
               ))}
+
               {isAdmin && (
                 <NavLink
                   to="/admin"
                   onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) => clsx(
-                    'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all',
-                    isActive ? 'bg-purple-50 text-purple-700' : 'text-gray-700 hover:bg-gray-50'
-                  )}
+                  className={({ isActive }) =>
+                    clsx(
+                      'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition',
+                      isActive ? 'bg-purple-50 text-purple-700' : 'text-slate-700 hover:bg-slate-50'
+                    )
+                  }
                 >
-                  <Shield size={17} />
+                  <Shield size={18} />
                   <span>관리자</span>
                 </NavLink>
               )}
-              <div className="pt-2 border-t border-gray-100 mt-2">
-                <button
-                  onClick={handleSignOut}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-all"
-                >
-                  <LogOut size={17} />
-                  <span>로그아웃</span>
-                </button>
-              </div>
+
+              <button
+                onClick={handleSignOut}
+                className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+              >
+                <LogOut size={18} />
+                <span>로그아웃</span>
+              </button>
             </nav>
           </div>
         )}
       </header>
-
-      {/* 모바일 하단 탭 바 */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]">
-        <div className="flex items-stretch h-16">
-          {mobileTabItems.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) => clsx(
-                'flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all duration-150',
-                isActive
-                  ? 'text-brand-600'
-                  : 'text-gray-400 active:text-gray-600'
-              )}
-            >
-              {({ isActive }) => (
-                <>
-                  <div className={clsx(
-                    'w-10 h-7 flex items-center justify-center rounded-full transition-all duration-200',
-                    isActive ? 'bg-brand-50' : ''
-                  )}>
-                    <Icon size={isActive ? 22 : 20} />
-                  </div>
-                  <span className={clsx(isActive && 'font-semibold')}>{label}</span>
-                </>
-              )}
-            </NavLink>
-          ))}
-        </div>
-      </nav>
     </>
   )
 }

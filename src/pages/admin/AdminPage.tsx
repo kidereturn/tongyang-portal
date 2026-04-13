@@ -1,16 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
 import * as XLSX from 'xlsx'
 import {
-  Users, FileSpreadsheet, Database, Shield,
-  Upload, Loader2, AlertCircle, CheckCircle2,
-  Download, Eye, EyeOff, Search,
+  AlertTriangle,
+  CheckCircle2,
+  Database,
+  Download,
+  Eye,
+  EyeOff,
+  FileSpreadsheet,
+  Loader2,
+  Search,
+  Shield,
+  Upload,
+  Users,
 } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
 import clsx from 'clsx'
+import { supabase } from '../../lib/supabase'
 
-type Tab = 'upload-rcm' | 'upload-population' | 'users' | 'activities' | 'files'
+type Tab = 'upload-users' | 'upload-rcm' | 'upload-population' | 'users' | 'activities' | 'files'
 
-interface UserRow {
+type UserRow = {
   id: string
   email: string
   full_name: string | null
@@ -23,86 +32,293 @@ interface UserRow {
   created_at: string
 }
 
-interface ActivityRow {
+type UserUploadInput = {
+  employee_id: string
+  full_name: string
+  role: 'admin' | 'owner' | 'controller'
+  department: string | null
+  phone: string | null
+  contact_email: string | null
+  is_active: boolean
+}
+
+type UserUploadResult = {
+  createdCount: number
+  deletedAuthCount: number
+  deletedStorageCount: number
+  clearedTables: Record<string, number>
+  errors: string[]
+}
+
+type ActivityRow = {
   id: string
-  control_code: string
+  control_code: string | null
   owner_name: string | null
   department: string | null
   title: string | null
-  submission_status: string
+  submission_status: string | null
   controller_name: string | null
-  active: boolean
 }
 
-const TAB_ITEMS: { key: Tab; label: string; icon: React.ElementType }[] = [
-  { key: 'upload-rcm',        label: 'RCM 업로드',    icon: FileSpreadsheet },
-  { key: 'upload-population', label: '모집단 업로드',  icon: Database },
-  { key: 'users',             label: '사용자 관리',    icon: Users },
-  { key: 'activities',        label: '통제활동 관리',  icon: Shield },
-  { key: 'files',             label: '증빙 다운로드',  icon: Download },
+type FileRow = {
+  id: string
+  file_name: string
+  original_file_name?: string | null
+  file_path: string
+  unique_key: string | null
+  uploaded_at: string | null
+  owner?: { full_name: string | null }
+}
+
+const TABS: Array<{ key: Tab; label: string; icon: React.ElementType }> = [
+  { key: 'upload-users', label: '사용자 초기 업로드', icon: Users },
+  { key: 'upload-rcm', label: 'RCM 업로드', icon: FileSpreadsheet },
+  { key: 'upload-population', label: '모집단 업로드', icon: Database },
+  { key: 'users', label: '사용자 관리', icon: Users },
+  { key: 'activities', label: '통제활동 관리', icon: Shield },
+  { key: 'files', label: '증빙 다운로드', icon: Download },
 ]
 
+const ROLE_LABELS: Record<string, string> = {
+  admin: '관리자',
+  owner: '담당자',
+  controller: '승인자',
+}
+
+const ROLE_BADGES: Record<string, string> = {
+  admin: 'badge-purple',
+  owner: 'badge-green',
+  controller: 'badge-blue',
+}
+
+const SUBMISSION_BADGES: Record<string, string> = {
+  미완료: 'badge-yellow',
+  완료: 'badge-blue',
+  승인: 'badge-green',
+  반려: 'badge-red',
+}
+
+function buildLoginEmail(employeeId: string) {
+  return `${employeeId.trim()}@tongyanginc.co.kr`
+}
+
+function readText(row: Record<string, unknown>, keys: string[]) {
+  return keys.map(key => String(row[key] ?? '').trim()).find(Boolean) ?? ''
+}
+
+function readBoolean(value: string) {
+  if (!value) return true
+  return ['y', 'yes', 'true', '1', 'active', '활성', '사용'].includes(value.trim().toLowerCase())
+}
+
+function readRole(value: string): 'admin' | 'owner' | 'controller' | null {
+  const normalized = value.trim().toLowerCase()
+  if (!normalized) return null
+  if (['admin', '관리자'].includes(normalized)) return 'admin'
+  if (['owner', '담당자', '증빙담당자'].includes(normalized)) return 'owner'
+  if (['controller', '승인자', '통제책임자'].includes(normalized)) return 'controller'
+  return null
+}
+
+function toDateString(value: unknown) {
+  if (value instanceof Date) {
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
+  }
+
+  if (typeof value === 'number') {
+    const date = new Date(Date.UTC(1899, 11, 30) + Math.floor(value) * 86400000)
+    if (Number.isNaN(date.getTime())) return null
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
+  }
+
+  const text = String(value ?? '').trim()
+  if (!text) return null
+  if (/^\d+$/.test(text)) return toDateString(Number.parseInt(text, 10))
+  return /^\d{4}-\d{2}-\d{2}$/.test(text.slice(0, 10)) ? text.slice(0, 10) : null
+}
+
+function PreviewTable({ rows }: { rows: Record<string, string>[] }) {
+  if (!rows.length) return null
+
+  return (
+    <div className="card p-5">
+      <p className="mb-3 text-sm font-semibold text-gray-700">파일 미리보기</p>
+      <div className="overflow-x-auto">
+        <table className="data-table text-xs">
+          <thead>
+            <tr>
+              {Object.keys(rows[0]).slice(0, 8).map(key => (
+                <th key={key}>{key}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {Object.values(row).slice(0, 8).map((value, columnIndex) => (
+                  <td key={columnIndex}>{String(value)}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function ResultCard({
+  title,
+  stats,
+  errors,
+  note,
+}: {
+  title: string
+  stats: Array<{ label: string; value: number; color: string }>
+  errors: string[]
+  note?: string
+}) {
+  const hasErrors = errors.length > 0
+
+  return (
+    <div className={clsx('card p-5', hasErrors ? 'border-amber-100 bg-amber-50/30' : 'border-emerald-100 bg-emerald-50/30')}>
+      <div className="mb-3 flex items-center gap-2">
+        {hasErrors ? (
+          <AlertTriangle size={18} className="text-amber-600" />
+        ) : (
+          <CheckCircle2 size={18} className="text-emerald-600" />
+        )}
+        <p className="font-bold text-gray-900">{title}</p>
+      </div>
+
+      <div className="mb-3 grid grid-cols-3 gap-3">
+        {stats.map(item => (
+          <div key={item.label} className="text-center">
+            <p className={clsx('text-2xl font-black', item.color)}>{item.value.toLocaleString()}</p>
+            <p className="text-xs text-gray-500">{item.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {note && <p className="mb-3 rounded-lg bg-white/70 px-3 py-2 text-xs text-gray-600">{note}</p>}
+
+      {!!errors.length && (
+        <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg bg-red-50 p-3">
+          {errors.slice(0, 12).map((error, index) => (
+            <p key={index} className="break-all font-mono text-xs text-red-600">
+              {error}
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function AdminPage() {
-  const [tab, setTab] = useState<Tab>('upload-rcm')
+  const [tab, setTab] = useState<Tab>('upload-users')
   const [refreshKey, setRefreshKey] = useState(0)
-  const refresh = () => setRefreshKey(k => k + 1)
+
+  function refresh() {
+    setRefreshKey(value => value + 1)
+  }
 
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-black text-gray-900 flex items-center gap-2">
+        <h1 className="flex items-center gap-2 text-xl font-black text-gray-900">
           <Shield size={22} className="text-purple-600" />
           관리자
         </h1>
-        <p className="text-gray-500 text-sm mt-0.5">시스템 데이터 및 사용자를 관리합니다</p>
+        <p className="mt-0.5 text-sm text-gray-500">
+          사용자 초기 세팅, RCM, 모집단 업로드를 여기서 관리합니다.
+        </p>
       </div>
 
-      {/* 탭 */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1.5 overflow-x-auto">
-        {TAB_ITEMS.map(t => (
+      <div className="rounded-2xl border border-orange-100 bg-orange-50/70 p-4">
+        <p className="text-sm font-semibold text-orange-900">현재 권장 순서</p>
+        <p className="mt-1 text-sm text-orange-800">
+          1. 사용자 초기 업로드 2. RCM 업로드 3. 모집단 업로드 순서로 진행하면 됩니다.
+          로그인 ID와 초기 비밀번호는 모두 사번으로 맞춰집니다.
+        </p>
+      </div>
+
+      <div className="flex gap-1 overflow-x-auto rounded-xl bg-gray-100 p-1.5">
+        {TABS.map(item => (
           <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
+            key={item.key}
+            onClick={() => setTab(item.key)}
             className={clsx(
-              'flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap',
-              tab === t.key
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+              'flex items-center gap-1.5 whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-semibold transition-all',
+              tab === item.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             )}
           >
-            <t.icon size={15} />
-            {t.label}
+            <item.icon size={15} />
+            {item.label}
           </button>
         ))}
       </div>
 
-      {/* 탭 콘텐츠 */}
-      {tab === 'upload-rcm'        && <RcmUploadTab onDone={refresh} />}
+      {tab === 'upload-users' && <UserUploadTab onDone={refresh} />}
+      {tab === 'upload-rcm' && <RcmUploadTab onDone={refresh} />}
       {tab === 'upload-population' && <PopulationUploadTab onDone={refresh} />}
-      {tab === 'users'             && <UsersTab refreshKey={refreshKey} />}
-      {tab === 'activities'        && <ActivitiesTab refreshKey={refreshKey} />}
-      {tab === 'files'             && <FilesDownloadTab />}
+      {tab === 'users' && <UsersTab refreshKey={refreshKey} />}
+      {tab === 'activities' && <ActivitiesTab refreshKey={refreshKey} />}
+      {tab === 'files' && <FilesTab />}
     </div>
   )
 }
 
-/* ─── RCM 업로드 탭 ─── */
-function RcmUploadTab({ onDone }: { onDone: () => void }) {
+function UserUploadTab({ onDone }: { onDone: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
-  const [progress, setProgress] = useState<{ current: number; total: number; phase: string } | null>(null)
-  const [result, setResult] = useState<{ created: number; updated: number; errors: string[] } | null>(null)
   const [preview, setPreview] = useState<Record<string, string>[]>([])
+  const [result, setResult] = useState<UserUploadResult | null>(null)
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
+  function downloadTemplate() {
+    const worksheet = XLSX.utils.json_to_sheet([
+      {
+        사번: '900001',
+        이름: '관리자 예시',
+        구분: '관리자',
+        이메일: 'admin@tongyanginc.co.kr',
+        전화번호: '010-0000-0000',
+        소속팀: '경영지원팀',
+        활성여부: 'Y',
+      },
+      {
+        사번: '101267',
+        이름: '담당자 예시',
+        구분: '담당자',
+        이메일: 'owner@tongyanginc.co.kr',
+        전화번호: '010-1111-1111',
+        소속팀: '재경팀',
+        활성여부: 'Y',
+      },
+      {
+        사번: '101431',
+        이름: '승인자 예시',
+        구분: '승인자',
+        이메일: 'controller@tongyanginc.co.kr',
+        전화번호: '010-2222-2222',
+        소속팀: '감사팀',
+        활성여부: 'Y',
+      },
+    ])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Users')
+    XLSX.writeFile(workbook, '사용자등록_템플릿.xlsx')
+  }
+
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
     if (!file) return
+
     const reader = new FileReader()
-    reader.onload = ev => {
-      const wb = XLSX.read(ev.target?.result, { type: 'binary' })
-      const ws = wb.Sheets[wb.SheetNames[0]]
-      const raw = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: '' })
-      setPreview(raw.slice(0, 5))
+    reader.onload = loaded => {
+      const workbook = XLSX.read(loaded.target?.result, { type: 'binary' })
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      setPreview(XLSX.utils.sheet_to_json<Record<string, string>>(worksheet, { defval: '' }).slice(0, 5))
     }
     reader.readAsBinaryString(file)
   }
@@ -110,229 +326,207 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
   async function handleUpload() {
     const file = fileRef.current?.files?.[0]
     if (!file) return
+
+    const confirmed = window.confirm(
+      '이 작업은 기존 사용자, 결재, 증빙, RCM, 모집단 데이터를 모두 비우고 템플릿 기준으로 다시 만듭니다. 계속할까요?'
+    )
+    if (!confirmed) return
+
     setUploading(true)
     setResult(null)
 
     const reader = new FileReader()
-    reader.onload = async ev => {
-      const wb = XLSX.read(ev.target?.result, { type: 'binary' })
-      const ws = wb.Sheets[wb.SheetNames[0]]
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' })
+    reader.onload = async loaded => {
+      const workbook = XLSX.read(loaded.target?.result, { type: 'binary' })
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '' })
 
-      let created = 0, updated = 0
       const errors: string[] = []
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const db = supabase as any
+      const normalized: UserUploadInput[] = []
+      const seenEmployeeIds = new Set<string>()
 
-      const colMap: Record<string, string> = {
-        '통제번호': 'control_code', '담당자': 'owner_name', '관련부서': 'department',
-        '통제활동명': 'title', '제출 증빙에 대한 설명': 'description',
-        '승인자': 'controller_name', 'KPI 점수': 'kpi_score', '상신여부': 'submission_status',
-        '담당자 사번': 'owner_employee_id', '담당자 mail': 'owner_email',
-        '담당자 CP': 'owner_phone', '승인자 사번': 'controller_employee_id',
-        '승인자 mail': 'controller_email', '승인자 CP': 'controller_phone',
-        '통제부서': 'control_department', '주기': 'cycle',
-        '핵심/비핵심': 'key_control_raw', '수동/자동': 'manual_control_raw',
-        '배점': 'base_score', '환산점수': 'converted_score',
-        '고유키': 'unique_key', '테스트 문서': 'test_document',
-      }
-
-      // 1단계: 사용자 일괄 생성
-      setProgress({ current: 0, total: rows.length, phase: '사용자 계정 등록 중...' })
-      const userMap: Record<string, { name: string; email: string; phone: string; role: 'owner' | 'controller' }> = {}
       for (const row of rows) {
-        const ownerEmpId = String(row['담당자 사번'] ?? '').trim()
-        if (ownerEmpId) userMap[ownerEmpId] = {
-          name: String(row['담당자'] ?? '').trim(),
-          email: String(row['담당자 mail'] ?? '').trim(),
-          phone: String(row['담당자 CP'] ?? '').trim(),
-          role: 'owner'
+        const employeeId = readText(row, ['사번', 'employee_id'])
+        const fullName = readText(row, ['이름', '성명', 'full_name'])
+        const role = readRole(readText(row, ['구분', '권한', 'role']))
+        const contactEmail = readText(row, ['이메일', 'e-mail', 'email', 'contact_email']) || null
+        const phone = readText(row, ['전화번호', '연락처', ' CP', 'CP', 'phone']) || null
+        const department = readText(row, ['소속팀', '관련부서', '부서', 'department']) || null
+        const isActive = readBoolean(readText(row, ['활성여부', 'is_active']))
+
+        if (!employeeId && !fullName) continue
+
+        if (!employeeId || !fullName || !role) {
+          errors.push(`필수값 누락: 사번=${employeeId || '-'} 이름=${fullName || '-'} 구분=${role ?? '-'}`)
+          continue
         }
-        const ctrlEmpId = String(row['승인자 사번'] ?? '').trim()
-        if (ctrlEmpId) userMap[ctrlEmpId] = {
-          name: String(row['승인자'] ?? '').trim(),
-          email: String(row['승인자 mail'] ?? '').trim(),
-          phone: String(row['승인자 CP'] ?? '').trim(),
-          role: 'controller'
+
+        if (seenEmployeeIds.has(employeeId)) {
+          errors.push(`중복 사번: ${employeeId}`)
+          continue
         }
-      }
-      try {
-        const { data: bulkResult } = await supabase.functions.invoke('bulk-create-users', {
-          body: { users: Object.entries(userMap).map(([empId, u]) => ({
-            employee_id: empId, email: u.email || `${empId}@tongyanginc.co.kr`,
-            full_name: u.name, phone: u.phone, role: u.role, initial_password: empId,
-          })) }
+
+        seenEmployeeIds.add(employeeId)
+        normalized.push({
+          employee_id: employeeId,
+          full_name: fullName,
+          role,
+          department,
+          phone,
+          contact_email: contactEmail,
+          is_active: isActive,
         })
-        if (bulkResult) { created += bulkResult.created ?? 0; updated += bulkResult.updated ?? 0 }
-      } catch (e) { errors.push(`사용자 생성 오류: ${e}`) }
-
-      // 2단계: activities 저장 (배치 50개셈)
-      const BATCH = 50
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i]
-        setProgress({ current: i + 1, total: rows.length, phase: `통제활동 등록 중 (${i + 1}/${rows.length})` })
-        try {
-          const controlCode = String(row['통제번호'] ?? '').trim()
-          const dept = String(row['관련부서'] ?? '').trim()
-          const uniqueKey = controlCode && dept ? controlCode + dept
-            : String(row['고유키'] ?? '').trim()
-          if (!uniqueKey) continue
-
-          const actData: Record<string, unknown> = { active: true }
-          for (const [excelCol, dbCol] of Object.entries(colMap)) {
-            const val = row[excelCol]
-            if (dbCol === 'kpi_score' || dbCol === 'base_score' || dbCol === 'converted_score') {
-              actData[dbCol] = parseFloat(String(val ?? 0)) || 0
-            } else if (dbCol === 'key_control_raw') {
-              actData['key_control'] = String(val ?? '').includes('핵심')
-            } else if (dbCol === 'manual_control_raw') {
-              actData['manual_control'] = String(val ?? '').includes('수동')
-            } else if (dbCol === 'submission_status') {
-              actData[dbCol] = '미완료'
-            } else {
-              actData[dbCol] = String(val ?? '').trim() || null
-            }
-          }
-          actData['unique_key'] = uniqueKey
-
-          const { error } = await db.from('activities').upsert(actData, { onConflict: 'unique_key' })
-          if (error) errors.push(`[${uniqueKey}] ${error.message}`)
-          else created++
-        } catch (e) { errors.push(String(e)) }
-
-        // 페이지 렌더링 허용 (50개마다)
-        if ((i + 1) % BATCH === 0) await new Promise(r => setTimeout(r, 0))
       }
 
-      setProgress(null)
-      setResult({ created, updated, errors })
-      setUploading(false)
-      onDone()
+      if (errors.length) {
+        setResult({
+          createdCount: 0,
+          deletedAuthCount: 0,
+          deletedStorageCount: 0,
+          clearedTables: {},
+          errors,
+        })
+        setUploading(false)
+        return
+      }
+
+      const session = await supabase.auth.getSession()
+      const token = session.data.session?.access_token
+
+      if (!token) {
+        setResult({
+          createdCount: 0,
+          deletedAuthCount: 0,
+          deletedStorageCount: 0,
+          clearedTables: {},
+          errors: ['관리자 세션을 확인할 수 없습니다. 다시 로그인 후 시도해주세요.'],
+        })
+        setUploading(false)
+        return
+      }
+
+      try {
+        const response = await fetch('/api/admin/replace-users', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ users: normalized }),
+        })
+
+        const payload = await response.json()
+
+        if (!response.ok || !payload?.ok) {
+          setResult({
+            createdCount: 0,
+            deletedAuthCount: 0,
+            deletedStorageCount: 0,
+            clearedTables: {},
+            errors: [payload?.detail ?? payload?.error ?? '사용자 초기 업로드에 실패했습니다.'],
+          })
+          setUploading(false)
+          return
+        }
+
+        setResult({
+          createdCount: payload.createdCount ?? 0,
+          deletedAuthCount: payload.deletedAuthCount ?? 0,
+          deletedStorageCount: payload.deletedStorageCount ?? 0,
+          clearedTables: payload.clearedTables ?? {},
+          errors: payload.errors ?? [],
+        })
+        onDone()
+      } catch (error) {
+        setResult({
+          createdCount: 0,
+          deletedAuthCount: 0,
+          deletedStorageCount: 0,
+          clearedTables: {},
+          errors: [error instanceof Error ? error.message : String(error)],
+        })
+      } finally {
+        setUploading(false)
+      }
     }
+
     reader.readAsBinaryString(file)
   }
 
-  const pct = progress ? Math.round((progress.current / progress.total) * 100) : 0
+  const clearedDataCount = Object.values(result?.clearedTables ?? {}).reduce((sum, count) => sum + count, 0)
 
   return (
     <div className="space-y-5">
       <div className="card p-6">
-        <h3 className="text-base font-bold text-gray-900 mb-1">RCM 증빙 사용자 업로드</h3>
-        <p className="text-sm text-gray-500 mb-4">
-          <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">RCM_증빙_사용자_업로드_최종.xlsx</code> 파일을 업로드하면
-          사용자(담당자/승인자) 계정이 자동 생성되고 통제활동이 등록됩니다.
+        <h3 className="mb-1 text-base font-bold text-gray-900">사용자 초기 업로드</h3>
+        <p className="mb-4 text-sm text-gray-500">
+          이 기능은 새로 시작할 때 한 번 사용하는 초기화용 업로드입니다. 기존 사용자, 결재, 증빙, RCM, 모집단 데이터를
+          모두 비우고 템플릿 기준으로 다시 생성합니다.
         </p>
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-5">
-          <p className="text-xs font-semibold text-blue-700 mb-2">📋 파일 컴럼 구조</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-blue-600">
-            {[
-              { col: 'A', label: '통제번호' }, { col: 'B', label: '담당자' },
-              { col: 'C', label: '관련부서' }, { col: 'D', label: '통제활동명' },
-              { col: 'J', label: '담당자 사번' }, { col: 'K', label: '담당자 mail' },
-              { col: 'M', label: '승인자 사번' }, { col: 'V', label: '고유키' },
-            ].map(item => (
-              <span key={item.col} className="flex items-center gap-1">
-                <b className="bg-blue-100 text-blue-800 px-1 rounded font-mono">{item.col}</b>
-                {item.label}
-              </span>
-            ))}
-          </div>
+
+        <div className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+          로그인 ID는 모두 사번으로 맞춰지고, 초기 비밀번호도 사번으로 생성됩니다. 템플릿에 관리자 행이 없으면 현재
+          관리자 계정은 유지한 채 나머지 사용자만 새로 구성합니다.
         </div>
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <input ref={fileRef} type="file" accept=".xlsx,.xls"
-              onChange={handleFileChange} className="form-input text-sm" disabled={uploading} />
-          </div>
-          <button onClick={handleUpload} disabled={uploading} className="btn-primary shrink-0">
-            {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
-            {uploading ? '처리 중...' : '업로드'}
+
+        <div className="mb-4 flex flex-wrap gap-2">
+          <button onClick={downloadTemplate} className="btn-secondary px-3 py-2 text-xs">
+            <Download size={14} />
+            템플릿 다운로드
           </button>
         </div>
 
-        {/* 진행바 */}
-        {uploading && progress && (
-          <div className="mt-4 space-y-1.5">
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>{progress.phase}</span>
-              <span className="font-semibold text-gray-900">{pct}%</span>
-            </div>
-            <div className="bg-gray-100 rounded-full h-2.5 overflow-hidden">
-              <div
-                className="h-2.5 bg-gradient-to-r from-brand-500 to-brand-600 rounded-full transition-all duration-300"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <p className="text-xs text-gray-400">{progress.current} / {progress.total} 행 처리됨</p>
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleFileChange}
+              className="form-input text-sm"
+              disabled={uploading}
+            />
           </div>
-        )}
+          <button onClick={handleUpload} disabled={uploading} className="btn-primary shrink-0">
+            {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+            {uploading ? '처리 중...' : '전체 초기화 후 반영'}
+          </button>
+        </div>
       </div>
 
-      {/* 미리보기 */}
-      {preview.length > 0 && (
-        <div className="card p-5">
-          <p className="text-sm font-semibold text-gray-700 mb-3">파일 미리보기 (상위 5행)</p>
-          <div className="overflow-x-auto">
-            <table className="data-table text-xs">
-              <thead><tr>{Object.keys(preview[0]).slice(0, 10).map(h => <th key={h}>{h}</th>)}</tr></thead>
-              <tbody>
-                {preview.map((row, i) => (
-                  <tr key={i}>{Object.values(row).slice(0, 10).map((v, j) => (
-                    <td key={j} className="truncate max-w-[120px]" title={String(v)}>{String(v)}</td>
-                  ))}</tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <PreviewTable rows={preview} />
 
-      {/* 결과 */}
       {result && (
-        <div className={clsx('card p-5', result.errors.length > 0 ? 'border-amber-100 bg-amber-50/30' : 'border-emerald-100 bg-emerald-50/30')}>
-          <div className="flex items-center gap-2 mb-3">
-            {result.errors.length > 0 ? <AlertCircle size={18} className="text-amber-600" /> : <CheckCircle2 size={18} className="text-emerald-600" />}
-            <p className="font-bold text-gray-900">업로드 완료</p>
-          </div>
-          <div className="grid grid-cols-3 gap-3 mb-3">
-            <div className="text-center"><p className="text-2xl font-black text-emerald-600">{result.created}</p><p className="text-xs text-gray-500">등록/업데이트</p></div>
-            <div className="text-center"><p className="text-2xl font-black text-blue-600">{result.updated}</p><p className="text-xs text-gray-500">사용자 생성</p></div>
-            <div className="text-center"><p className="text-2xl font-black text-red-500">{result.errors.length}</p><p className="text-xs text-gray-500">오류</p></div>
-          </div>
-          {result.errors.length > 0 && (
-            <div className="bg-red-50 rounded-lg p-3 space-y-1 max-h-40 overflow-y-auto">
-              {result.errors.slice(0, 10).map((e, i) => (
-                <p key={i} className="text-xs text-red-600 font-mono">{e}</p>
-              ))}
-              {result.errors.length > 10 && (
-                <p className="text-xs text-red-400">...외 {result.errors.length - 10}건 더 있음</p>
-              )}
-            </div>
-          )}
-        </div>
+        <ResultCard
+          title="사용자 초기 업로드 완료"
+          stats={[
+            { label: '생성된 사용자', value: result.createdCount, color: 'text-emerald-600' },
+            { label: '삭제된 기존 계정', value: result.deletedAuthCount, color: 'text-blue-600' },
+            { label: '초기화된 데이터', value: clearedDataCount + result.deletedStorageCount, color: 'text-red-500' },
+          ]}
+          errors={result.errors}
+          note="업로드 후에는 새 관리자 계정으로 다시 로그인해서 계속 작업하는 것을 권장합니다."
+        />
       )}
     </div>
   )
 }
 
-
-
-/* ─── 모집단 업로드 탭 ─── */
-function PopulationUploadTab({ onDone }: { onDone: () => void }) {
+function RcmUploadTab({ onDone }: { onDone: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
-  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null)
-  const [result, setResult] = useState<{ upserted: number; errors: string[] } | null>(null)
   const [preview, setPreview] = useState<Record<string, string>[]>([])
+  const [result, setResult] = useState<{ upserted: number; errors: string[] } | null>(null)
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
     if (!file) return
+
     const reader = new FileReader()
-    reader.onload = ev => {
-      const wb = XLSX.read(ev.target?.result, { type: 'binary' })
-      const ws = wb.Sheets[wb.SheetNames[0]]
-      const raw = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: '' })
-      setPreview(raw.slice(0, 5))
+    reader.onload = loaded => {
+      const workbook = XLSX.read(loaded.target?.result, { type: 'binary' })
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      setPreview(XLSX.utils.sheet_to_json<Record<string, string>>(worksheet, { defval: '' }).slice(0, 5))
     }
     reader.readAsBinaryString(file)
   }
@@ -340,354 +534,366 @@ function PopulationUploadTab({ onDone }: { onDone: () => void }) {
   async function handleUpload() {
     const file = fileRef.current?.files?.[0]
     if (!file) return
+
     setUploading(true)
     setResult(null)
 
     const reader = new FileReader()
-    reader.onload = async ev => {
-      // cellDates: true → Excel 날짜 셀을 JS Date 객체로 파싱
-      const wb = XLSX.read(ev.target?.result, { type: 'binary', cellDates: true })
-      const ws = wb.Sheets[wb.SheetNames[0]]
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' })
-
-      let upserted = 0
+    reader.onload = async loaded => {
+      const workbook = XLSX.read(loaded.target?.result, { type: 'binary' })
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '' })
       const errors: string[] = []
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let upserted = 0
       const db = supabase as any
-      const BATCH = 50
 
-      /** 날짜값을 'YYYY-MM-DD' 문자열로 변환 (Date객체/숫자/문자열 모두 처리) */
-      function toDateStr(val: unknown): string | null {
-        if (!val) return null
+      const employeeIds = Array.from(
+        new Set(
+          rows
+            .flatMap(row => [
+              readText(row, ['담당자사번', '담당자 사번', 'owner_employee_id']),
+              readText(row, ['승인자사번', '승인자 사번', 'controller_employee_id']),
+            ])
+            .filter(Boolean)
+        )
+      )
 
-        function formatDateParts(year: number, month: number, day: number): string {
-          return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-        }
-
-        /** Excel 시리얼 → YYYY-MM-DD */
-        function serialToDate(n: number): string | null {
-          if (n < 1 || n > 100000) return null
-          const d = new Date(Date.UTC(1899, 11, 30) + n * 86400000)
-          return isNaN(d.getTime())
-            ? null
-            : formatDateParts(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate())
-        }
-
-        // JS Date 객체
-        if (val instanceof Date) {
-          return isNaN(val.getTime())
-            ? null
-            : formatDateParts(val.getFullYear(), val.getMonth() + 1, val.getDate())
-        }
-        // 숫자: Excel 시리얼
-        if (typeof val === 'number') {
-          return serialToDate(Math.floor(val))
-        }
-        // 문자열
-        const s = String(val).trim()
-        if (!s) return null
-        // 순수 숫자 문자열 → Excel 시리얼로 처리 (new Date("45969") = 연도 45969년 방지)
-        if (/^\d+$/.test(s)) {
-          return serialToDate(parseInt(s, 10))
-        }
-        // YYYY-MM-DD 또는 한국어 날짜: 앞 10자만
-        const datePart = s.slice(0, 10)
-        if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
-          return datePart
-        }
-        return null
-      }
-
-      /** 모집단 원문값을 문자열 그대로 보존 */
-      function toTextStr(val: unknown): string | null {
-        if (val === null || val === undefined) return null
-        if (val instanceof Date) {
-          return isNaN(val.getTime())
-            ? null
-            : `${val.getFullYear()}-${String(val.getMonth() + 1).padStart(2, '0')}-${String(val.getDate()).padStart(2, '0')}`
-        }
-        const text = String(val).trim()
-        return text || null
-      }
-
-      const uniqueKeysToReplace = Array.from(new Set(
-        rows.map(row => {
-          const controlCode = String(row['통제번호'] ?? '').trim()
-          const dept = String(row['관련부서'] ?? '').trim()
-          return controlCode && dept
-            ? controlCode + dept
-            : String(row['고유키'] ?? '').trim()
-        }).filter(Boolean)
-      ))
-
-      if (uniqueKeysToReplace.length > 0) {
-        const DELETE_BATCH = 100
-        for (let start = 0; start < uniqueKeysToReplace.length; start += DELETE_BATCH) {
-          const deleteBatch = uniqueKeysToReplace.slice(start, start + DELETE_BATCH)
-          const { error: deleteError } = await db
-            .from('population_items')
-            .delete()
-            .in('unique_key', deleteBatch)
-
-          if (deleteError) {
-            errors.push(`기존 모집단 삭제 실패: ${deleteError.message}`)
-            break
+      if (employeeIds.length) {
+        const { data: profiles, error } = await db.from('profiles').select('employee_id').in('employee_id', employeeIds)
+        if (error) {
+          errors.push(`사용자 사번 확인 실패: ${error.message}`)
+        } else {
+          const existing = new Set((profiles ?? []).map((profile: { employee_id: string | null }) => profile.employee_id))
+          const missing = employeeIds.filter(employeeId => !existing.has(employeeId))
+          if (missing.length) {
+            errors.push(`사전 등록이 필요한 사번 ${missing.length}건: ${missing.slice(0, 10).join(', ')}`)
           }
         }
       }
 
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i]
-        setProgress({ current: i + 1, total: rows.length })
-        try {
-          const controlCode = String(row['통제번호'] ?? '').trim()
-          const dept = String(row['관련부서'] ?? '').trim()
-          const uniqueKey = controlCode && dept ? controlCode + dept
-            : String(row['고유키'] ?? '').trim()
-          const sampleId = String(row['Sample ID'] ?? '').trim()
-          if (!uniqueKey) continue
+      for (const row of rows) {
+        const controlCode = readText(row, ['통제번호', 'control_code'])
+        const department = readText(row, ['관련부서', '부서', 'department'])
+        const uniqueKey = controlCode && department ? `${controlCode}${department}` : readText(row, ['고유키', 'unique_key'])
+        if (!uniqueKey) continue
 
-          const transactionText = toTextStr(row['Transaction ID'])
-          const transactionDate = toDateStr(row['거래일']) ?? toDateStr(row['Transaction ID'])
-          const stableSampleId = sampleId
-            ? `${sampleId}__${i + 1}`
-            : `${uniqueKey}__${i + 1}`
+        const payload = {
+          unique_key: uniqueKey,
+          control_code: controlCode || null,
+          owner_name: readText(row, ['담당자', 'owner_name']) || null,
+          department: department || null,
+          title: readText(row, ['통제활동명', 'title']) || null,
+          description: readText(row, ['제출 증빙자료명', '제출 증빙명', 'description']) || null,
+          controller_name: readText(row, ['승인자', 'controller_name']) || null,
+          kpi_score: Number.parseFloat(readText(row, ['KPI 점수', 'kpi_score']) || '0') || 0,
+          submission_status: '미완료',
+          owner_employee_id: readText(row, ['담당자사번', '담당자 사번', 'owner_employee_id']) || null,
+          owner_email: readText(row, ['담당자mail', '담당자 mail', 'owner_email']) || null,
+          owner_phone: readText(row, ['담당자CP', '담당자 CP', 'owner_phone']) || null,
+          controller_employee_id: readText(row, ['승인자사번', '승인자 사번', 'controller_employee_id']) || null,
+          controller_email: readText(row, ['승인자mail', '승인자 mail', 'controller_email']) || null,
+          controller_phone: readText(row, ['승인자CP', '승인자 CP', 'controller_phone']) || null,
+          control_department: readText(row, ['통제부서', 'control_department']) || null,
+          cycle: readText(row, ['주기', 'cycle']) || null,
+          key_control: readText(row, ['핵심/비핵심', 'key_control']).includes('핵심'),
+          manual_control: readText(row, ['수동/자동', 'manual_control']).includes('수동'),
+          base_score: Number.parseFloat(readText(row, ['배점', 'base_score']) || '0') || 0,
+          converted_score: Number.parseFloat(readText(row, ['환산점수', 'converted_score']) || '0') || 0,
+          test_document: readText(row, ['테스트 문서', 'test_document']) || null,
+          active: true,
+        }
 
-          const itemData = {
-            unique_key: uniqueKey,
-            control_code: controlCode || null,
-            dept_code: String(row['부서코드'] ?? '').trim() || null,
-            related_dept: dept || null,
-            sample_id: stableSampleId,
-            // 실제 업로드 파일에서는 날짜가 Transaction ID 컬럼에 들어오는 케이스가 있어
-            // 거래일이 비어 있을 때만 날짜형 값으로 보조 해석한다.
-            transaction_id: transactionText,
-            transaction_date: transactionDate,
-            description: String(row['거래설명'] ?? '').trim() || null,
-            extra_info: String(row['추가 정보 1'] ?? '').trim() || null,
-            extra_info_2: String(row['추가 정보 2'] ?? '').trim() || null,
-            extra_info_3: String(row['추가 정보 3'] ?? '').trim() || null,
-            extra_info_4: String(row['추가 정보 4'] ?? '').trim() || null,
-          }
-          const { error } = await db.from('population_items').insert(itemData)
-          if (error) {
-            // 오류 시 전송값 포함 (디버깅)
-            errors.push(`[${sampleId || uniqueKey}] ${error.message} (TID=${JSON.stringify(transactionText)} TDATE=${JSON.stringify(transactionDate)})`)
-          }
-          else upserted++
-        } catch (e) { errors.push(String(e)) }
-
-        if ((i + 1) % BATCH === 0) await new Promise(r => setTimeout(r, 0))
+        const { error } = await db.from('activities').upsert(payload, { onConflict: 'unique_key' })
+        if (error) errors.push(`[${uniqueKey}] ${error.message}`)
+        else upserted += 1
       }
 
-      setProgress(null)
       setResult({ upserted, errors })
       setUploading(false)
       onDone()
     }
+
     reader.readAsBinaryString(file)
   }
-
-  const pct = progress ? Math.round((progress.current / progress.total) * 100) : 0
 
   return (
     <div className="space-y-5">
       <div className="card p-6">
-        <h3 className="text-base font-bold text-gray-900 mb-1">모집단 데이터 업로드</h3>
-        <p className="text-sm text-gray-500 mb-4">
-          <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">모집단_업로드_최종_Final.xlsx</code> 파일을 업로드합니다.
-          M열 고유키와 RCM의 V열 고유키가 자동으로 매핑됩니다.
+        <h3 className="mb-1 text-base font-bold text-gray-900">RCM 업로드</h3>
+        <p className="mb-4 text-sm text-gray-500">
+          RCM은 사용자 생성을 하지 않고, 통제활동과 담당자·승인자 매핑만 반영합니다. 사번은 사용자 템플릿에 먼저
+          등록되어 있어야 합니다.
         </p>
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-5">
-          <p className="text-xs font-semibold text-blue-700 mb-2">📋 파일 컴럼 구조</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-blue-600">
-            {[
-              { col: 'A', label: '통제번호' }, { col: 'C', label: '부서코드' },
-              { col: 'D', label: '관련부서' }, { col: 'E', label: 'Sample ID' },
-              { col: 'F', label: 'Transaction ID' }, { col: 'G', label: '거래일' },
-              { col: 'H', label: '거래설명' }, { col: 'L', label: '고유키' },
-            ].map(item => (
-              <span key={item.col} className="flex items-center gap-1">
-                <b className="bg-blue-100 text-blue-800 px-1 rounded font-mono">{item.col}</b>
-                {item.label}
-              </span>
-            ))}
-          </div>
-        </div>
+
         <div className="flex gap-3">
           <div className="flex-1">
-            <input ref={fileRef} type="file" accept=".xlsx,.xls"
-              onChange={handleFileChange} className="form-input text-sm" disabled={uploading} />
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleFileChange}
+              className="form-input text-sm"
+              disabled={uploading}
+            />
           </div>
           <button onClick={handleUpload} disabled={uploading} className="btn-primary shrink-0">
             {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
             {uploading ? '처리 중...' : '업로드'}
           </button>
         </div>
-
-        {/* 진행바 */}
-        {uploading && progress && (
-          <div className="mt-4 space-y-1.5">
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>모집단 데이터 등록 중...</span>
-              <span className="font-semibold text-gray-900">{pct}%</span>
-            </div>
-            <div className="bg-gray-100 rounded-full h-2.5 overflow-hidden">
-              <div
-                className="h-2.5 bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-200"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <p className="text-xs text-gray-400">{progress.current.toLocaleString()} / {progress.total.toLocaleString()} 행 처리됨</p>
-          </div>
-        )}
       </div>
 
-      {preview.length > 0 && (
-        <div className="card p-5">
-          <p className="text-sm font-semibold text-gray-700 mb-3">파일 미리보기</p>
-          <div className="overflow-x-auto">
-            <table className="data-table text-xs">
-              <thead><tr>{Object.keys(preview[0]).slice(0, 10).map(h => <th key={h}>{h}</th>)}</tr></thead>
-              <tbody>
-                {preview.map((row, i) => (
-                  <tr key={i}>{Object.values(row).slice(0, 10).map((v, j) => (
-                    <td key={j} className="truncate max-w-[120px]" title={String(v)}>{String(v)}</td>
-                  ))}</tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <PreviewTable rows={preview} />
 
       {result && (
-        <div className={clsx('card p-5', result.errors.length > 0 ? 'border-amber-100 bg-amber-50/30' : 'border-emerald-100 bg-emerald-50/30')}>
-          <div className="flex items-center gap-2 mb-3">
-            {result.errors.length > 0 ? <AlertCircle size={18} className="text-amber-600" /> : <CheckCircle2 size={18} className="text-emerald-600" />}
-            <p className="font-bold text-gray-900">업로드 완료</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <div className="text-center"><p className="text-2xl font-black text-emerald-600">{result.upserted.toLocaleString()}</p><p className="text-xs text-gray-500">등록 성공</p></div>
-            <div className="text-center"><p className="text-2xl font-black text-red-500">{result.errors.length.toLocaleString()}</p><p className="text-xs text-gray-500">오류</p></div>
-          </div>
-          {result.errors.length > 0 && (
-            <div className="bg-red-50 rounded-lg p-3 space-y-1 max-h-48 overflow-y-auto">
-              <p className="text-xs font-semibold text-red-700 mb-1">오류 상세 (첫 10건):</p>
-              {result.errors.slice(0, 10).map((e, i) => (
-                <p key={i} className="text-xs text-red-600 font-mono break-all">{e}</p>
-              ))}
-              {result.errors.length > 10 && (
-                <p className="text-xs text-red-400">...외 {result.errors.length - 10}건 더</p>
-              )}
-            </div>
-          )}
-        </div>
+        <ResultCard
+          title="RCM 업로드 완료"
+          stats={[
+            { label: '반영된 통제활동', value: result.upserted, color: 'text-emerald-600' },
+            { label: '사용자 생성', value: 0, color: 'text-blue-600' },
+            { label: '확인 필요', value: result.errors.length, color: 'text-red-500' },
+          ]}
+          errors={result.errors}
+        />
       )}
     </div>
   )
 }
 
+function PopulationUploadTab({ onDone }: { onDone: () => void }) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [preview, setPreview] = useState<Record<string, string>[]>([])
+  const [result, setResult] = useState<{ upserted: number; errors: string[] } | null>(null)
 
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
 
-/* ─── 사용자 관리 탭 ─── */
+    const reader = new FileReader()
+    reader.onload = loaded => {
+      const workbook = XLSX.read(loaded.target?.result, { type: 'binary' })
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      setPreview(XLSX.utils.sheet_to_json<Record<string, string>>(worksheet, { defval: '' }).slice(0, 5))
+    }
+    reader.readAsBinaryString(file)
+  }
+
+  async function handleUpload() {
+    const file = fileRef.current?.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+    setResult(null)
+
+    const reader = new FileReader()
+    reader.onload = async loaded => {
+      const workbook = XLSX.read(loaded.target?.result, { type: 'binary', cellDates: true })
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '' })
+      const errors: string[] = []
+      let upserted = 0
+      const db = supabase as any
+
+      const uniqueKeys = Array.from(
+        new Set(
+          rows
+            .map(row => {
+              const controlCode = readText(row, ['통제번호', 'control_code'])
+              const department = readText(row, ['관련부서', 'department'])
+              return controlCode && department ? `${controlCode}${department}` : readText(row, ['고유키', 'unique_key'])
+            })
+            .filter(Boolean)
+        )
+      )
+
+      for (let index = 0; index < uniqueKeys.length; index += 100) {
+        const { error } = await db.from('population_items').delete().in('unique_key', uniqueKeys.slice(index, index + 100))
+        if (error) {
+          errors.push(`기존 모집단 삭제 실패: ${error.message}`)
+          break
+        }
+      }
+
+      for (let index = 0; index < rows.length; index += 1) {
+        const row = rows[index]
+        const controlCode = readText(row, ['통제번호', 'control_code'])
+        const department = readText(row, ['관련부서', 'department'])
+        const uniqueKey = controlCode && department ? `${controlCode}${department}` : readText(row, ['고유키', 'unique_key'])
+        if (!uniqueKey) continue
+
+        const sampleId = readText(row, ['Sample ID', 'sample_id'])
+        const transactionId = String(row['Transaction ID'] ?? row.transaction_id ?? '').trim() || null
+        const transactionDate =
+          toDateString(row['거래일'] ?? row.transaction_date) ??
+          toDateString(row['Transaction Date'] ?? row.transaction_date)
+
+        const payload = {
+          unique_key: uniqueKey,
+          control_code: controlCode || null,
+          dept_code: readText(row, ['부서코드', 'dept_code']) || null,
+          related_dept: department || null,
+          sample_id: sampleId ? `${sampleId}__${index + 1}` : `${uniqueKey}__${index + 1}`,
+          transaction_id: transactionId,
+          transaction_date: transactionDate,
+          description: readText(row, ['거래설명', 'description']) || null,
+          extra_info: readText(row, ['추가 정보 1', 'extra_info']) || null,
+          extra_info_2: readText(row, ['추가 정보 2', 'extra_info_2']) || null,
+          extra_info_3: readText(row, ['추가 정보 3', 'extra_info_3']) || null,
+          extra_info_4: readText(row, ['추가 정보 4', 'extra_info_4']) || null,
+        }
+
+        const { error } = await db.from('population_items').insert(payload)
+        if (error) {
+          errors.push(`[${sampleId || uniqueKey}] ${error.message}`)
+        } else {
+          upserted += 1
+        }
+      }
+
+      setResult({ upserted, errors })
+      setUploading(false)
+      onDone()
+    }
+
+    reader.readAsBinaryString(file)
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="card p-6">
+        <h3 className="mb-1 text-base font-bold text-gray-900">모집단 업로드</h3>
+        <p className="mb-4 text-sm text-gray-500">
+          모집단 파일은 거래 단위 데이터만 다시 적재합니다. 사용자 생성과는 완전히 분리되어 있습니다.
+        </p>
+
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleFileChange}
+              className="form-input text-sm"
+              disabled={uploading}
+            />
+          </div>
+          <button onClick={handleUpload} disabled={uploading} className="btn-primary shrink-0">
+            {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+            {uploading ? '처리 중...' : '업로드'}
+          </button>
+        </div>
+      </div>
+
+      <PreviewTable rows={preview} />
+
+      {result && (
+        <ResultCard
+          title="모집단 업로드 완료"
+          stats={[
+            { label: '적재된 행', value: result.upserted, color: 'text-emerald-600' },
+            { label: '미리보기', value: preview.length, color: 'text-blue-600' },
+            { label: '오류', value: result.errors.length, color: 'text-red-500' },
+          ]}
+          errors={result.errors}
+        />
+      )}
+    </div>
+  )
+}
+
 function UsersTab({ refreshKey }: { refreshKey: number }) {
   const [users, setUsers] = useState<UserRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [showPw, setShowPw] = useState<Record<string, boolean>>({})
+  const [showPassword, setShowPassword] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     async function load() {
       setLoading(true)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = supabase as any
       const { data } = await db.from('profiles').select('*').order('role').order('department').order('full_name')
       setUsers(data ?? [])
       setLoading(false)
     }
+
     load()
   }, [refreshKey])
 
-  const filtered = users.filter(u => {
+  async function toggleActive(user: UserRow) {
+    const db = supabase as any
+    await db.from('profiles').update({ is_active: !user.is_active }).eq('id', user.id)
+    setUsers(previous =>
+      previous.map(item => (item.id === user.id ? { ...item, is_active: !item.is_active } : item))
+    )
+  }
+
+  const filtered = users.filter(user => {
     if (!search) return true
-    const s = search.toLowerCase()
-    return (
-      u.full_name?.toLowerCase().includes(s) ||
-      u.email?.toLowerCase().includes(s) ||
-      u.employee_id?.toLowerCase().includes(s) ||
-      u.department?.toLowerCase().includes(s)
+    return [user.full_name ?? '', user.email ?? '', user.employee_id ?? '', user.department ?? ''].some(value =>
+      value.toLowerCase().includes(search.toLowerCase())
     )
   })
 
-  const ROLE_KO: Record<string, string> = { admin: '관리자', controller: '통제책임자', owner: '담당자' }
-  const ROLE_CLS: Record<string, string> = { admin: 'badge-purple', controller: 'badge-blue', owner: 'badge-green' }
-
-  async function toggleActive(user: UserRow) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabase as any
-    await db.from('profiles').update({ is_active: !user.is_active }).eq('id', user.id)
-    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_active: !u.is_active } : u))
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 size={24} className="animate-spin text-brand-500" />
+      </div>
+    )
   }
-
-  function downloadUsersCSV() {
-    const headers = ['사번', '이름', '이메일', '부서', '역할', '초기비밀번호', '활성여부', '등록일']
-    const rows = filtered.map(u => [
-      u.employee_id ?? '', u.full_name ?? '', u.email, u.department ?? '',
-      ROLE_KO[u.role] ?? u.role, u.initial_password ?? u.employee_id ?? '',
-      u.is_active ? '활성' : '비활성', u.created_at.slice(0, 10)
-    ])
-    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n')
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url; a.download = '사용자목록.csv'; a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  if (loading) return <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-brand-500" /></div>
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-3">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="이름, 사번, 이메일, 부서 검색..." className="form-input pl-9 text-sm" />
-        </div>
-        <button onClick={downloadUsersCSV} className="btn-secondary text-xs px-3 py-2">
-          <Download size={14} />사용자 목록 다운로드
-        </button>
+      <div className="relative">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={search}
+          onChange={event => setSearch(event.target.value)}
+          placeholder="이름, 사번, 로그인 ID, 소속팀 검색..."
+          className="form-input pl-9 text-sm"
+        />
       </div>
 
       <div className="card overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-50 flex justify-between text-xs text-gray-500">
-          <span>총 <b className="text-gray-700">{filtered.length}</b>명</span>
-          <span>관리자 {users.filter(u=>u.role==='admin').length} | 통제책임자 {users.filter(u=>u.role==='controller').length} | 담당자 {users.filter(u=>u.role==='owner').length}</span>
+        <div className="border-b border-gray-50 px-4 py-3 text-xs text-gray-500">
+          총 <b className="text-gray-700">{filtered.length}</b>명
         </div>
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
               <tr>
-                <th>사번</th><th>이름</th><th>이메일</th><th>부서</th>
-                <th>역할</th><th>초기 비밀번호</th><th>상태</th><th className="text-center">조작</th>
+                <th>사번</th>
+                <th>이름</th>
+                <th>로그인 ID</th>
+                <th>소속팀</th>
+                <th>구분</th>
+                <th>초기 비밀번호</th>
+                <th>상태</th>
+                <th className="text-center">조작</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(user => (
                 <tr key={user.id}>
                   <td className="font-mono text-xs text-gray-600">{user.employee_id ?? '-'}</td>
-                  <td className="font-semibold text-sm text-gray-800">{user.full_name ?? '-'}</td>
-                  <td className="text-xs text-gray-500">{user.email}</td>
+                  <td className="text-sm font-semibold text-gray-800">{user.full_name ?? '-'}</td>
+                  <td className="text-xs text-gray-500">{user.email ?? buildLoginEmail(user.employee_id ?? '')}</td>
                   <td className="text-xs text-gray-600">{user.department ?? '-'}</td>
-                  <td><span className={ROLE_CLS[user.role] ?? 'badge-gray'}>{ROLE_KO[user.role] ?? user.role}</span></td>
+                  <td>
+                    <span className={ROLE_BADGES[user.role] ?? 'badge-gray'}>{ROLE_LABELS[user.role] ?? user.role}</span>
+                  </td>
                   <td>
                     <div className="flex items-center gap-1">
-                      <code className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                        {showPw[user.id] ? (user.initial_password ?? user.employee_id ?? '***') : '••••••'}
+                      <code className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                        {showPassword[user.id] ? user.initial_password ?? '사용자 변경 또는 미기록' : '••••••'}
                       </code>
-                      <button onClick={() => setShowPw(p => ({ ...p, [user.id]: !p[user.id] }))}
-                        className="text-gray-400 hover:text-gray-600">
-                        {showPw[user.id] ? <EyeOff size={12} /> : <Eye size={12} />}
+                      <button
+                        onClick={() => setShowPassword(previous => ({ ...previous, [user.id]: !previous[user.id] }))}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword[user.id] ? <EyeOff size={12} /> : <Eye size={12} />}
                       </button>
                     </div>
                   </td>
@@ -699,7 +905,8 @@ function UsersTab({ refreshKey }: { refreshKey: number }) {
                   <td className="text-center">
                     <button
                       onClick={() => toggleActive(user)}
-                      className={clsx('text-xs px-2 py-1 rounded-lg transition-all',
+                      className={clsx(
+                        'rounded-lg px-2 py-1 text-xs transition-all',
                         user.is_active ? 'text-red-600 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'
                       )}
                     >
@@ -716,7 +923,6 @@ function UsersTab({ refreshKey }: { refreshKey: number }) {
   )
 }
 
-/* ─── 통제활동 관리 탭 ─── */
 function ActivitiesTab({ refreshKey }: { refreshKey: number }) {
   const [activities, setActivities] = useState<ActivityRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -726,72 +932,99 @@ function ActivitiesTab({ refreshKey }: { refreshKey: number }) {
   useEffect(() => {
     async function load() {
       setLoading(true)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = supabase as any
-      const { data } = await db.from('activities').select('id, control_code, owner_name, department, title, submission_status, controller_name, active')
-        .order('control_code').order('department')
+      const { data } = await db
+        .from('activities')
+        .select('id, control_code, owner_name, department, title, submission_status, controller_name')
+        .order('control_code')
+        .order('department')
       setActivities(data ?? [])
       setLoading(false)
     }
+
     load()
   }, [refreshKey])
 
-  const filtered = activities.filter(a => {
-    if (!search) return true
-    const s = search.toLowerCase()
-    return a.control_code?.toLowerCase().includes(s) || a.owner_name?.toLowerCase().includes(s) || a.department?.toLowerCase().includes(s) || a.title?.toLowerCase().includes(s)
-  })
-
   async function resetStatus(id: string) {
-    if (!confirm('이 통제활동의 상신여부를 미완료로 초기화하시겠습니까?')) return
+    const confirmed = window.confirm('이 통제활동의 상신 상태를 미완료로 초기화할까요?')
+    if (!confirmed) return
+
     setProcessing(id)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
     await db.from('activities').update({ submission_status: '미완료' }).eq('id', id)
-    setActivities(prev => prev.map(a => a.id === id ? { ...a, submission_status: '미완료' } : a))
+    setActivities(previous =>
+      previous.map(item => (item.id === id ? { ...item, submission_status: '미완료' } : item))
+    )
     setProcessing(null)
   }
 
-  const STATUS_MAP: Record<string, string> = { '미완료': 'badge-yellow', '완료': 'badge-blue', '승인': 'badge-green', '반려': 'badge-red' }
+  const filtered = activities.filter(item => {
+    if (!search) return true
+    return [item.control_code ?? '', item.owner_name ?? '', item.department ?? '', item.title ?? ''].some(value =>
+      value.toLowerCase().includes(search.toLowerCase())
+    )
+  })
 
-  if (loading) return <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-brand-500" /></div>
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 size={24} className="animate-spin text-brand-500" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-3">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="통제번호, 담당자, 부서 검색..." className="form-input pl-9 text-sm" />
-        </div>
+      <div className="relative">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={search}
+          onChange={event => setSearch(event.target.value)}
+          placeholder="통제번호, 담당자, 부서 검색..."
+          className="form-input pl-9 text-sm"
+        />
       </div>
+
       <div className="card overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-50 text-xs text-gray-500">
+        <div className="border-b border-gray-50 px-4 py-3 text-xs text-gray-500">
           총 <b className="text-gray-700">{filtered.length}</b>건
         </div>
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
               <tr>
-                <th>통제번호</th><th>담당자</th><th>부서</th><th>통제활동명</th>
-                <th>승인자</th><th>상신여부</th><th className="text-center">관리</th>
+                <th>통제번호</th>
+                <th>담당자</th>
+                <th>부서</th>
+                <th>통제활동명</th>
+                <th>승인자</th>
+                <th>상신상태</th>
+                <th className="text-center">관리</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(a => (
-                <tr key={a.id}>
-                  <td><code className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{a.control_code}</code></td>
-                  <td className="text-sm font-medium text-gray-800">{a.owner_name ?? '-'}</td>
-                  <td className="text-xs text-gray-500">{a.department ?? '-'}</td>
-                  <td className="text-xs text-gray-600 max-w-[200px] truncate" title={a.title ?? ''}>{a.title ?? '-'}</td>
-                  <td className="text-xs text-gray-500">{a.controller_name ?? '-'}</td>
-                  <td><span className={STATUS_MAP[a.submission_status] ?? 'badge-gray'}>{a.submission_status}</span></td>
+              {filtered.map(item => (
+                <tr key={item.id}>
+                  <td>
+                    <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">{item.control_code ?? '-'}</code>
+                  </td>
+                  <td className="text-sm font-medium text-gray-800">{item.owner_name ?? '-'}</td>
+                  <td className="text-xs text-gray-500">{item.department ?? '-'}</td>
+                  <td className="max-w-[220px] truncate text-xs text-gray-600">{item.title ?? '-'}</td>
+                  <td className="text-xs text-gray-500">{item.controller_name ?? '-'}</td>
+                  <td>
+                    <span className={SUBMISSION_BADGES[item.submission_status ?? ''] ?? 'badge-gray'}>
+                      {item.submission_status ?? '-'}
+                    </span>
+                  </td>
                   <td className="text-center">
                     <button
-                      onClick={() => resetStatus(a.id)}
-                      disabled={processing === a.id || a.submission_status === '미완료'}
-                      className="text-xs px-2 py-1 text-orange-600 hover:bg-orange-50 rounded-lg transition-all disabled:opacity-30"
+                      onClick={() => resetStatus(item.id)}
+                      disabled={processing === item.id || item.submission_status === '미완료'}
+                      className="rounded-lg px-2 py-1 text-xs text-orange-600 transition-all hover:bg-orange-50 disabled:opacity-30"
                     >
-                      {processing === a.id ? <Loader2 size={11} className="animate-spin inline" /> : '초기화'}
+                      {processing === item.id ? <Loader2 size={11} className="inline animate-spin" /> : '초기화'}
                     </button>
                   </td>
                 </tr>
@@ -804,115 +1037,16 @@ function ActivitiesTab({ refreshKey }: { refreshKey: number }) {
   )
 }
 
-/* ─── 증빙 다운로드 탭 ─── */
-export function FilesTab() {
-  const [files, setFiles] = useState<{
-    id: string
-    file_name: string
-    original_file_name?: string | null
-    file_path: string
-    unique_key: string | null
-    uploaded_at: string | null
-    owner?: { full_name: string | null }
-  }[]>([])
+function FilesTab() {
+  const [files, setFiles] = useState<FileRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
   useEffect(() => {
     async function load() {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = supabase as any
-      const { data } = await db.from('evidence_uploads')
-        .select('id, file_name, original_file_name, file_path, unique_key, uploaded_at, owner:owner_id(full_name)')
-        .order('uploaded_at', { ascending: false })
-        .limit(500)
-      setFiles(data ?? [])
-      setLoading(false)
-    }
-    load()
-  }, [])
-
-  const filtered = files.filter(file => {
-    if (!search) return true
-    const s = search.toLowerCase()
-    return (
-      (file.original_file_name ?? file.file_name).toLowerCase().includes(s) ||
-      file.file_name.toLowerCase().includes(s) ||
-      (file.unique_key ?? '').toLowerCase().includes(s)
-    )
-  })
-
-  async function downloadFile(path: string, name: string) {
-    const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 60)
-    if (!data?.signedUrl) return
-
-    const a = document.createElement('a')
-    a.href = data.signedUrl
-    a.download = name
-    a.click()
-  }
-
-  if (loading) return <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-brand-500" /></div>
-
-  return (
-    <div className="space-y-4">
-      <div className="relative">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="파일명, 고유키 검색..." className="form-input pl-9 text-sm" />
-      </div>
-      <div className="card overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-50 text-xs text-gray-500">총 <b className="text-gray-700">{filtered.length}</b>개 파일</div>
-        <div className="overflow-x-auto">
-          <table className="data-table">
-            <thead>
-              <tr><th>파일명</th><th>고유키</th><th>담당자</th><th>업로드일</th><th className="text-center">다운로드</th></tr>
-            </thead>
-            <tbody>
-              {filtered.map(f => (
-                <tr key={f.id}>
-                  <td className="text-xs text-gray-700 max-w-[250px] truncate" title={f.file_name}>{f.file_name}</td>
-                  <td className="text-xs text-gray-500 font-mono">{f.unique_key ?? '-'}</td>
-                  <td className="text-xs text-gray-600">{f.owner?.full_name ?? '-'}</td>
-                  <td className="text-xs text-gray-400">{f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('ko-KR') : '-'}</td>
-                  <td className="text-center">
-                    <button onClick={() => downloadFile(f.file_path, f.file_name)}
-                      className="inline-flex items-center gap-1 px-2 py-1 bg-brand-50 text-brand-700 rounded-lg text-xs hover:bg-brand-100 transition-all">
-                      <Download size={11} />다운로드
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function FilesDownloadTab() {
-  const [files, setFiles] = useState<{
-    id: string
-    file_name: string
-    original_file_name?: string | null
-    file_path: string
-    unique_key: string | null
-    uploaded_at: string | null
-    owner?: { full_name: string | null }
-  }[]>([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [ownerFilter, setOwnerFilter] = useState('all')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [downloading, setDownloading] = useState(false)
-
-  useEffect(() => {
-    async function load() {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const db = supabase as any
-      const { data } = await db.from('evidence_uploads')
+      const { data } = await db
+        .from('evidence_uploads')
         .select('id, file_name, original_file_name, file_path, unique_key, uploaded_at, owner:owner_id(full_name)')
         .order('uploaded_at', { ascending: false })
         .limit(500)
@@ -923,165 +1057,57 @@ function FilesDownloadTab() {
     load()
   }, [])
 
-  const ownerOptions = Array.from(
-    new Set(
-      files
-        .map(file => file.owner?.full_name)
-        .filter((value): value is string => Boolean(value))
-    )
-  ).sort((a, b) => a.localeCompare(b, 'ko'))
-
-  const filtered = files.filter(file => {
-    const ownerName = file.owner?.full_name ?? ''
-    const displayName = file.original_file_name ?? file.file_name
-    const uploadedDate = file.uploaded_at ? file.uploaded_at.slice(0, 10) : ''
-
-    const matchesSearch = !search || [
-      displayName,
-      file.file_name,
-      file.unique_key ?? '',
-      ownerName,
-    ].some(value => value.toLowerCase().includes(search.toLowerCase()))
-
-    const matchesOwner = ownerFilter === 'all' || ownerName === ownerFilter
-    const matchesFrom = !dateFrom || (uploadedDate && uploadedDate >= dateFrom)
-    const matchesTo = !dateTo || (uploadedDate && uploadedDate <= dateTo)
-
-    return matchesSearch && matchesOwner && matchesFrom && matchesTo
-  })
-
-  const allVisibleSelected = filtered.length > 0 && filtered.every(file => selectedIds.includes(file.id))
-
-  function toggleSelected(fileId: string) {
-    setSelectedIds(previous =>
-      previous.includes(fileId)
-        ? previous.filter(id => id !== fileId)
-        : [...previous, fileId]
-    )
-  }
-
-  function toggleSelectAllVisible() {
-    if (allVisibleSelected) {
-      setSelectedIds(previous => previous.filter(id => !filtered.some(file => file.id === id)))
-      return
-    }
-
-    setSelectedIds(previous => Array.from(new Set([...previous, ...filtered.map(file => file.id)])))
-  }
-
   async function downloadFile(path: string, name: string) {
     const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 60)
     if (!data?.signedUrl) return
-
     const anchor = document.createElement('a')
     anchor.href = data.signedUrl
     anchor.download = name
     anchor.click()
   }
 
-  async function bulkDownload(targetFiles: typeof files) {
-    if (targetFiles.length === 0) return
+  const filtered = files.filter(file => {
+    if (!search) return true
+    return [
+      file.original_file_name ?? file.file_name,
+      file.file_name,
+      file.unique_key ?? '',
+      file.owner?.full_name ?? '',
+    ].some(value => value.toLowerCase().includes(search.toLowerCase()))
+  })
 
-    setDownloading(true)
-    try {
-      for (const file of targetFiles) {
-        await downloadFile(file.file_path, file.original_file_name ?? file.file_name)
-        await new Promise(resolve => window.setTimeout(resolve, 150))
-      }
-    } finally {
-      setDownloading(false)
-    }
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 size={24} className="animate-spin text-brand-500" />
+      </div>
+    )
   }
-
-  function resetFilters() {
-    setSearch('')
-    setOwnerFilter('all')
-    setDateFrom('')
-    setDateTo('')
-    setSelectedIds([])
-  }
-
-  if (loading) return <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-brand-500" /></div>
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_220px_160px_160px_auto] gap-3">
-        <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="파일명, 고유키, 업로드자 검색..."
-            className="form-input pl-9 text-sm"
-          />
-        </div>
-
-        <select value={ownerFilter} onChange={e => setOwnerFilter(e.target.value)} className="form-input text-sm">
-          <option value="all">전체 업로드자</option>
-          {ownerOptions.map(owner => (
-            <option key={owner} value={owner}>{owner}</option>
-          ))}
-        </select>
-
-        <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="form-input text-sm" />
-        <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="form-input text-sm" />
-
-        <button onClick={resetFilters} className="btn-secondary text-xs px-3 py-2">
-          필터 초기화
-        </button>
-      </div>
-
-      <div className="card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="text-sm text-gray-600">
-          필터 결과 <b className="text-gray-900">{filtered.length.toLocaleString()}</b>건
-          <span className="mx-2 text-gray-300">|</span>
-          선택 <b className="text-gray-900">{selectedIds.length.toLocaleString()}</b>건
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => bulkDownload(filtered)}
-            disabled={downloading || filtered.length === 0}
-            className="btn-secondary text-xs px-3 py-2 disabled:opacity-40"
-          >
-            <Download size={14} />
-            필터 결과 일괄 다운로드
-          </button>
-
-          <button
-            onClick={() => bulkDownload(filtered.filter(file => selectedIds.includes(file.id)))}
-            disabled={downloading || selectedIds.length === 0}
-            className="btn-primary text-xs px-3 py-2 disabled:opacity-40"
-          >
-            {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-            선택 다운로드
-          </button>
-        </div>
+      <div className="relative">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={search}
+          onChange={event => setSearch(event.target.value)}
+          placeholder="파일명, 고유키, 업로드 사용자 검색..."
+          className="form-input pl-9 text-sm"
+        />
       </div>
 
       <div className="card overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between text-xs text-gray-500">
-          <span>총 <b className="text-gray-700">{filtered.length.toLocaleString()}</b>개 파일</span>
-          <label className="inline-flex items-center gap-2 text-gray-600">
-            <input
-              type="checkbox"
-              checked={allVisibleSelected}
-              onChange={toggleSelectAllVisible}
-              className="rounded border-gray-300"
-            />
-            현재 필터 결과 전체 선택
-          </label>
+        <div className="border-b border-gray-50 px-4 py-3 text-xs text-gray-500">
+          총 <b className="text-gray-700">{filtered.length}</b>개 파일
         </div>
-
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
               <tr>
-                <th className="w-12 text-center">선택</th>
                 <th>파일명</th>
                 <th>고유키</th>
-                <th>업로드자</th>
+                <th>업로드 사용자</th>
                 <th>업로드일</th>
                 <th className="text-center">다운로드</th>
               </tr>
@@ -1089,18 +1115,8 @@ function FilesDownloadTab() {
             <tbody>
               {filtered.map(file => (
                 <tr key={file.id}>
-                  <td className="text-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(file.id)}
-                      onChange={() => toggleSelected(file.id)}
-                      className="rounded border-gray-300"
-                    />
-                  </td>
-                  <td className="text-xs text-gray-700 max-w-[320px] truncate" title={file.original_file_name ?? file.file_name}>
-                    {file.original_file_name ?? file.file_name}
-                  </td>
-                  <td className="text-xs text-gray-500 font-mono">{file.unique_key ?? '-'}</td>
+                  <td className="max-w-[320px] truncate text-xs text-gray-700">{file.original_file_name ?? file.file_name}</td>
+                  <td className="font-mono text-xs text-gray-500">{file.unique_key ?? '-'}</td>
                   <td className="text-xs text-gray-600">{file.owner?.full_name ?? '-'}</td>
                   <td className="text-xs text-gray-400">
                     {file.uploaded_at ? new Date(file.uploaded_at).toLocaleDateString('ko-KR') : '-'}
@@ -1108,7 +1124,7 @@ function FilesDownloadTab() {
                   <td className="text-center">
                     <button
                       onClick={() => downloadFile(file.file_path, file.original_file_name ?? file.file_name)}
-                      className="inline-flex items-center gap-1 px-2 py-1 bg-brand-50 text-brand-700 rounded-lg text-xs hover:bg-brand-100 transition-all"
+                      className="inline-flex items-center gap-1 rounded-lg bg-brand-50 px-2 py-1 text-xs text-brand-700 transition-all hover:bg-brand-100"
                     >
                       <Download size={11} />
                       다운로드

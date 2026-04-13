@@ -16,6 +16,7 @@ const MapPage         = lazy(() => import('./pages/extra/MapPage'))
 const ChatbotPage     = lazy(() => import('./pages/extra/ChatbotPage'))
 const LearningPage    = lazy(() => import('./pages/extra/LearningPage'))
 const BingoPage       = lazy(() => import('./pages/extra/BingoPage'))
+const WebtoonPage     = lazy(() => import('./pages/extra/WebtoonPage'))
 
 function LoadingScreen() {
   return (
@@ -71,6 +72,7 @@ export default function App() {
             <Route path="kpi"        element={<KpiPage />} />
             <Route path="chatbot"    element={<ChatbotPage />} />
             <Route path="bingo"      element={<BingoPage />} />
+            <Route path="webtoon"    element={<WebtoonPage />} />
             <Route path="admin/*"    element={<AdminRoute><AdminPage /></AdminRoute>} />
           </Route>
 

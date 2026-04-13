@@ -11,6 +11,10 @@ export interface Database {
           email: string
           full_name: string | null
           department: string | null
+          employee_id: string | null
+          initial_password: string | null
+          phone: string | null
+          full_name_en: string | null
           role: UserRole
           is_active: boolean
           created_at: string

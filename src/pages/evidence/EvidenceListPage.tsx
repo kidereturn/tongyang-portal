@@ -38,28 +38,50 @@ export default function EvidenceListPage() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [filtered,   setFiltered]   = useState<Activity[]>([])
   const [loading,    setLoading]    = useState(true)
+  const [loadError,  setLoadError]  = useState<string | null>(null)
   const [search,     setSearch]     = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
 
+  useEffect(() => {
+    if (loadError) {
+      console.warn(loadError)
+    }
+  }, [loadError])
+
   const fetchActivities = useCallback(async () => {
     if (!profile) return
     setLoading(true)
+    setLoadError(null)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
-    let q = db.from('activities').select('*').eq('active', true)
-    if (profile.role === 'owner') {
-      if (profile.full_name) q = q.eq('owner_name', profile.full_name)
-      else q = q.eq('owner_id', profile.id)
-    } else if (profile.role === 'controller') {
-      if (profile.full_name) q = q.eq('controller_name', profile.full_name)
-      else q = q.eq('controller_id', profile.id)
+    try {
+      let q = db.from('activities').select('*').eq('active', true)
+      if (profile.role === 'owner') {
+        if (profile.full_name) q = q.eq('owner_name', profile.full_name)
+        else q = q.eq('owner_id', profile.id)
+      } else if (profile.role === 'controller') {
+        if (profile.full_name) q = q.eq('controller_name', profile.full_name)
+        else q = q.eq('controller_id', profile.id)
+      }
+      q = q.order('control_code').order('department')
+
+      const timeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('evidence_timeout')), 8000)
+      })
+
+      const { data } = await Promise.race([q, timeout]) as { data: Activity[] | null }
+      const rows = data ?? []
+      setActivities(rows)
+      setFiltered(rows)
+    } catch {
+      setActivities([])
+      setFiltered([])
+      setLoadError('증빙 목록 조회가 지연되어 빈 상태로 전환했습니다. 새로 고침으로 다시 시도해 주세요.')
+    } finally {
+      setLoading(false)
     }
-    q = q.order('control_code').order('department')
-    const { data } = await q
-    if (data) { setActivities(data); setFiltered(data) }
-    setLoading(false)
   }, [profile])
 
   useEffect(() => { fetchActivities() }, [fetchActivities])

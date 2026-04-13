@@ -134,6 +134,7 @@ export default function DashboardPage() {
   const [actStats, setActStats] = useState<ActivityStat[]>([])
   const [userCount, setUserCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const approvalRate = stats.approved + stats.rejected > 0
     ? Math.round((stats.approved / (stats.approved + stats.rejected)) * 100)
@@ -150,22 +151,28 @@ export default function DashboardPage() {
     if (!profile) return
 
     setLoading(true)
+    setLoadError(null)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
 
-    let activityQuery = db
-      .from('activities')
-      .select('id, control_code, submission_status, created_at, updated_at, owner_id, controller_id')
-      .eq('active', true)
+    try {
+      let activityQuery = db
+        .from('activities')
+        .select('id, control_code, submission_status, created_at, updated_at, owner_id, controller_id')
+        .eq('active', true)
 
-    if (profile.role === 'owner') {
-      activityQuery = activityQuery.eq('owner_id', profile.id)
-    } else if (profile.role === 'controller') {
-      activityQuery = activityQuery.eq('controller_id', profile.id)
-    }
+      if (profile.role === 'owner') {
+        activityQuery = activityQuery.eq('owner_id', profile.id)
+      } else if (profile.role === 'controller') {
+        activityQuery = activityQuery.eq('controller_id', profile.id)
+      }
 
-    const { data: records } = await activityQuery
-    const activityRecords = (records ?? []) as DashboardActivity[]
+      const timeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('dashboard_timeout')), 8000)
+      })
+
+      const { data: records } = await Promise.race([activityQuery, timeout]) as { data: DashboardActivity[] | null }
+      const activityRecords = (records ?? []) as DashboardActivity[]
 
     const nextStats: Stats = { total: activityRecords.length, pendingApproval: 0, approved: 0, rejected: 0 }
     const activityMap: Record<string, ActivityStat> = {}
@@ -211,22 +218,29 @@ export default function DashboardPage() {
       if (status === 'rejected') monthMap[key].rejected += 1
     })
 
-    setStats(nextStats)
-    setMonthly(Object.values(monthMap))
-    setActStats(
-      Object.values(activityMap)
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 5)
-    )
+      setStats(nextStats)
+      setMonthly(Object.values(monthMap))
+      setActStats(
+        Object.values(activityMap)
+          .sort((a, b) => b.total - a.total)
+          .slice(0, 5)
+      )
 
-    if (profile.role === 'admin') {
-      const { count } = await db.from('profiles').select('id', { count: 'exact', head: true })
-      setUserCount(count ?? 0)
-    } else {
+      if (profile.role === 'admin') {
+        const { count } = await db.from('profiles').select('id', { count: 'exact', head: true })
+        setUserCount(count ?? 0)
+      } else {
+        setUserCount(0)
+      }
+    } catch {
+      setStats({ total: 0, pendingApproval: 0, approved: 0, rejected: 0 })
+      setMonthly([])
+      setActStats([])
       setUserCount(0)
+      setLoadError('데이터 조회가 지연되어 빈 상태로 전환했습니다. 새로 고침으로 다시 시도해 주세요.')
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   const pieData = [
@@ -318,6 +332,12 @@ export default function DashboardPage() {
           <StatCard key={item.label} {...item} loaded={!loading} />
         ))}
       </div>
+
+      {loadError && (
+        <div className="card p-4 text-sm text-amber-700 bg-amber-50 border-amber-100">
+          {loadError}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="card p-5">
