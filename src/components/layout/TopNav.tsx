@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
   BarChart2,
   Bell,
   BookOpen,
   Bot,
+  Check,
   ChevronDown,
   FileCheck2,
   Gamepad2,
@@ -23,6 +24,16 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '../../hooks/useAuth'
+import { supabase } from '../../lib/supabase'
+
+type Notification = {
+  id: string
+  title: string
+  body: string | null
+  is_read: boolean
+  created_at: string
+  sender?: { full_name: string | null } | null
+}
 
 type NavItem = {
   to: string
@@ -66,15 +77,64 @@ export default function TopNav() {
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [notiOpen, setNotiOpen] = useState(false)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
   const profileRef = useRef<HTMLDivElement>(null)
+  const notiRef = useRef<HTMLDivElement>(null)
 
   const visibleItems = filterNavItems(profile?.role)
   const isAdmin = profile?.role === 'admin'
+
+  const fetchNotifications = useCallback(async () => {
+    if (!profile?.id) return
+    const { data } = await (supabase as any)
+      .from('notifications')
+      .select('id, title, body, is_read, created_at, sender_id')
+      .eq('recipient_id', profile.id)
+      .order('created_at', { ascending: false })
+      .limit(20) as { data: Array<{ id: string; title: string; body: string | null; is_read: boolean; created_at: string; sender_id: string | null }> | null }
+    if (data) {
+      const senderIds = [...new Set(data.map(n => n.sender_id).filter(Boolean))]
+      const senderMap: Record<string, string> = {}
+      if (senderIds.length) {
+        const { data: profiles } = await (supabase as any).from('profiles').select('id, full_name').in('id', senderIds) as { data: Array<{ id: string; full_name: string | null }> | null }
+        for (const p of profiles ?? []) senderMap[p.id] = p.full_name ?? ''
+      }
+      setNotifications(data.map(n => ({
+        ...n,
+        sender: n.sender_id ? { full_name: senderMap[n.sender_id] ?? null } : null,
+      })))
+      setUnreadCount(data.filter(n => !n.is_read).length)
+    }
+  }, [profile?.id])
+
+  useEffect(() => {
+    fetchNotifications()
+    const interval = setInterval(fetchNotifications, 30_000)
+    return () => clearInterval(interval)
+  }, [fetchNotifications])
+
+  async function markAsRead(id: string) {
+    await (supabase as any).from('notifications').update({ is_read: true }).eq('id', id)
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
+    setUnreadCount(prev => Math.max(0, prev - 1))
+  }
+
+  async function markAllAsRead() {
+    if (!profile?.id) return
+    await (supabase as any).from('notifications').update({ is_read: true }).eq('recipient_id', profile.id).eq('is_read', false)
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+    setUnreadCount(0)
+  }
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
         setProfileOpen(false)
+      }
+      if (notiRef.current && !notiRef.current.contains(event.target as Node)) {
+        setNotiOpen(false)
       }
     }
 
@@ -138,10 +198,65 @@ export default function TopNav() {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
-            <button className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900">
-              <Bell size={18} />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
-            </button>
+            <div ref={notiRef} className="relative">
+              <button
+                onClick={() => setNotiOpen(v => !v)}
+                className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+              >
+                <Bell size={18} />
+                {unreadCount > 0 && (
+                  <span className="absolute right-1.5 top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {notiOpen && (
+                <div className="absolute right-0 top-12 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:w-96">
+                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                    <p className="text-sm font-bold text-slate-900">알림</p>
+                    {unreadCount > 0 && (
+                      <button onClick={markAllAsRead} className="text-xs font-medium text-brand-600 hover:text-brand-800">
+                        모두 읽음
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-sm text-slate-400">알림이 없습니다</div>
+                    ) : (
+                      notifications.map(n => (
+                        <button
+                          key={n.id}
+                          onClick={() => { if (!n.is_read) markAsRead(n.id) }}
+                          className={clsx(
+                            'flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-slate-50',
+                            !n.is_read && 'bg-brand-50/40'
+                          )}
+                        >
+                          <div className={clsx(
+                            'mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
+                            n.is_read ? 'bg-slate-100 text-slate-400' : 'bg-brand-100 text-brand-600'
+                          )}>
+                            {n.is_read ? <Check size={12} /> : <Bell size={12} />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className={clsx('text-sm', n.is_read ? 'text-slate-600' : 'font-semibold text-slate-900')}>
+                              {n.title}
+                            </p>
+                            {n.body && <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{n.body}</p>}
+                            <p className="mt-1 text-[11px] text-slate-400">
+                              {n.sender?.full_name ? `${n.sender.full_name} · ` : ''}
+                              {new Date(n.created_at).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div ref={profileRef} className="relative hidden sm:block">
               <button

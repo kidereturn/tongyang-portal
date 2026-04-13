@@ -51,7 +51,10 @@ export default function EvidenceListPage() {
   }, [loadError])
 
   const fetchActivities = useCallback(async () => {
-    if (!profile) return
+    if (!profile) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setLoadError(null)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -70,7 +73,7 @@ export default function EvidenceListPage() {
       q = q.order('control_code').order('department')
 
       const timeout = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('evidence_timeout')), 8000)
+        setTimeout(() => reject(new Error('evidence_timeout')), 5000)
       })
 
       const { data } = await Promise.race([q, timeout]) as { data: Activity[] | null }
@@ -227,6 +230,13 @@ export default function EvidenceListPage() {
           완료 {stats.complete + stats.approved}건 / 전체 {stats.total}건
         </p>
       </div>
+
+      {/* 오류 메시지 */}
+      {loadError && (
+        <div className="card p-4 text-sm text-amber-700 bg-amber-50 border-amber-100">
+          {loadError}
+        </div>
+      )}
 
       {/* 검색/필터 */}
       <div className="card p-4">

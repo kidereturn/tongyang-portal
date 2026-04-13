@@ -21,7 +21,7 @@ type DartItem = {
 const DART_API_KEY = process.env.VITE_DART_API_KEY ?? process.env.DART_API_KEY
 const DART_CORP_CODE = '00117337'
 const DART_COMPANY_NAME = '동양'
-const DART_ALL_URL = `https://dart.fss.or.kr/dsab002/main.do?autoSearch=true&textCrpNm=${encodeURIComponent(DART_COMPANY_NAME)}`
+const DART_ALL_URL = `https://dart.fss.or.kr/dsab001/main.do?option=corp&textCrpNm=${encodeURIComponent(DART_COMPANY_NAME)}`
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {

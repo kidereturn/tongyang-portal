@@ -26,6 +26,49 @@ type DailyQuizResponse = {
   questions: QuizQuestion[]
 }
 
+const CLIENT_FALLBACK_QUESTIONS: QuizQuestion[] = [
+  {
+    id: 'fb-1',
+    type: 'multiple',
+    question: '내부회계관리제도에서 통제활동의 목적에 가장 가까운 것은 무엇인가요?',
+    choices: ['매출 확대', '위험 감소', '채용 확대', '사무실 이전', '광고 집행', '원가 인상', '제품 출시'],
+  },
+  {
+    id: 'fb-2',
+    type: 'multiple',
+    question: 'RCM은 주로 무엇을 정리하는 문서인가요?',
+    choices: ['연말정산 결과', '위험과 통제 매핑', '급여 대장', '채용 현황', '법인카드 사용 내역', '영업 실적표', '자산 매각 계획'],
+  },
+  {
+    id: 'fb-3',
+    type: 'multiple',
+    question: '증빙 결재 상신 전 가장 먼저 확인해야 할 항목은 무엇인가요?',
+    choices: ['이미지 해상도', '대표이사 승인 여부', '첨부 증빙의 관련성', '회사 로고 위치', '메일 제목 길이', '브라우저 버전', '폰트 종류'],
+  },
+  {
+    id: 'fb-4',
+    type: 'multiple',
+    question: '모집단과 RCM을 사번 기준으로 연결하려는 가장 큰 이유는 무엇인가요?',
+    choices: ['화면 색상을 맞추기 위해', '사용자 개인화 광고를 위해', '담당자 식별을 일관되게 하기 위해', '파일 용량을 줄이기 위해', '지도를 출력하기 위해', '로그인 화면을 숨기기 위해', '비밀번호를 길게 만들기 위해'],
+  },
+  {
+    id: 'fb-5',
+    type: 'subjective',
+    question: '증빙이 반려되었을 때 가장 먼저 해야 하는 조치를 짧게 한 단어로 적어주세요.',
+  },
+]
+
+function buildFallbackResponse(): DailyQuizResponse {
+  return {
+    ok: true,
+    date: new Date().toISOString().slice(0, 10),
+    source: 'fallback',
+    remainingAttempts: 5,
+    state: { attempts: 0, correctCount: 0, completed: false, answers: {} },
+    questions: CLIENT_FALLBACK_QUESTIONS,
+  }
+}
+
 export default function BingoPage() {
   const [data, setData] = useState<DailyQuizResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -44,25 +87,34 @@ export default function BingoPage() {
     setLoading(true)
     setMessage(null)
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
-    const response = await fetch('/api/bingo-daily', {
-      headers: {
-        authorization: `Bearer ${session?.access_token ?? ''}`,
-      },
-    })
+      const response = await fetch('/api/bingo-daily', {
+        headers: {
+          authorization: `Bearer ${session?.access_token ?? ''}`,
+        },
+      })
 
-    const payload = await response.json()
-    if (!response.ok || !payload.ok) {
-      setMessage(payload.error ?? '오늘의 빙고퀴즈를 불러오지 못했습니다.')
+      const payload = await response.json()
+      if (!response.ok || !payload.ok) {
+        // API failed - use client-side fallback so the page still renders
+        setMessage('서버 연결 실패로 기본 문제를 표시합니다. 답안 제출은 로그인 후 가능합니다.')
+        setData(buildFallbackResponse())
+        setLoading(false)
+        return
+      }
+
+      setData(payload)
+    } catch {
+      // Network or auth error - show fallback questions instead of blank page
+      setMessage('서버 연결 실패로 기본 문제를 표시합니다. 답안 제출은 로그인 후 가능합니다.')
+      setData(buildFallbackResponse())
+    } finally {
       setLoading(false)
-      return
     }
-
-    setData(payload)
-    setLoading(false)
   }
 
   useEffect(() => {

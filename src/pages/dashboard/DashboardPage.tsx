@@ -148,7 +148,10 @@ export default function DashboardPage() {
   }, [profile])
 
   async function fetchAll() {
-    if (!profile) return
+    if (!profile) {
+      setLoading(false)
+      return
+    }
 
     setLoading(true)
     setLoadError(null)
@@ -168,7 +171,7 @@ export default function DashboardPage() {
       }
 
       const timeout = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('dashboard_timeout')), 8000)
+        setTimeout(() => reject(new Error('dashboard_timeout')), 5000)
       })
 
       const { data: records } = await Promise.race([activityQuery, timeout]) as { data: DashboardActivity[] | null }
@@ -227,8 +230,18 @@ export default function DashboardPage() {
       )
 
       if (profile.role === 'admin') {
-        const { count } = await db.from('profiles').select('id', { count: 'exact', head: true })
-        setUserCount(count ?? 0)
+        try {
+          const countTimeout = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('count_timeout')), 3000)
+          })
+          const { count } = await Promise.race([
+            db.from('profiles').select('id', { count: 'exact', head: true }),
+            countTimeout,
+          ]) as { count: number | null }
+          setUserCount(count ?? 0)
+        } catch {
+          setUserCount(0)
+        }
       } else {
         setUserCount(0)
       }

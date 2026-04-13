@@ -118,6 +118,28 @@ export interface Database {
         }
         Update: Partial<Database['public']['Tables']['approval_history']['Insert']>
       }
+      notifications: {
+        Row: {
+          id: string
+          recipient_id: string | null
+          sender_id: string | null
+          title: string
+          body: string | null
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          recipient_id?: string | null
+          sender_id?: string | null
+          title: string
+          body?: string | null
+          is_read?: boolean
+        }
+        Update: {
+          is_read?: boolean
+        }
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
