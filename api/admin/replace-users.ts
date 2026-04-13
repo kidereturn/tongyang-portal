@@ -237,12 +237,11 @@ export async function POST(request: Request) {
   }
 
   const seenEmployeeIds = new Set<string>()
-  for (const row of normalizedUsers) {
-    if (seenEmployeeIds.has(row.employee_id)) {
-      return json({ ok: false, error: 'duplicate_employee_id', detail: row.employee_id }, 400)
-    }
+  const deduplicatedUsers = normalizedUsers.filter(row => {
+    if (seenEmployeeIds.has(row.employee_id)) return false
     seenEmployeeIds.add(row.employee_id)
-  }
+    return true
+  })
 
   const adminClient = createClient(url, serviceRoleKey, {
     auth: {
@@ -287,7 +286,7 @@ export async function POST(request: Request) {
 
     let createdCount = 0
 
-    for (const row of normalizedUsers) {
+    for (const row of deduplicatedUsers) {
       const loginEmail = buildLoginEmail(row.employee_id)
 
       const { data, error: createError } = await adminClient.auth.admin.createUser({

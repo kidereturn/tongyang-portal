@@ -362,7 +362,7 @@ function UserUploadTab({ onDone }: { onDone: () => void }) {
         }
 
         if (seenEmployeeIds.has(employeeId)) {
-          errors.push(`중복 사번: ${employeeId}`)
+          // 동일 사번이 여러 활동에 배정되어 중복 등장하는 경우 → 첫 번째만 사용
           continue
         }
 
