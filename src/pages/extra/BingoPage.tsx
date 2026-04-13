@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Gamepad2, Gift, RefreshCw, Sparkles, Trophy, X } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
@@ -296,7 +296,9 @@ export default function BingoPage() {
   const [timer, setTimer] = useState(10)
   const [showCelebration, setShowCelebration] = useState(false)
   const [lastMessage, setLastMessage] = useState<{ correct: boolean; text: string } | null>(null)
+  const [showExplosion, setShowExplosion] = useState(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const activeIdxRef = useRef<number | null>(null)
   const notifiedRef = useRef(false)
 
   const correctSet = useMemo(() => {
@@ -308,7 +310,10 @@ export default function BingoPage() {
   const bingoCount = useMemo(() => countBingoLines(correctSet), [correctSet])
   const bingoIndices = useMemo(() => getBingoLineIndices(correctSet), [correctSet])
 
-  // Timer logic
+  // Keep ref in sync for timer callback
+  activeIdxRef.current = activeIdx
+
+  // Timer logic — uses ref to avoid stale closures
   useEffect(() => {
     if (activeIdx === null) {
       if (timerRef.current) clearInterval(timerRef.current)
@@ -316,11 +321,32 @@ export default function BingoPage() {
     }
 
     setTimer(10)
+    setShowExplosion(false)
+
     timerRef.current = setInterval(() => {
       setTimer(prev => {
         if (prev <= 1) {
-          // Time's up — mark as wrong
-          handleTimeout()
+          // Time's up — trigger explosion and mark wrong
+          if (timerRef.current) clearInterval(timerRef.current)
+          const idx = activeIdxRef.current
+          if (idx !== null) {
+            setShowExplosion(true)
+            // Delay to show explosion, then process timeout
+            setTimeout(() => {
+              const q = questions[idx]
+              if (q) {
+                setAnswers(old => ({
+                  ...old,
+                  [idx]: { correct: false, explanation: `💥 시간초과! 정답: "${q.answer}". ${q.explanation}` },
+                }))
+                setLastMessage({ correct: false, text: `💥 폭발! 시간초과! 정답: "${q.answer}"` })
+              }
+              setActiveIdx(null)
+              setSubjectiveAnswer('')
+              setSelectedChoice('')
+              setShowExplosion(false)
+            }, 1200)
+          }
           return 0
         }
         return prev - 1
@@ -342,21 +368,6 @@ export default function BingoPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bingoCount])
-
-  const handleTimeout = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current)
-    if (activeIdx === null) return
-    const q = questions[activeIdx]
-    setAnswers(prev => ({
-      ...prev,
-      [activeIdx]: { correct: false, explanation: `시간초과! 정답: "${q.answer}". ${q.explanation}` },
-    }))
-    setLastMessage({ correct: false, text: `시간초과! 정답: "${q.answer}"` })
-    setActiveIdx(null)
-    setSubjectiveAnswer('')
-    setSelectedChoice('')
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeIdx, questions])
 
   function openCell(idx: number) {
     if (answers[idx] !== undefined || activeIdx !== null) return
@@ -470,9 +481,21 @@ export default function BingoPage() {
           0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
           100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
         }
+        @keyframes explode {
+          0% { transform: scale(1); opacity: 1; }
+          30% { transform: scale(2.5); opacity: 1; }
+          60% { transform: scale(4); opacity: 0.7; }
+          100% { transform: scale(6); opacity: 0; }
+        }
+        @keyframes shockwave {
+          0% { transform: scale(0); opacity: 0.8; border-width: 8px; }
+          100% { transform: scale(8); opacity: 0; border-width: 1px; }
+        }
         .bomb-anim { animation: bombShake 0.8s ease-in-out infinite; }
         .fuse-glow { animation: fuseGlow 0.5s ease-in-out infinite; }
         .confetti { animation: confettiFall 3s linear forwards; }
+        .explode-anim { animation: explode 1s ease-out forwards; }
+        .shockwave-anim { animation: shockwave 0.8s ease-out forwards; }
       `}</style>
 
       {/* Header */}
@@ -665,6 +688,17 @@ export default function BingoPage() {
             ))}
           </div>
         </details>
+      )}
+
+      {/* Explosion overlay */}
+      {showExplosion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none">
+          <div className="relative">
+            <div className="explode-anim text-8xl">💥</div>
+            <div className="shockwave-anim absolute inset-0 rounded-full border-red-500" style={{ width: 80, height: 80, margin: 'auto', top: 0, bottom: 0, left: 0, right: 0 }} />
+          </div>
+          <p className="absolute bottom-1/3 text-3xl font-black text-red-500 animate-pulse">시간 초과!</p>
+        </div>
       )}
 
       {/* Celebration modal */}

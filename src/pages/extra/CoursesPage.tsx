@@ -76,6 +76,29 @@ export default function CoursesPage() {
     load()
   }, [])
 
+  // Load saved progress from DB when video changes
+  useEffect(() => {
+    if (!profile?.id || !selectedVideo?.id) return
+    ;(async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from('learning_progress')
+          .select('watched_seconds, duration_seconds, progress_percent')
+          .eq('user_id', profile.id)
+          .eq('course_id', selectedVideo.id)
+          .maybeSingle()
+        if (data && data.watched_seconds > 0) {
+          watchLimitRef.current = data.watched_seconds
+          setCurrentTime(data.watched_seconds)
+          setProgress(data.progress_percent ?? 0)
+          if (data.duration_seconds > 0) setDuration(data.duration_seconds)
+        }
+      } catch {
+        // silent
+      }
+    })()
+  }, [profile?.id, selectedVideo?.id])
+
   // YouTube player setup
   useEffect(() => {
     if (!selectedVideo?.youtube_id) return
@@ -105,6 +128,10 @@ export default function CoursesPage() {
             setReady(true)
             const d = Number(playerRef.current.getDuration?.() ?? 0)
             setDuration(d)
+            // Resume from saved position
+            if (watchLimitRef.current > 0 && playerRef.current?.seekTo) {
+              playerRef.current.seekTo(watchLimitRef.current, true)
+            }
           },
           onStateChange: (event: { data: number }) => {
             setPlaying(event.data === 1)
@@ -113,13 +140,9 @@ export default function CoursesPage() {
       })
     }
 
-    // Reset state
-    watchLimitRef.current = 0
+    // Only reset local UI — watchLimitRef is set by the DB load effect above
     setReady(false)
     setPlaying(false)
-    setDuration(0)
-    setCurrentTime(0)
-    setProgress(0)
     setPlaybackRate(1)
 
     if (!window.YT?.Player) {
@@ -172,35 +195,92 @@ export default function CoursesPage() {
     setPlaybackRate(rate)
   }
 
-  // Save progress to learning_progress table every 10 seconds
+  // Save progress helper — reused in interval, unload, and video switch
+  const saveProgressRef = useRef<() => Promise<void>>()
+  saveProgressRef.current = async () => {
+    if (!profile?.id || !selectedVideo?.id || watchLimitRef.current <= 0) return
+    const d = duration || (playerRef.current?.getDuration?.() ?? 0)
+    const pct = d > 0 ? Math.min(100, Math.round((watchLimitRef.current / d) * 100)) : 0
+    const status = pct >= 95 ? 'completed' : pct > 0 ? 'in_progress' : 'not_started'
+
+    try {
+      await (supabase as any).from('learning_progress').upsert({
+        user_id: profile.id,
+        course_id: selectedVideo.id,
+        watched_seconds: Math.round(watchLimitRef.current),
+        duration_seconds: Math.round(d),
+        progress_percent: pct,
+        status,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,course_id' })
+    } catch (err) {
+      console.warn('[CoursesPage] save progress error:', err)
+    }
+  }
+
+  // Save every 10 seconds + on page unload
   useEffect(() => {
     if (!profile?.id || !selectedVideo?.id) return
 
-    const saveInterval = window.setInterval(async () => {
-      if (watchLimitRef.current <= 0) return
-      const d = duration
-      const pct = d > 0 ? Math.min(100, Math.round((watchLimitRef.current / d) * 100)) : 0
-      const status = pct >= 95 ? 'completed' : pct > 0 ? 'in_progress' : 'not_started'
-
-      try {
-        await (supabase as any).from('learning_progress').upsert({
-          user_id: profile.id,
-          course_id: selectedVideo.id,
-          watched_seconds: Math.round(watchLimitRef.current),
-          duration_seconds: Math.round(d),
-          progress_percent: pct,
-          status,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id,course_id' })
-      } catch {
-        // silent — don't interrupt playback
-      }
+    const saveInterval = window.setInterval(() => {
+      saveProgressRef.current?.()
     }, 10000)
 
-    return () => clearInterval(saveInterval)
+    function handleBeforeUnload() {
+      // Use sendBeacon as fallback for unload
+      if (watchLimitRef.current <= 0 || !profile?.id || !selectedVideo?.id) return
+      const d = duration || 0
+      const pct = d > 0 ? Math.min(100, Math.round((watchLimitRef.current / d) * 100)) : 0
+      const status = pct >= 95 ? 'completed' : pct > 0 ? 'in_progress' : 'not_started'
+      const body = JSON.stringify({
+        user_id: profile.id,
+        course_id: selectedVideo.id,
+        watched_seconds: Math.round(watchLimitRef.current),
+        duration_seconds: Math.round(d),
+        progress_percent: pct,
+        status,
+        updated_at: new Date().toISOString(),
+      })
+      // Best-effort save on close
+      navigator.sendBeacon?.(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/learning_progress?on_conflict=user_id,course_id`, new Blob([body], { type: 'application/json' }))
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      clearInterval(saveInterval)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      // Save on cleanup (video switch)
+      saveProgressRef.current?.()
+    }
   }, [profile?.id, selectedVideo?.id, duration])
 
+  // Load all video progress for the sidebar list
+  const [videoProgress, setVideoProgress] = useState<Record<string, number>>({})
+  useEffect(() => {
+    if (!profile?.id || videos.length === 0) return
+    ;(async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from('learning_progress')
+          .select('course_id, progress_percent')
+          .eq('user_id', profile.id)
+        const map: Record<string, number> = {}
+        for (const row of data ?? []) {
+          map[row.course_id] = row.progress_percent ?? 0
+        }
+        setVideoProgress(map)
+      } catch { /* silent */ }
+    })()
+  }, [profile?.id, videos])
+
   function selectVideo(v: VideoRow) {
+    // Save current progress before switching
+    saveProgressRef.current?.()
+    // Reset watchLimit for new video (will be loaded by DB effect)
+    watchLimitRef.current = 0
+    setCurrentTime(0)
+    setProgress(0)
+    setDuration(0)
     setSelectedVideo(v)
   }
 
@@ -327,10 +407,19 @@ export default function CoursesPage() {
                     <p className={clsx('text-sm font-bold truncate', selectedVideo?.id === v.id ? 'text-brand-700' : 'text-slate-900')}>
                       {v.title}
                     </p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      {new Date(v.created_at).toLocaleDateString('ko-KR')}
-                      {selectedVideo?.id === v.id && <span className="ml-2 text-brand-600 font-semibold">▶ 재생 중</span>}
-                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-[11px] text-slate-400">
+                        {new Date(v.created_at).toLocaleDateString('ko-KR')}
+                        {selectedVideo?.id === v.id && <span className="ml-2 text-brand-600 font-semibold">▶ 재생 중</span>}
+                      </p>
+                      {(videoProgress[v.id] ?? 0) > 0 && (
+                        <span className={clsx('text-[10px] font-bold px-1.5 py-0.5 rounded-full',
+                          (videoProgress[v.id] ?? 0) >= 95 ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                        )}>
+                          {videoProgress[v.id]}%
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </button>
               ))}
