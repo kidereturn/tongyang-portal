@@ -35,34 +35,41 @@ export default function LearningPage() {
 
   useEffect(() => {
     async function load() {
-      // 1) 모든 활성 사용자 프로필 가져오기
-      const { data: profiles } = await (supabase as any)
-        .from('profiles')
-        .select('id, employee_id, full_name, department, role, is_active')
-        .eq('is_active', true)
-        .order('employee_id', { ascending: true }) as { data: ProfileRow[] | null }
-
-      setAllProfiles(profiles ?? [])
-
-      // 2) learning_progress 테이블에서 진도 데이터 가져오기 (테이블이 없으면 빈 배열)
       try {
+        // 1) 모든 활성 사용자 프로필 가져오기
+        const { data: profiles } = await (supabase as any)
+          .from('profiles')
+          .select('id, employee_id, full_name, department, role, is_active')
+          .eq('is_active', true)
+          .order('employee_id', { ascending: true }) as { data: ProfileRow[] | null }
+
+        setAllProfiles(profiles ?? [])
+
+        // 2) learning_progress 테이블에서 진도 데이터 가져오기
         const { data: progressData } = await (supabase as any)
           .from('learning_progress')
           .select('*') as { data: ProgressRow[] | null }
 
         const map: Record<string, ProgressRow> = {}
         for (const p of progressData ?? []) {
-          map[p.user_id] = p
+          // 같은 user_id에 여러 course가 있으면 가장 높은 진도를 사용
+          if (!map[p.user_id] || p.progress_percent > map[p.user_id].progress_percent) {
+            map[p.user_id] = p
+          }
         }
         setProgressMap(map)
-      } catch {
-        // 테이블이 없어도 에러 무시
+      } catch (err) {
+        console.error('[LearningPage] load error:', err)
+      } finally {
+        setLoading(false)
       }
-
-      setLoading(false)
     }
 
     void load()
+
+    // 30초마다 자동 새로고침 (관리자용 실시간 반영)
+    const interval = setInterval(load, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   // 관리자는 전체, 일반 사용자는 본인만

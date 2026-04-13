@@ -64,14 +64,27 @@ export default function MapPage() {
   }, [])
 
   /* ───── 네이버 SDK 로드 ───── */
+  const [naverError, setNaverError] = useState<string | null>(null)
   useEffect(() => {
-    if (!import.meta.env.VITE_NAVER_MAP_CLIENT_ID) return
+    if (!import.meta.env.VITE_NAVER_MAP_CLIENT_ID) {
+      setNaverError('VITE_NAVER_MAP_CLIENT_ID 환경변수가 설정되지 않았습니다.')
+      return
+    }
     if (window.naver?.maps) { setNaverReady(true); return }
 
     const s = document.createElement('script')
     s.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${import.meta.env.VITE_NAVER_MAP_CLIENT_ID}`
     s.async = true
-    s.onload = () => setNaverReady(true)
+    s.onload = () => {
+      if (window.naver?.maps) {
+        setNaverReady(true)
+      } else {
+        setNaverError('네이버 지도 SDK 로드 실패. NCP 콘솔에서 도메인 등록을 확인하세요.')
+      }
+    }
+    s.onerror = () => {
+      setNaverError('네이버 지도 SDK 스크립트를 불러올 수 없습니다. 네트워크 또는 API 키를 확인하세요.')
+    }
     document.head.appendChild(s)
     return () => { document.head.removeChild(s) }
   }, [])
@@ -169,16 +182,30 @@ export default function MapPage() {
       )
     }
     if (provider === 'naver') {
+      if (naverError) {
+        return (
+          <div className="flex h-full flex-col items-center justify-center gap-3 bg-red-50 px-6 text-center">
+            <p className="text-sm font-semibold text-red-600">네이버 지도 로드 실패</p>
+            <p className="text-xs text-red-500">{naverError}</p>
+            <div className="mt-2 rounded-xl bg-white border border-red-100 px-4 py-3 text-left text-xs text-slate-600 max-w-sm">
+              <p className="font-bold mb-1">해결 방법:</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li><a href="https://console.ncloud.com/naver-service/application" target="_blank" rel="noreferrer" className="text-brand-600 underline">NCP 콘솔</a>에 로그인</li>
+                <li>Application → Web Dynamic Map 서비스 도메인에<br /><strong>tongyang-portal.vercel.app</strong> 추가</li>
+                <li>저장 후 5분 대기 → 새로고침</li>
+              </ol>
+            </div>
+            <button onClick={() => setProvider('kakao')} className="mt-2 btn-secondary text-xs">
+              카카오 지도로 전환
+            </button>
+          </div>
+        )
+      }
       return naverReady ? (
         <div ref={naverMapRef} className="h-full w-full" />
       ) : (
         <div className="flex h-full flex-col items-center justify-center gap-3 bg-slate-50 px-6 text-center text-sm text-slate-500">
           <p>Naver 지도를 불러오는 중입니다…</p>
-          <p className="text-xs text-slate-400">
-            지도가 표시되지 않으면 Naver Cloud Platform 콘솔에서<br />
-            Web Dynamic Map 서비스의 허용 도메인에<br />
-            <strong className="text-slate-600">tongyang-portal.vercel.app</strong>을 등록해야 합니다.
-          </p>
         </div>
       )
     }

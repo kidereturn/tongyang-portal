@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { BookOpen, PauseCircle, PlayCircle, RotateCcw } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 
 declare global {
   interface Window {
@@ -26,9 +27,11 @@ type VideoRow = {
 const PLAYBACK_RATES = [1, 1.25, 1.5, 2]
 
 export default function CoursesPage() {
+  const { profile } = useAuth()
   const [videos, setVideos] = useState<VideoRow[]>([])
   const [selectedVideo, setSelectedVideo] = useState<VideoRow | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const playerRef = useRef<any>(null)
   const watchLimitRef = useRef(0)
@@ -54,15 +57,21 @@ export default function CoursesPage() {
   // Fetch videos from DB (newest first)
   useEffect(() => {
     async function load() {
-      const { data } = await (supabase as any)
-        .from('course_videos')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false }) as { data: VideoRow[] | null }
-      const list = data ?? []
-      setVideos(list)
-      if (list.length > 0) setSelectedVideo(list[0])
-      setLoading(false)
+      try {
+        const { data } = await (supabase as any)
+          .from('course_videos')
+          .select('*')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false }) as { data: VideoRow[] | null }
+        const list = data ?? []
+        setVideos(list)
+        if (list.length > 0) setSelectedVideo(list[0])
+      } catch (err) {
+        console.error('[CoursesPage] fetch error:', err)
+        setLoadError('강좌를 불러오는 중 오류가 발생했습니다. 새로고침해 주세요.')
+      } finally {
+        setLoading(false)
+      }
     }
     load()
   }, [])
@@ -163,6 +172,34 @@ export default function CoursesPage() {
     setPlaybackRate(rate)
   }
 
+  // Save progress to learning_progress table every 10 seconds
+  useEffect(() => {
+    if (!profile?.id || !selectedVideo?.id) return
+
+    const saveInterval = window.setInterval(async () => {
+      if (watchLimitRef.current <= 0) return
+      const d = duration
+      const pct = d > 0 ? Math.min(100, Math.round((watchLimitRef.current / d) * 100)) : 0
+      const status = pct >= 95 ? 'completed' : pct > 0 ? 'in_progress' : 'not_started'
+
+      try {
+        await (supabase as any).from('learning_progress').upsert({
+          user_id: profile.id,
+          course_id: selectedVideo.id,
+          watched_seconds: Math.round(watchLimitRef.current),
+          duration_seconds: Math.round(d),
+          progress_percent: pct,
+          status,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,course_id' })
+      } catch {
+        // silent — don't interrupt playback
+      }
+    }, 10000)
+
+    return () => clearInterval(saveInterval)
+  }, [profile?.id, selectedVideo?.id, duration])
+
   function selectVideo(v: VideoRow) {
     setSelectedVideo(v)
   }
@@ -176,7 +213,9 @@ export default function CoursesPage() {
             <BookOpen size={28} className="text-brand-300" />내 강좌
           </h1>
         </div>
-        <div className="text-center text-sm text-gray-400 py-20">강좌를 불러오는 중...</div>
+        <div className="text-center text-sm text-gray-400 py-20">
+          {loadError ?? '강좌를 불러오는 중...'}
+        </div>
       </div>
     )
   }
