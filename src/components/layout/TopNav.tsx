@@ -283,10 +283,14 @@ export default function TopNav() {
                     <p className="text-xs text-slate-400">{profile?.email ?? '-'}</p>
                   </div>
                   <div className="p-2">
-                    <button className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50">
+                    <NavLink
+                      to="/profile"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+                    >
                       <User size={15} className="text-slate-400" />
                       내 정보
-                    </button>
+                    </NavLink>
                     {isAdmin && (
                       <NavLink
                         to="/admin"

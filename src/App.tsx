@@ -17,16 +17,73 @@ const ChatbotPage     = lazy(() => import('./pages/extra/ChatbotPage'))
 const LearningPage    = lazy(() => import('./pages/extra/LearningPage'))
 const BingoPage       = lazy(() => import('./pages/extra/BingoPage'))
 const WebtoonPage     = lazy(() => import('./pages/extra/WebtoonPage'))
+const ProfilePage     = lazy(() => import('./pages/profile/ProfilePage'))
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center">
-          <span className="text-white font-black text-xl">동</span>
+    <div className="min-h-screen bg-gradient-to-b from-[#0a0a0a] via-[#1a1206] to-[#0a0a0a] flex items-center justify-center">
+      <style>{`
+        @keyframes shieldGlow {
+          0%, 100% { filter: drop-shadow(0 0 8px rgba(218,165,32,0.3)); }
+          50% { filter: drop-shadow(0 0 24px rgba(218,165,32,0.7)); }
+        }
+        @keyframes roarPulse {
+          0% { transform: scale(1); opacity: 0.9; }
+          15% { transform: scale(1.08); opacity: 1; }
+          30% { transform: scale(1); opacity: 0.9; }
+          100% { transform: scale(1); opacity: 0.9; }
+        }
+        @keyframes ribbonShine {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        .shield-container { animation: shieldGlow 2s ease-in-out infinite; }
+        .lion-icon { animation: roarPulse 2.5s ease-in-out infinite; }
+        .ribbon-shine {
+          background: linear-gradient(90deg, #b8860b 0%, #ffd700 40%, #fff8dc 50%, #ffd700 60%, #b8860b 100%);
+          background-size: 200% 100%;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: ribbonShine 3s linear infinite;
+        }
+      `}</style>
+      <div className="flex flex-col items-center gap-5">
+        {/* Shield shape with lion */}
+        <div className="shield-container">
+          <div className="relative flex h-28 w-24 items-center justify-center">
+            {/* Shield background */}
+            <svg viewBox="0 0 100 120" className="absolute inset-0 h-full w-full">
+              <path d="M50 2 L95 20 L95 70 Q95 100 50 118 Q5 100 5 70 L5 20 Z"
+                fill="url(#shieldGrad)" stroke="#daa520" strokeWidth="2" />
+              <defs>
+                <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#1a1a2e" />
+                  <stop offset="50%" stopColor="#16213e" />
+                  <stop offset="100%" stopColor="#0f0f23" />
+                </linearGradient>
+              </defs>
+            </svg>
+            {/* Lion face */}
+            <div className="lion-icon relative z-10 text-4xl select-none" role="img" aria-label="lion">
+              🦁
+            </div>
+          </div>
         </div>
-        <Loader2 size={22} className="text-brand-500 animate-spin" />
-        <p className="text-gray-400 text-sm">로딩 중...</p>
+
+        {/* Company name with golden ribbon effect */}
+        <div className="text-center">
+          <p className="ribbon-shine text-xl font-black tracking-wider">(주)동양</p>
+          <p className="mt-1 text-[11px] font-semibold tracking-[0.3em] text-amber-600/60">
+            TONGYANG CORPORATION
+          </p>
+        </div>
+
+        {/* Loading indicator */}
+        <div className="flex items-center gap-2">
+          <Loader2 size={16} className="text-amber-500/70 animate-spin" />
+          <p className="text-amber-600/50 text-xs font-medium tracking-wider">LOADING</p>
+        </div>
       </div>
     </div>
   )
@@ -73,6 +130,7 @@ export default function App() {
             <Route path="chatbot"    element={<ChatbotPage />} />
             <Route path="bingo"      element={<BingoPage />} />
             <Route path="webtoon"    element={<WebtoonPage />} />
+            <Route path="profile"   element={<ProfilePage />} />
             <Route path="admin/*"    element={<AdminRoute><AdminPage /></AdminRoute>} />
           </Route>
 

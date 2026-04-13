@@ -153,10 +153,9 @@ export default function MapPage() {
     ? `https://www.google.com/maps?q=${encodeURIComponent(selectedLocation.address)}&z=15&hl=ko&output=embed`
     : ''
 
-  const vworldKey = import.meta.env.VITE_VWORLD_API_KEY ?? '7CD44AEC-2079-376C-AAC5-1D4B872A5AD1'
   const vworldUrl = selectedLocation
-    ? `https://map.vworld.kr/map/maps.do?apiKey=${vworldKey}&lon=${selectedLocation.lng}&lat=${selectedLocation.lat}&zoom=16&baseLyr=GRAPHIC&type=GRAPHIC`
-    : 'https://map.vworld.kr/map/maps.do'
+    ? `https://map.vworld.kr/map/ws3dMap.do?apiKey=7CD44AEC-2079-376C-AAC5-1D4B872A5AD1&startX=${selectedLocation.lng}&startY=${selectedLocation.lat}&startZoom=16`
+    : 'https://map.vworld.kr/map/ws3dMap.do'
 
   /* ───── 맵 영역 렌더 ───── */
   function renderMap() {
@@ -173,8 +172,13 @@ export default function MapPage() {
       return naverReady ? (
         <div ref={naverMapRef} className="h-full w-full" />
       ) : (
-        <div className="flex h-full items-center justify-center bg-slate-50 text-sm text-slate-500">
-          Naver 지도를 불러오는 중입니다…
+        <div className="flex h-full flex-col items-center justify-center gap-3 bg-slate-50 px-6 text-center text-sm text-slate-500">
+          <p>Naver 지도를 불러오는 중입니다…</p>
+          <p className="text-xs text-slate-400">
+            지도가 표시되지 않으면 Naver Cloud Platform 콘솔에서<br />
+            Web Dynamic Map 서비스의 허용 도메인에<br />
+            <strong className="text-slate-600">tongyang-portal.vercel.app</strong>을 등록해야 합니다.
+          </p>
         </div>
       )
     }

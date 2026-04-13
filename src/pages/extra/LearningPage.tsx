@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BarChart2, CheckCircle2, Clock, Search, Users } from 'lucide-react'
+import { BarChart2, CheckCircle2, Clock, Download, Search, Users } from 'lucide-react'
 import clsx from 'clsx'
+import * as XLSX from 'xlsx'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 
@@ -85,6 +86,30 @@ export default function LearningPage() {
   const inProgressCount = filteredRows.filter(r => progressMap[r.id]?.status === 'in_progress').length
   const notStartedCount = filteredRows.length - completedCount - inProgressCount
 
+  function downloadExcel() {
+    const rows = filteredRows.map(row => {
+      const progress = progressMap[row.id]
+      const status = progress?.status ?? 'not_started'
+      return {
+        '사번': row.employee_id ?? '-',
+        '이름': row.full_name ?? '-',
+        '소속팀': row.department ?? '-',
+        '역할': row.role === 'admin' ? '관리자' : row.role === 'controller' ? '승인자' : '담당자',
+        '상태': status === 'completed' ? '이수완료' : status === 'in_progress' ? '수강중' : '미시작',
+        '진도율(%)': progress?.progress_percent ?? 0,
+        '최근 업데이트': progress?.updated_at ? new Date(progress.updated_at).toLocaleString('ko-KR') : '-',
+      }
+    })
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, '학습현황')
+    // Column widths
+    ws['!cols'] = [
+      { wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 22 },
+    ]
+    XLSX.writeFile(wb, `학습현황_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
+
   return (
     <div className="space-y-6">
       <div className="rounded-[28px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-6 py-8 text-white shadow-2xl">
@@ -144,6 +169,10 @@ export default function LearningPage() {
             />
           </div>
           <span className="text-xs text-slate-400">{filteredRows.length}명 표시</span>
+          <button onClick={downloadExcel} className="btn-secondary py-2 text-xs ml-auto">
+            <Download size={14} />
+            엑셀 다운로드
+          </button>
         </div>
       )}
 

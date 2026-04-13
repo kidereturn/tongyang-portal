@@ -15,6 +15,7 @@ export interface Database {
           initial_password: string | null
           phone: string | null
           full_name_en: string | null
+          contact_email: string | null
           role: UserRole
           is_active: boolean
           created_at: string

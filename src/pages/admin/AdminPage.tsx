@@ -1483,15 +1483,25 @@ function VideosTab() {
 
   async function fetchVideos() {
     setLoading(true)
-    const { data } = await (supabase as any)
-      .from('course_videos')
-      .select('*')
-      .order('created_at', { ascending: false }) as { data: VideoRow[] | null }
-    setVideos(data ?? [])
+    try {
+      const { data, error } = await (supabase as any)
+        .from('course_videos')
+        .select('*')
+        .order('created_at', { ascending: false }) as { data: VideoRow[] | null; error: any }
+      if (error) {
+        setMsg('동영상 목록 로드 실패: ' + error.message)
+        setVideos([])
+      } else {
+        setVideos(data ?? [])
+      }
+    } catch (e: any) {
+      setMsg('동영상 목록 로드 오류: ' + (e.message ?? '알 수 없는 오류'))
+      setVideos([])
+    }
     setLoading(false)
   }
 
-  useEffect(() => { fetchVideos() }, [])
+  useEffect(() => { void fetchVideos() }, [])
 
   async function addVideo() {
     const ytId = extractYoutubeId(youtubeUrl.trim())

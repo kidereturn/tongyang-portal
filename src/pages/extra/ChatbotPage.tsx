@@ -7,12 +7,11 @@ interface Message {
   time: string
 }
 
-// Gemini API 설정 - 여러 모델 순차 시도 (2.0-flash → 2.0-flash-lite → 1.5-flash)
+// Gemini API 설정 - 여러 모델 순차 시도
 const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY
 const GEMINI_MODELS = [
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_KEY}`,
-  `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
+  { url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`, name: 'Gemini 2.0 Flash' },
+  { url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_KEY}`, name: 'Gemini 2.0 Flash Lite' },
 ]
 
 // 시스템 프롬프트: 동양 내부회계 전문 어시스턴트
@@ -71,33 +70,36 @@ async function callGemini(messages: Message[]): Promise<string> {
 
   // 여러 모델을 순차적으로 시도 (429/404/500 시 다음 모델로)
   let res: Response | null = null
-  for (const url of GEMINI_MODELS) {
+  let lastErrMsg = ''
+  for (const model of GEMINI_MODELS) {
     try {
-      res = await fetch(url, {
+      res = await fetch(model.url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: requestBody,
       })
-      // 성공이면 중단, 429/404/500 등 에러면 다음 모델 시도
       if (res.ok) break
-      if (res.status === 429 || res.status === 404 || res.status >= 500) continue
-      break // 다른 에러는 그대로 반환
+      // 에러 메시지 저장 후 다음 모델 시도
+      const errData = await res.json().catch(() => ({}))
+      lastErrMsg = errData?.error?.message ?? `${model.name} 오류 (${res.status})`
+      if (res.status === 429 || res.status === 404 || res.status >= 500) {
+        res = null // 다음 모델 시도
+        continue
+      }
+      break
     } catch {
-      continue // 네트워크 오류 시 다음 모델
+      lastErrMsg = `${model.name} 네트워크 오류`
+      res = null
+      continue
     }
   }
 
   if (!res || !res.ok) {
-    if (res?.status === 429) {
-      throw new Error('모든 Gemini 모델의 일일 할당량이 소진되었습니다. 내일 다시 이용해 주세요. (할당량은 매일 태평양시간 자정에 초기화됩니다)')
+    // 모든 모델 실패
+    if (lastErrMsg.includes('quota') || lastErrMsg.includes('RESOURCE_EXHAUSTED') || lastErrMsg.includes('exceeded')) {
+      throw new Error('Gemini API 일일 무료 할당량(1,500회)이 소진되었습니다. 태평양시간 자정(한국시간 오후 4~5시)에 초기화됩니다. 내일 다시 이용해 주세요.')
     }
-    const err = await res?.json().catch(() => ({})) ?? {}
-    const errMsg = err.error?.message ?? `API 오류 (${res?.status})`
-    // RESOURCE_EXHAUSTED도 할당량 소진
-    if (errMsg.includes('RESOURCE_EXHAUSTED') || errMsg.includes('quota')) {
-      throw new Error('Gemini API 할당량이 소진되었습니다. 내일 다시 이용해 주세요.')
-    }
-    throw new Error(errMsg)
+    throw new Error(lastErrMsg || 'AI 서비스에 일시적인 문제가 발생했습니다.')
   }
 
   const data = await res.json()

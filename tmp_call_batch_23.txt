@@ -1,0 +1,16 @@
+SELECT upsert_portal_user('101963','홍정수','owner','부산공장영업팀','010-3151-3805','jshong@tongyanginc.co.kr');
+SELECT upsert_portal_user('101965','문병민','owner','일산수질복원센터 시설개량사업 [1단계](토목, 건축, 기계분야)','010-8487-2123','mbm@tongyanginc.co.kr');
+SELECT upsert_portal_user('101966','장소영','owner','개발운영팀','010-3634-7434','jsy1@tongyanginc.co.kr');
+SELECT upsert_portal_user('101968','김지연','owner','보령발전본부 저탄장 옥내화사업 토목공사','010-9803-3572','kjy@tongyanginc.co.kr');
+SELECT upsert_portal_user('101971','송윤정','owner','P.I TFT','010-9428-8397','yjsong@tongyanginc.co.kr');
+SELECT upsert_portal_user('101972','이호선','owner','인천공장공정팀','010-3683-5719','hslee1@tongyanginc.co.kr');
+SELECT upsert_portal_user('101973','박시환','owner','자금팀','010-5227-8860','shpark@tongyanginc.co.kr');
+SELECT upsert_portal_user('101974','최종현','owner','내부회계팀','010-5234-9212','jhchoi1@tongyanginc.co.kr');
+SELECT upsert_portal_user('101975','김상국','owner','파주공장공정팀','010-5154-1922','kimsk@tongyanginc.co.kr');
+SELECT upsert_portal_user('101976','임상혁','owner','아산공장공정팀','010-6638-0727','shim@tongyanginc.co.kr');
+SELECT upsert_portal_user('101977','장원웅','owner','원주공장공정팀','010-5372-3942','wwjang@tongyanginc.co.kr');
+SELECT upsert_portal_user('101978','이동희','owner','창원공장공정팀','010-8206-5449','leedh@tongyanginc.co.kr');
+SELECT upsert_portal_user('101980','남윤호','owner','부산공장품질관리실','010-6693-1431','nyh@tongyanginc.co.kr');
+SELECT upsert_portal_user('101981','김성용','owner','정관공장','010-5453-8353','ksy8353@tongyanginc.co.kr');
+SELECT upsert_portal_user('101982','정해종','owner','원주공장품질관리실','010-5313-5470','junghj@tongyanginc.co.kr');
+SELECT upsert_portal_user('109980','김휘영','owner','아산공장관리팀','','');
