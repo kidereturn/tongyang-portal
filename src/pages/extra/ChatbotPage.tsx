@@ -7,10 +7,13 @@ interface Message {
   time: string
 }
 
-// Gemini API 설정 - gemini-2.0-flash 우선, 할당량 초과 시 1.5-flash 자동 전환
+// Gemini API 설정 - 여러 모델 순차 시도 (2.0-flash → 2.0-flash-lite → 1.5-flash)
 const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY
-const GEMINI_URL_2 = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`
-const GEMINI_URL_15 = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_KEY}`
+const GEMINI_MODELS = [
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_KEY}`,
+  `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
+]
 
 // 시스템 프롬프트: 동양 내부회계 전문 어시스턴트
 const SYSTEM_PROMPT = `당신은 (주)동양의 내부회계관리제도(ICFR) 전문 AI 어시스턴트입니다.
@@ -66,28 +69,35 @@ async function callGemini(messages: Message[]): Promise<string> {
     ],
   })
 
-  // gemini-2.0-flash 우선 시도
-  let res = await fetch(GEMINI_URL_2, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: requestBody,
-  })
-
-  // 할당량 초과(429) 시 gemini-1.5-flash로 재시도
-  if (res.status === 429) {
-    res = await fetch(GEMINI_URL_15, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: requestBody,
-    })
+  // 여러 모델을 순차적으로 시도 (429/404/500 시 다음 모델로)
+  let res: Response | null = null
+  for (const url of GEMINI_MODELS) {
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: requestBody,
+      })
+      // 성공이면 중단, 429/404/500 등 에러면 다음 모델 시도
+      if (res.ok) break
+      if (res.status === 429 || res.status === 404 || res.status >= 500) continue
+      break // 다른 에러는 그대로 반환
+    } catch {
+      continue // 네트워크 오류 시 다음 모델
+    }
   }
 
-  if (!res.ok) {
-    if (res.status === 429) {
-      throw new Error('API 호출 한도를 초과했습니다. 잠시 후 다시 시도해 주세요.')
+  if (!res || !res.ok) {
+    if (res?.status === 429) {
+      throw new Error('모든 Gemini 모델의 일일 할당량이 소진되었습니다. 내일 다시 이용해 주세요. (할당량은 매일 태평양시간 자정에 초기화됩니다)')
     }
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.error?.message ?? `API 오류 (${res.status})`)
+    const err = await res?.json().catch(() => ({})) ?? {}
+    const errMsg = err.error?.message ?? `API 오류 (${res?.status})`
+    // RESOURCE_EXHAUSTED도 할당량 소진
+    if (errMsg.includes('RESOURCE_EXHAUSTED') || errMsg.includes('quota')) {
+      throw new Error('Gemini API 할당량이 소진되었습니다. 내일 다시 이용해 주세요.')
+    }
+    throw new Error(errMsg)
   }
 
   const data = await res.json()
@@ -313,10 +323,23 @@ export default function ChatbotPage() {
                 <span className="font-medium text-emerald-700">1,500회/일</span>
               </div>
               <div className="flex justify-between">
-                <span>대화 히스토리</span>
-                <span className="font-medium text-gray-900">유지됨</span>
+                <span>이번 세션</span>
+                <span className="font-medium text-gray-900">{messages.filter(m => m.role === 'user').length}회 질문</span>
+              </div>
+              <div className="flex justify-between">
+                <span>폴백 모델</span>
+                <span className="font-medium text-gray-900">3개 순차</span>
+              </div>
+              <div className="flex justify-between">
+                <span>초기화</span>
+                <span className="font-medium text-gray-900">매일 오전</span>
               </div>
             </div>
+            {error && (
+              <div className="mt-2 pt-2 border-t border-red-200/50">
+                <p className="text-[10px] text-red-500 leading-relaxed">⚠ 할당량 소진 시 태평양시간 자정(한국시간 오후 4~5시)에 초기화됩니다.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

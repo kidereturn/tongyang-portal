@@ -1,68 +1,89 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BarChart2, CheckCircle2, Clock, Users } from 'lucide-react'
+import { BarChart2, CheckCircle2, Clock, Search, Users } from 'lucide-react'
+import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
-import { COURSE_CATALOG } from '../../data/courseCatalog'
+import { useAuth } from '../../hooks/useAuth'
 
-type CourseProgress = {
-  courseId: string
-  courseTitle: string
-  watchedSeconds: number
-  durationSeconds: number
-  progressPercent: number
-  status: 'not_started' | 'in_progress' | 'completed'
-  updatedAt: string
-}
-
-type Learner = {
-  userId: string
-  employeeId: string
-  fullName: string
-  department: string
+type ProfileRow = {
+  id: string
+  employee_id: string | null
+  full_name: string | null
+  department: string | null
   role: string
-  courses: Record<string, CourseProgress>
+  is_active: boolean
 }
 
-type LearningResponse = {
-  ok: boolean
-  me: Learner | null
-  learners: Learner[]
+type ProgressRow = {
+  user_id: string
+  course_id: string
+  watched_seconds: number
+  duration_seconds: number
+  progress_percent: number
+  status: string
+  updated_at: string
 }
-
-const COURSE = COURSE_CATALOG[0]
 
 export default function LearningPage() {
-  const [me, setMe] = useState<Learner | null>(null)
-  const [learners, setLearners] = useState<Learner[]>([])
+  const { profile } = useAuth()
+  const isAdmin = profile?.role === 'admin'
+
+  const [allProfiles, setAllProfiles] = useState<ProfileRow[]>([])
+  const [progressMap, setProgressMap] = useState<Record<string, ProgressRow>>({})
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     async function load() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+      // 1) 모든 활성 사용자 프로필 가져오기
+      const { data: profiles } = await (supabase as any)
+        .from('profiles')
+        .select('id, employee_id, full_name, department, role, is_active')
+        .eq('is_active', true)
+        .order('employee_id', { ascending: true }) as { data: ProfileRow[] | null }
 
-      const response = await fetch('/api/learning-progress', {
-        headers: {
-          authorization: `Bearer ${session?.access_token ?? ''}`,
-        },
-      })
+      setAllProfiles(profiles ?? [])
 
-      const payload = (await response.json()) as LearningResponse
-      setMe(payload.me)
-      setLearners(payload.learners)
+      // 2) learning_progress 테이블에서 진도 데이터 가져오기 (테이블이 없으면 빈 배열)
+      try {
+        const { data: progressData } = await (supabase as any)
+          .from('learning_progress')
+          .select('*') as { data: ProgressRow[] | null }
+
+        const map: Record<string, ProgressRow> = {}
+        for (const p of progressData ?? []) {
+          map[p.user_id] = p
+        }
+        setProgressMap(map)
+      } catch {
+        // 테이블이 없어도 에러 무시
+      }
+
       setLoading(false)
     }
 
     void load()
   }, [])
 
-  const rows = useMemo(() => {
-    if (learners.length > 0) return learners
-    return me ? [me] : []
-  }, [learners, me])
+  // 관리자는 전체, 일반 사용자는 본인만
+  const filteredRows = useMemo(() => {
+    let rows = allProfiles
+    if (!isAdmin) {
+      rows = rows.filter(p => p.id === profile?.id)
+    }
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      rows = rows.filter(p =>
+        (p.employee_id ?? '').toLowerCase().includes(q) ||
+        (p.full_name ?? '').toLowerCase().includes(q) ||
+        (p.department ?? '').toLowerCase().includes(q)
+      )
+    }
+    return rows
+  }, [allProfiles, isAdmin, profile?.id, search])
 
-  const completedCount = rows.filter(row => row.courses?.[COURSE.id]?.status === 'completed').length
-  const inProgressCount = rows.filter(row => row.courses?.[COURSE.id]?.status === 'in_progress').length
+  const completedCount = filteredRows.filter(r => progressMap[r.id]?.status === 'completed').length
+  const inProgressCount = filteredRows.filter(r => progressMap[r.id]?.status === 'in_progress').length
+  const notStartedCount = filteredRows.length - completedCount - inProgressCount
 
   return (
     <div className="space-y-6">
@@ -73,39 +94,63 @@ export default function LearningPage() {
           학습현황
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-          관리자 계정에서는 사번별 진도율, 이수완료 여부, 최근 학습시각을 한 번에 볼 수 있습니다.
-          일반 사용자는 본인 진도율만 표시됩니다.
+          {isAdmin
+            ? '전체 사용자의 진도율, 이수완료 여부, 최근 학습시각을 한 번에 볼 수 있습니다.'
+            : '본인의 강좌 진도율과 학습 상태를 확인합니다.'}
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
             <Users size={18} />
           </div>
-          <p className="mt-4 text-sm text-slate-500">조회 대상</p>
-          <p className="mt-1 text-3xl font-black text-slate-900">{rows.length}</p>
+          <p className="mt-4 text-sm text-slate-500">전체 대상</p>
+          <p className="mt-1 text-3xl font-black text-slate-900">{filteredRows.length}</p>
         </div>
         <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
             <CheckCircle2 size={18} />
           </div>
           <p className="mt-4 text-sm text-slate-500">이수완료</p>
-          <p className="mt-1 text-3xl font-black text-slate-900">{completedCount}</p>
+          <p className="mt-1 text-3xl font-black text-emerald-600">{completedCount}</p>
         </div>
         <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
             <Clock size={18} />
           </div>
           <p className="mt-4 text-sm text-slate-500">수강중</p>
-          <p className="mt-1 text-3xl font-black text-slate-900">{inProgressCount}</p>
+          <p className="mt-1 text-3xl font-black text-blue-600">{inProgressCount}</p>
+        </div>
+        <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+            <Users size={18} />
+          </div>
+          <p className="mt-4 text-sm text-slate-500">미시작</p>
+          <p className="mt-1 text-3xl font-black text-slate-500">{notStartedCount}</p>
         </div>
       </div>
+
+      {isAdmin && (
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="사번, 이름, 소속팀 검색..."
+              className="form-input pl-9 text-sm"
+            />
+          </div>
+          <span className="text-xs text-slate-400">{filteredRows.length}명 표시</span>
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl">
         <div className="border-b border-slate-100 px-5 py-4">
           <h2 className="text-lg font-black text-slate-900">사번별 학습 대시보드</h2>
-          <p className="mt-1 text-sm text-slate-500">{COURSE.title}</p>
+          <p className="mt-1 text-sm text-slate-500">내부회계관리제도 강좌</p>
         </div>
 
         {loading ? (
@@ -113,6 +158,10 @@ export default function LearningPage() {
             {Array.from({ length: 6 }).map((_, index) => (
               <div key={index} className="skeleton h-12 w-full rounded-2xl" />
             ))}
+          </div>
+        ) : filteredRows.length === 0 ? (
+          <div className="px-5 py-16 text-center text-sm text-slate-400">
+            {search ? '검색 결과가 없습니다.' : '등록된 사용자가 없습니다.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -122,38 +171,55 @@ export default function LearningPage() {
                   <th className="px-5 py-3">사번</th>
                   <th className="px-5 py-3">이름</th>
                   <th className="px-5 py-3">소속팀</th>
+                  <th className="px-5 py-3">역할</th>
                   <th className="px-5 py-3">상태</th>
                   <th className="px-5 py-3">진도율</th>
                   <th className="px-5 py-3">최근 업데이트</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {rows.map(row => {
-                  const progress = row.courses?.[COURSE.id]
+                {filteredRows.map(row => {
+                  const progress = progressMap[row.id]
                   const status = progress?.status ?? 'not_started'
+                  const percent = progress?.progress_percent ?? 0
                   return (
-                    <tr key={row.userId} className="text-sm text-slate-700">
-                      <td className="px-5 py-4 font-mono text-xs text-slate-500">{row.employeeId}</td>
-                      <td className="px-5 py-4 font-semibold text-slate-900">{row.fullName}</td>
-                      <td className="px-5 py-4">{row.department}</td>
+                    <tr key={row.id} className="text-sm text-slate-700 hover:bg-slate-50/50">
+                      <td className="px-5 py-4 font-mono text-xs text-slate-500">{row.employee_id ?? '-'}</td>
+                      <td className="px-5 py-4 font-semibold text-slate-900">{row.full_name ?? '-'}</td>
+                      <td className="px-5 py-4">{row.department ?? '-'}</td>
                       <td className="px-5 py-4">
-                        <span className={status === 'completed' ? 'badge-green' : status === 'in_progress' ? 'badge-blue' : 'badge-gray'}>
+                        <span className={clsx(
+                          'inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                          row.role === 'admin' ? 'bg-purple-50 text-purple-700' :
+                          row.role === 'controller' ? 'bg-blue-50 text-blue-700' :
+                          'bg-slate-100 text-slate-600'
+                        )}>
+                          {row.role === 'admin' ? '관리자' : row.role === 'controller' ? '승인자' : '담당자'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className={clsx(
+                          'inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
+                          status === 'completed' ? 'bg-emerald-50 text-emerald-700' :
+                          status === 'in_progress' ? 'bg-blue-50 text-blue-700' :
+                          'bg-slate-100 text-slate-500'
+                        )}>
                           {status === 'completed' ? '이수완료' : status === 'in_progress' ? '수강중' : '미시작'}
                         </span>
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-2 w-32 rounded-full bg-slate-100">
+                          <div className="h-2 w-28 rounded-full bg-slate-100">
                             <div
-                              className="h-2 rounded-full bg-gradient-to-r from-brand-500 to-emerald-500"
-                              style={{ width: `${progress?.progressPercent ?? 0}%` }}
+                              className="h-2 rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 transition-all"
+                              style={{ width: `${percent}%` }}
                             />
                           </div>
-                          <span className="text-xs font-semibold text-slate-600">{progress?.progressPercent ?? 0}%</span>
+                          <span className="text-xs font-semibold text-slate-600">{percent}%</span>
                         </div>
                       </td>
                       <td className="px-5 py-4 text-xs text-slate-500">
-                        {progress?.updatedAt ? new Date(progress.updatedAt).toLocaleString('ko-KR') : '-'}
+                        {progress?.updated_at ? new Date(progress.updated_at).toLocaleString('ko-KR') : '-'}
                       </td>
                     </tr>
                   )
@@ -163,12 +229,12 @@ export default function LearningPage() {
           </div>
         )}
 
-        {!loading && me && (
+        {!loading && !isAdmin && profile && (
           <div className="border-t border-slate-100 bg-slate-50 px-5 py-4">
-            <p className="text-sm font-bold text-slate-900">개인 학습 데이터</p>
+            <p className="text-sm font-bold text-slate-900">내 학습 데이터</p>
             <p className="mt-2 text-sm text-slate-600">
-              본인 진도율 {me.courses?.[COURSE.id]?.progressPercent ?? 0}% /
-              상태 {me.courses?.[COURSE.id]?.status === 'completed' ? '이수완료' : me.courses?.[COURSE.id]?.status === 'in_progress' ? '수강중' : '미시작'}
+              진도율 {progressMap[profile.id]?.progress_percent ?? 0}% /
+              상태 {progressMap[profile.id]?.status === 'completed' ? '이수완료' : progressMap[profile.id]?.status === 'in_progress' ? '수강중' : '미시작'}
             </p>
           </div>
         )}

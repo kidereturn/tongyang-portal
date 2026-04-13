@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { BookOpen, PauseCircle, PlayCircle, RotateCcw } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
-import { COURSE_CATALOG } from '../../data/courseCatalog'
 
 declare global {
   interface Window {
@@ -11,89 +10,92 @@ declare global {
   }
 }
 
-type LearningResponse = {
-  ok: boolean
-  me: {
-    courses?: Record<string, {
-      watchedSeconds: number
-      durationSeconds: number
-      progressPercent: number
-      status: 'not_started' | 'in_progress' | 'completed'
-    }>
-  } | null
+type VideoRow = {
+  id: string
+  title: string
+  description: string | null
+  youtube_url: string
+  youtube_id: string
+  thumbnail_url: string | null
+  duration: string | null
+  has_subtitles: boolean
+  is_active: boolean
+  created_at: string
 }
 
-const COURSE = COURSE_CATALOG[0]
 const PLAYBACK_RATES = [1, 1.25, 1.5, 2]
 
 export default function CoursesPage() {
+  const [videos, setVideos] = useState<VideoRow[]>([])
+  const [selectedVideo, setSelectedVideo] = useState<VideoRow | null>(null)
+  const [loading, setLoading] = useState(true)
+
   const playerRef = useRef<any>(null)
   const watchLimitRef = useRef(0)
-  const syncAtRef = useRef(0)
-  const [ready, setReady] = useState(false)
+  const [, setReady] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [duration, setDuration] = useState(0)
   const [currentTime, setCurrentTime] = useState(0)
   const [progress, setProgress] = useState(0)
   const [playbackRate, setPlaybackRate] = useState(1)
-  const [status, setStatus] = useState<'not_started' | 'in_progress' | 'completed'>('not_started')
 
   const watchedLabel = useMemo(() => {
-    const minutes = Math.floor(currentTime / 60)
-    const seconds = Math.floor(currentTime % 60)
-    return `${minutes}:${String(seconds).padStart(2, '0')}`
+    const m = Math.floor(currentTime / 60)
+    const s = Math.floor(currentTime % 60)
+    return `${m}:${String(s).padStart(2, '0')}`
   }, [currentTime])
 
   const durationLabel = useMemo(() => {
-    const minutes = Math.floor(duration / 60)
-    const seconds = Math.floor(duration % 60)
-    return `${minutes}:${String(seconds).padStart(2, '0')}`
+    const m = Math.floor(duration / 60)
+    const s = Math.floor(duration % 60)
+    return `${m}:${String(s).padStart(2, '0')}`
   }, [duration])
 
+  // Fetch videos from DB (newest first)
   useEffect(() => {
+    async function load() {
+      const { data } = await (supabase as any)
+        .from('course_videos')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false }) as { data: VideoRow[] | null }
+      const list = data ?? []
+      setVideos(list)
+      if (list.length > 0) setSelectedVideo(list[0])
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  // YouTube player setup
+  useEffect(() => {
+    if (!selectedVideo?.youtube_id) return
+
     let intervalId: number | undefined
 
-    async function loadProgress() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      const response = await fetch('/api/learning-progress', {
-        headers: {
-          authorization: `Bearer ${session?.access_token ?? ''}`,
-        },
-      })
-
-      const payload = (await response.json()) as LearningResponse
-      const record = payload.me?.courses?.[COURSE.id]
-      if (record) {
-        watchLimitRef.current = record.watchedSeconds
-        setCurrentTime(record.watchedSeconds)
-        setProgress(record.progressPercent)
-        setStatus(record.status)
-      }
-    }
-
     function createPlayer() {
-      if (!window.YT?.Player || playerRef.current) return
+      if (!window.YT?.Player) return
+      // Destroy existing player if any
+      if (playerRef.current?.destroy) {
+        playerRef.current.destroy()
+        playerRef.current = null
+      }
 
       playerRef.current = new window.YT.Player('youtube-course-player', {
-        videoId: COURSE.youtubeId,
+        videoId: selectedVideo!.youtube_id,
         playerVars: {
           controls: 0,
           disablekb: 1,
           rel: 0,
           modestbranding: 1,
           playsinline: 1,
+          cc_load_policy: 1, // auto-show subtitles
         },
         events: {
           onReady: () => {
             setReady(true)
-            const playerDuration = Number(playerRef.current.getDuration?.() ?? 0)
-            setDuration(playerDuration)
-            if (watchLimitRef.current > 0) {
-              playerRef.current.seekTo(watchLimitRef.current, true)
-            }
+            const d = Number(playerRef.current.getDuration?.() ?? 0)
+            setDuration(d)
           },
           onStateChange: (event: { data: number }) => {
             setPlaying(event.data === 1)
@@ -102,79 +104,49 @@ export default function CoursesPage() {
       })
     }
 
-    async function boot() {
-      await loadProgress()
+    // Reset state
+    watchLimitRef.current = 0
+    setReady(false)
+    setPlaying(false)
+    setDuration(0)
+    setCurrentTime(0)
+    setProgress(0)
+    setPlaybackRate(1)
 
-      if (!window.YT?.Player) {
-        const script = document.createElement('script')
-        script.src = 'https://www.youtube.com/iframe_api'
-        document.body.appendChild(script)
-        window.onYouTubeIframeAPIReady = createPlayer
-      } else {
-        createPlayer()
+    if (!window.YT?.Player) {
+      const script = document.createElement('script')
+      script.src = 'https://www.youtube.com/iframe_api'
+      document.body.appendChild(script)
+      window.onYouTubeIframeAPIReady = createPlayer
+    } else {
+      createPlayer()
+    }
+
+    intervalId = window.setInterval(() => {
+      if (!playerRef.current?.getCurrentTime) return
+      const now = Number(playerRef.current.getCurrentTime() ?? 0)
+      const d = Number(playerRef.current.getDuration?.() ?? 0)
+      setDuration(d)
+
+      if (now > watchLimitRef.current + 3) {
+        playerRef.current.seekTo(watchLimitRef.current, true)
+        return
       }
+      watchLimitRef.current = Math.max(watchLimitRef.current, now)
+      setCurrentTime(watchLimitRef.current)
 
-      intervalId = window.setInterval(() => {
-        if (!playerRef.current || !ready) return
+      const p = d > 0 ? Math.min(100, Math.round((watchLimitRef.current / d) * 100)) : 0
+      setProgress(p)
+    }, 1000)
 
-        const now = Number(playerRef.current.getCurrentTime?.() ?? 0)
-        const playerDuration = Number(playerRef.current.getDuration?.() ?? 0)
-        setDuration(playerDuration)
-
-        if (now > watchLimitRef.current + 3) {
-          playerRef.current.seekTo(watchLimitRef.current, true)
-          return
-        }
-
-        watchLimitRef.current = Math.max(watchLimitRef.current, now)
-        setCurrentTime(watchLimitRef.current)
-
-        const nextProgress = playerDuration > 0 ? Math.min(100, Math.round((watchLimitRef.current / playerDuration) * 100)) : 0
-        setProgress(nextProgress)
-        setStatus(nextProgress >= 99 ? 'completed' : nextProgress > 0 ? 'in_progress' : 'not_started')
-
-        const nowMs = Date.now()
-        if (nowMs - syncAtRef.current < 5000) return
-        syncAtRef.current = nowMs
-
-        void syncProgress(watchLimitRef.current, playerDuration, nextProgress)
-      }, 1000)
-    }
-
-    void boot()
     return () => {
-      if (intervalId) window.clearInterval(intervalId)
+      if (intervalId) clearInterval(intervalId)
     }
-  }, [ready])
-
-  async function syncProgress(watchedSeconds: number, durationSeconds: number, progressPercent: number) {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-
-    await fetch('/api/learning-progress', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${session?.access_token ?? ''}`,
-      },
-      body: JSON.stringify({
-        courseId: COURSE.id,
-        courseTitle: COURSE.title,
-        watchedSeconds,
-        durationSeconds,
-        progressPercent,
-      }),
-    })
-  }
+  }, [selectedVideo?.id])
 
   function handlePlayPause() {
     if (!playerRef.current) return
-    if (playing) {
-      playerRef.current.pauseVideo()
-    } else {
-      playerRef.current.playVideo()
-    }
+    playing ? playerRef.current.pauseVideo() : playerRef.current.playVideo()
   }
 
   function handleRestart() {
@@ -183,8 +155,6 @@ export default function CoursesPage() {
     watchLimitRef.current = 0
     setCurrentTime(0)
     setProgress(0)
-    setStatus('not_started')
-    void syncProgress(0, duration, 0)
   }
 
   function handleRateChange(rate: number) {
@@ -193,25 +163,58 @@ export default function CoursesPage() {
     setPlaybackRate(rate)
   }
 
+  function selectVideo(v: VideoRow) {
+    setSelectedVideo(v)
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-[28px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-6 py-8 text-white shadow-2xl">
+          <p className="text-xs font-semibold tracking-[0.24em] text-slate-400">COURSE PLAYER</p>
+          <h1 className="mt-2 flex items-center gap-2 text-3xl font-black">
+            <BookOpen size={28} className="text-brand-300" />내 강좌
+          </h1>
+        </div>
+        <div className="text-center text-sm text-gray-400 py-20">강좌를 불러오는 중...</div>
+      </div>
+    )
+  }
+
+  if (videos.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-[28px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-6 py-8 text-white shadow-2xl">
+          <p className="text-xs font-semibold tracking-[0.24em] text-slate-400">COURSE PLAYER</p>
+          <h1 className="mt-2 flex items-center gap-2 text-3xl font-black">
+            <BookOpen size={28} className="text-brand-300" />내 강좌
+          </h1>
+        </div>
+        <div className="text-center text-sm text-gray-400 py-20">등록된 강좌가 없습니다. 관리자가 동영상을 추가하면 여기에 표시됩니다.</div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="rounded-[28px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-6 py-8 text-white shadow-2xl">
         <p className="text-xs font-semibold tracking-[0.24em] text-slate-400">COURSE PLAYER</p>
         <h1 className="mt-2 flex items-center gap-2 text-3xl font-black">
-          <BookOpen size={28} className="text-brand-300" />
-          내 강좌
+          <BookOpen size={28} className="text-brand-300" />내 강좌
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-          유튜브 강의를 같은 화면에서 재생하고, 진도율을 사번 기준으로 저장합니다. 배속은 2배속까지 허용하고
-          임의 건너뛰기는 막아 두었습니다.
+          강의 동영상을 재생하고 학습 진도를 관리합니다. 배속은 2배속까지, 건너뛰기는 제한됩니다.
         </p>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        {/* Player */}
         <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl">
           <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="text-xl font-black text-slate-900">{COURSE.title}</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">{COURSE.description}</p>
+            <h2 className="text-xl font-black text-slate-900">{selectedVideo?.title}</h2>
+            {selectedVideo?.description && (
+              <p className="mt-2 text-sm leading-6 text-slate-500">{selectedVideo.description}</p>
+            )}
           </div>
 
           <div className="aspect-video bg-black">
@@ -225,10 +228,8 @@ export default function CoursesPage() {
                 {playing ? '일시정지' : '재생'}
               </button>
               <button onClick={handleRestart} className="btn-secondary py-2">
-                <RotateCcw size={16} />
-                처음부터
+                <RotateCcw size={16} />처음부터
               </button>
-
               <div className="ml-auto flex flex-wrap items-center gap-2">
                 {PLAYBACK_RATES.map(rate => (
                   <button
@@ -261,25 +262,56 @@ export default function CoursesPage() {
           </div>
         </section>
 
+        {/* Video list */}
         <section className="space-y-4">
+          <div className="rounded-[28px] border border-slate-200 bg-white shadow-xl overflow-hidden">
+            <div className="border-b border-slate-100 px-5 py-3">
+              <p className="text-sm font-bold text-slate-900">강좌 목록 ({videos.length}개) — 최신순</p>
+            </div>
+            <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
+              {videos.map(v => (
+                <button
+                  key={v.id}
+                  onClick={() => selectVideo(v)}
+                  className={clsx(
+                    'flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-slate-50',
+                    selectedVideo?.id === v.id && 'bg-brand-50 border-l-4 border-brand-500'
+                  )}
+                >
+                  <img
+                    src={v.thumbnail_url ?? `https://img.youtube.com/vi/${v.youtube_id}/hqdefault.jpg`}
+                    alt={v.title}
+                    className="h-12 w-20 shrink-0 rounded-lg object-cover bg-gray-200"
+                    onError={e => { (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${v.youtube_id}/hqdefault.jpg` }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className={clsx('text-sm font-bold truncate', selectedVideo?.id === v.id ? 'text-brand-700' : 'text-slate-900')}>
+                      {v.title}
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {new Date(v.created_at).toLocaleDateString('ko-KR')}
+                      {selectedVideo?.id === v.id && <span className="ml-2 text-brand-600 font-semibold">▶ 재생 중</span>}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-xl">
-            <p className="text-sm font-bold text-slate-900">현재 상태</p>
-            <div className="mt-4 grid gap-3">
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <p className="text-xs text-slate-400">수강 상태</p>
-                <p className="mt-1 text-lg font-black text-slate-900">
-                  {status === 'completed' ? '이수완료' : status === 'in_progress' ? '수강중' : '미시작'}
-                </p>
-              </div>
+            <p className="text-sm font-bold text-slate-900">안내</p>
+            <div className="mt-3 space-y-2">
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
                 <p className="text-xs text-slate-400">재생 제한</p>
                 <p className="mt-1 text-sm leading-6 text-slate-700">
-                  배속은 최대 2배속까지 허용하고, 이미 본 구간보다 앞으로 점프하면 자동으로 이전 허용 지점으로 되돌립니다.
+                  배속은 최대 2배속까지 허용, 임의 건너뛰기 방지
                 </p>
               </div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <p className="text-xs text-slate-400">강의 자료</p>
-                <p className="mt-1 text-sm font-semibold text-slate-900">https://youtu.be/{COURSE.youtubeId}</p>
+                <p className="text-xs text-slate-400">자막</p>
+                <p className="mt-1 text-sm leading-6 text-slate-700">
+                  YouTube에서 자막이 설정된 영상은 자동으로 표시됩니다
+                </p>
               </div>
             </div>
           </div>

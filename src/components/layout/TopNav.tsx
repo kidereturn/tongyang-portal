@@ -152,14 +152,14 @@ export default function TopNav() {
     <>
       <header className="fixed inset-x-0 top-0 z-40 border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur">
         <div className="mx-auto flex h-16 max-w-screen-2xl items-center gap-3 px-4 sm:px-6">
-          <Link to="/dashboard" className="mr-2 flex items-center gap-3 shrink-0">
-            <img src="/tongyang_ci_en.png" alt="TONGYANG" className="h-8" />
+          <Link to="/dashboard" className="mr-1 flex items-center shrink-0">
             <div className="hidden lg:block">
               <p className="text-sm font-black leading-tight text-slate-900">(주)동양 내부회계 LMS</p>
               <p className="text-[10px] font-medium tracking-[0.14em] text-slate-400">
                 TONGYANG ACCOUNTING EDUTECH
               </p>
             </div>
+            <p className="text-sm font-black text-slate-900 lg:hidden">(주)동양</p>
           </Link>
 
           <nav className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto lg:flex">

@@ -1,0 +1,17 @@
+UPDATE profiles SET full_name = '유용민', role = 'controller', email = 'yongmin.ryu@tongyanginc.co.kr', phone = '010-2753-8821', department = '보령발전본부 저탄장 옥내화사업 토목공사', is_active = true WHERE employee_id = '101029';
+UPDATE profiles SET full_name = '권오복', role = 'controller', email = 'kob1216@tongyanginc.co.kr', phone = '010-2776-3486', department = '광양 바이오매스 EPC 건설공사', is_active = true WHERE employee_id = '101003';
+UPDATE profiles SET full_name = '홍성호', role = 'controller', email = 'shhong@tongyanginc.co.kr', phone = '010-3367-6629', department = '한국건강관리협회 인천지부 신청사 건립 신축공사', is_active = true WHERE employee_id = '101880';
+UPDATE profiles SET full_name = '고현구', role = 'controller', email = 'hgkoh@tongyanginc.co.kr', phone = '010-4395-5395', department = '사업관리팀', is_active = true WHERE employee_id = '101002';
+UPDATE profiles SET full_name = '이종면', role = 'controller', email = 'jongmyun.lee@tongyanginc.co.kr', phone = '010-2758-4087', department = '공사관리팀', is_active = true WHERE employee_id = '101033';
+UPDATE profiles SET full_name = '김두식', role = 'controller', email = 'dskim@tongyanginc.co.kr', phone = '010-3567-2253', department = '회전기영업팀(영업1Part)', is_active = true WHERE employee_id = '101005';
+UPDATE profiles SET full_name = '김휘종', role = 'controller', email = 'huijong.kim@tongyanginc.co.kr', phone = '010-7512-1291', department = '예산공장(생산관리Part)', is_active = true WHERE employee_id = '101141';
+UPDATE profiles SET full_name = '이병남', role = 'controller', email = 'byoungnam.lee@tongyanginc.co.kr', phone = '010-8941-8075', department = '예산공장(품질보증Part)', is_active = true WHERE employee_id = '101093';
+UPDATE profiles SET full_name = '장철호', role = 'controller', email = 'cheolho.jang@tongyanginc.co.kr', phone = '010-6424-7893', department = '총무팀', is_active = true WHERE employee_id = '101107';
+UPDATE profiles SET full_name = '황부익', role = 'controller', email = 'booik.hwang@tongyanginc.co.kr', phone = '010-3686-3973', department = '전략기획팀', is_active = true WHERE employee_id = '101045';
+UPDATE profiles SET full_name = '문종녕', role = 'controller', email = 'jongnyung.moon@tongyanginc.co.kr', phone = '010-6373-3368', department = '회전기사업/VPC', is_active = true WHERE employee_id = '101072';
+UPDATE profiles SET full_name = '김상우', role = 'controller', email = 'sangwoo.kim@tongyanginc.co.kr', phone = '010-8254-5675', department = '자금팀', is_active = true WHERE employee_id = '101130';
+UPDATE profiles SET full_name = '안준수', role = 'controller', email = 'safetyjs@tongyanginc.co.kr', phone = '010-2294-9760', department = '인사팀', is_active = true WHERE employee_id = '101024';
+UPDATE profiles SET full_name = '배치중', role = 'controller', email = 'chijoong.bae@tongyanginc.co.kr', phone = '010-4589-4631', department = '채권관리팀', is_active = true WHERE employee_id = '101020';
+UPDATE profiles SET full_name = '전장규', role = 'controller', email = 'janggyu.jeon@tongyanginc.co.kr', phone = '010-4506-6153', department = '법무팀', is_active = true WHERE employee_id = '101108';
+UPDATE profiles SET full_name = '하정훈', role = 'admin', email = 'jeonghun.ha@tongyanginc.co.kr', phone = '010-8929-2281', department = '내부회계팀', is_active = true WHERE employee_id = '101119';
+UPDATE profiles SET full_name = '박한진', role = 'owner', email = 'phjin@tongyanginc.co.kr', phone = '010-4529-5437', department = '내부회계팀', is_active = true WHERE employee_id = '101842';

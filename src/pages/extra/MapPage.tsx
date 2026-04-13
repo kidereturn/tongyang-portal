@@ -153,8 +153,9 @@ export default function MapPage() {
     ? `https://www.google.com/maps?q=${encodeURIComponent(selectedLocation.address)}&z=15&hl=ko&output=embed`
     : ''
 
+  const vworldKey = import.meta.env.VITE_VWORLD_API_KEY ?? '7CD44AEC-2079-376C-AAC5-1D4B872A5AD1'
   const vworldUrl = selectedLocation
-    ? `https://map.vworld.kr/map/maps.do?lon=${selectedLocation.lng}&lat=${selectedLocation.lat}&zoom=16`
+    ? `https://map.vworld.kr/map/maps.do?apiKey=${vworldKey}&lon=${selectedLocation.lng}&lat=${selectedLocation.lat}&zoom=16&baseLyr=GRAPHIC&type=GRAPHIC`
     : 'https://map.vworld.kr/map/maps.do'
 
   /* ───── 맵 영역 렌더 ───── */
