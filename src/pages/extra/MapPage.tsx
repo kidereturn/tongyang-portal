@@ -23,7 +23,7 @@ export default function MapPage() {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
-  const [provider, setProvider] = useState<Provider>('google')
+  const [provider, setProvider] = useState<Provider>('kakao')
   const [selectedId, setSelectedId] = useState(SITE_LOCATIONS[0]?.id ?? '')
   const [search, setSearch] = useState('')
   const [kakaoReady, setKakaoReady] = useState(false)
