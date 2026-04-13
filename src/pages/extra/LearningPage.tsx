@@ -125,7 +125,7 @@ export default function LearningPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
         <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
             <Users size={18} />

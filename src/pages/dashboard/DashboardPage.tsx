@@ -282,7 +282,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5 pb-mobile-tab lg:pb-0">
-      <div className="rounded-2xl bg-gradient-to-r from-brand-600 via-brand-700 to-indigo-700 p-6 text-white relative overflow-hidden">
+      <div className="rounded-2xl bg-gradient-to-r from-brand-600 via-brand-700 to-indigo-700 p-4 sm:p-6 text-white relative overflow-hidden">
         <div className="absolute right-0 top-0 bottom-0 w-64 opacity-10">
           <LayoutDashboard size={180} className="absolute -right-8 -top-4" />
         </div>
@@ -328,7 +328,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         {[
           { icon: FileCheck2, color: 'brand', label: '전체', value: stats.total, unit: '건', to: '/evidence' },
           {

@@ -547,7 +547,7 @@ export default function ChatbotPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
         {/* 채팅 영역 */}
-        <div className="lg:col-span-3 card flex flex-col" style={{ height: '580px' }}>
+        <div className="lg:col-span-3 card flex flex-col h-[calc(100vh-200px)] sm:h-[500px] lg:h-[580px]">
           {/* 채팅 헤더 */}
           <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">

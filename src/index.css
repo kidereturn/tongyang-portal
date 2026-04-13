@@ -105,3 +105,26 @@
 @media (max-width: 1023px) {
   .pb-mobile-tab { padding-bottom: 5rem; }
 }
+
+/* 모바일 safe area (iPhone 노치/홈바) */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* 모바일 메뉴 애니메이션 */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.animate-in { animation: slideUp 0.25s ease-out forwards; }
+
+/* 모바일에서 터치 하이라이트 제거 */
+@media (max-width: 1023px) {
+  button, a { -webkit-tap-highlight-color: transparent; }
+}
+
+/* 모바일에서 스크롤바 숨기기 */
+@media (max-width: 640px) {
+  ::-webkit-scrollbar { display: none; }
+  * { -ms-overflow-style: none; scrollbar-width: none; }
+}

@@ -14,13 +14,11 @@ import {
   LayoutDashboard,
   LogOut,
   Map,
-  Menu,
   Newspaper,
   Settings,
   Shield,
   TrendingUp,
   User,
-  X,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '../../hooks/useAuth'
@@ -75,7 +73,6 @@ function filterNavItems(role?: string | null) {
 export default function TopNav() {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
-  const [mobileOpen, setMobileOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [notiOpen, setNotiOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -151,7 +148,7 @@ export default function TopNav() {
   return (
     <>
       <header className="fixed inset-x-0 top-0 z-40 border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-screen-2xl items-center gap-3 px-4 sm:px-6">
+        <div className="mx-auto flex h-14 sm:h-16 max-w-screen-2xl items-center gap-3 px-3 sm:px-4 md:px-6">
           <Link to="/dashboard" className="mr-1 flex items-center shrink-0">
             <div className="hidden lg:block">
               <p className="text-sm font-black leading-tight text-slate-900">(주)동양 내부회계 LMS</p>
@@ -159,7 +156,7 @@ export default function TopNav() {
                 TONGYANG ACCOUNTING EDUTECH
               </p>
             </div>
-            <p className="text-sm font-black text-slate-900 lg:hidden">(주)동양</p>
+            <p className="text-sm font-black text-slate-900 lg:hidden">(주)동양 LMS</p>
           </Link>
 
           <nav className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto lg:flex">
@@ -210,7 +207,7 @@ export default function TopNav() {
               </button>
 
               {notiOpen && (
-                <div className="absolute right-0 top-12 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:w-96">
+                <div className="absolute right-0 top-12 max-w-[90vw] w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:w-96">
                   <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                     <p className="text-sm font-bold text-slate-900">알림</p>
                     {unreadCount > 0 && (
@@ -256,7 +253,8 @@ export default function TopNav() {
               )}
             </div>
 
-            <div ref={profileRef} className="relative hidden sm:block">
+            {/* 데스크톱 프로필 드롭다운 */}
+            <div ref={profileRef} className="relative hidden lg:block">
               <button
                 onClick={() => setProfileOpen(value => !value)}
                 className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-1.5 transition hover:border-slate-300 hover:bg-slate-50"
@@ -312,62 +310,8 @@ export default function TopNav() {
                 </div>
               )}
             </div>
-
-            <button
-              onClick={() => setMobileOpen(value => !value)}
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 lg:hidden"
-            >
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
           </div>
         </div>
-
-        {mobileOpen && (
-          <div className="border-t border-slate-100 bg-white lg:hidden">
-            <nav className="space-y-1 p-3">
-              {visibleItems.map(item => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) =>
-                    clsx(
-                      'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition',
-                      isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-700 hover:bg-slate-50'
-                    )
-                  }
-                >
-                  <item.icon size={18} />
-                  <span>{item.label}</span>
-                </NavLink>
-              ))}
-
-              {isAdmin && (
-                <NavLink
-                  to="/admin"
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) =>
-                    clsx(
-                      'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition',
-                      isActive ? 'bg-purple-50 text-purple-700' : 'text-slate-700 hover:bg-slate-50'
-                    )
-                  }
-                >
-                  <Shield size={18} />
-                  <span>관리자</span>
-                </NavLink>
-              )}
-
-              <button
-                onClick={handleSignOut}
-                className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50"
-              >
-                <LogOut size={18} />
-                <span>로그아웃</span>
-              </button>
-            </nav>
-          </div>
-        )}
       </header>
     </>
   )

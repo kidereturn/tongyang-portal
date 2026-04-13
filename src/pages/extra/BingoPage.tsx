@@ -392,7 +392,7 @@ export default function BingoPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_1fr]">
+      <div className="grid gap-4 sm:gap-6 xl:grid-cols-[1.1fr_1fr]">
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -407,7 +407,7 @@ export default function BingoPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-3">
             {questions.map((question, index) => {
               const answerState = answers[question.id]
               return (
@@ -423,7 +423,7 @@ export default function BingoPage() {
                   }}
                   disabled={Boolean(answerState)}
                   className={clsx(
-                    'aspect-square rounded-[22px] border p-3 text-left transition',
+                    'aspect-square rounded-[16px] sm:rounded-[22px] border p-2 sm:p-3 text-left transition',
                     answerState?.correct
                       ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                       : answerState
