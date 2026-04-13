@@ -67,10 +67,7 @@ export default function InboxPage() {
     `)
 
     if (profile.role === 'controller') {
-      if (profile.full_name) {
-        // 직접 activity join으로 필터 대신 controller_id 사용
-        q = q.eq('controller_id', profile.id)
-      }
+      q = q.eq('controller_id', profile.id)
     } else if (profile.role === 'owner') {
       q = q.eq('owner_id', profile.id)
     }

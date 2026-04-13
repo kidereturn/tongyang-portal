@@ -59,10 +59,12 @@ export default function EvidenceListPage() {
     try {
       let q = db.from('activities').select('*').eq('active', true)
       if (profile.role === 'owner') {
-        if (profile.full_name) q = q.eq('owner_name', profile.full_name)
+        if (profile.employee_id) q = q.eq('owner_employee_id', profile.employee_id)
+        else if (profile.full_name) q = q.eq('owner_name', profile.full_name)
         else q = q.eq('owner_id', profile.id)
       } else if (profile.role === 'controller') {
-        if (profile.full_name) q = q.eq('controller_name', profile.full_name)
+        if (profile.employee_id) q = q.eq('controller_employee_id', profile.employee_id)
+        else if (profile.full_name) q = q.eq('controller_name', profile.full_name)
         else q = q.eq('controller_id', profile.id)
       }
       q = q.order('control_code').order('department')

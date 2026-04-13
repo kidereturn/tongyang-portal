@@ -571,11 +571,33 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
         }
       }
 
+      // Build employee_id → profile id map for owner/controller linking
+      const allEmployeeIds = Array.from(
+        new Set(
+          rows.flatMap(row => [
+            readText(row, ['담당자사번', '담당자 사번', 'owner_employee_id']),
+            readText(row, ['승인자사번', '승인자 사번', 'controller_employee_id']),
+          ]).filter(Boolean)
+        )
+      )
+      const profileIdMap: Record<string, string> = {}
+      if (allEmployeeIds.length) {
+        for (let i = 0; i < allEmployeeIds.length; i += 100) {
+          const { data: pData } = await db.from('profiles').select('id, employee_id').in('employee_id', allEmployeeIds.slice(i, i + 100))
+          for (const p of pData ?? []) {
+            if (p.employee_id) profileIdMap[p.employee_id] = p.id
+          }
+        }
+      }
+
       for (const row of rows) {
         const controlCode = readText(row, ['통제번호', 'control_code'])
         const department = readText(row, ['관련부서', '부서', 'department'])
         const uniqueKey = controlCode && department ? `${controlCode}${department}` : readText(row, ['고유키', 'unique_key'])
         if (!uniqueKey) continue
+
+        const ownerEmpId = readText(row, ['담당자사번', '담당자 사번', 'owner_employee_id']) || null
+        const controllerEmpId = readText(row, ['승인자사번', '승인자 사번', 'controller_employee_id']) || null
 
         const payload = {
           unique_key: uniqueKey,
@@ -583,14 +605,14 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
           owner_name: readText(row, ['담당자', 'owner_name']) || null,
           department: department || null,
           title: readText(row, ['통제활동명', 'title']) || null,
-          description: readText(row, ['제출 증빙자료명', '제출 증빙명', 'description']) || null,
+          description: readText(row, ['제출 증빙에 대한 설명', '제출 증빙자료명', '제출 증빙명', 'description']) || null,
           controller_name: readText(row, ['승인자', 'controller_name']) || null,
-          kpi_score: Number.parseFloat(readText(row, ['KPI 점수', 'kpi_score']) || '0') || 0,
+          kpi_score: Number.parseFloat(readText(row, ['KPI 점수', '환산점수', 'kpi_score']) || '0') || 0,
           submission_status: '미완료',
-          owner_employee_id: readText(row, ['담당자사번', '담당자 사번', 'owner_employee_id']) || null,
+          owner_employee_id: ownerEmpId,
           owner_email: readText(row, ['담당자mail', '담당자 mail', 'owner_email']) || null,
           owner_phone: readText(row, ['담당자CP', '담당자 CP', 'owner_phone']) || null,
-          controller_employee_id: readText(row, ['승인자사번', '승인자 사번', 'controller_employee_id']) || null,
+          controller_employee_id: controllerEmpId,
           controller_email: readText(row, ['승인자mail', '승인자 mail', 'controller_email']) || null,
           controller_phone: readText(row, ['승인자CP', '승인자 CP', 'controller_phone']) || null,
           control_department: readText(row, ['통제부서', 'control_department']) || null,
@@ -600,6 +622,8 @@ function RcmUploadTab({ onDone }: { onDone: () => void }) {
           base_score: Number.parseFloat(readText(row, ['배점', 'base_score']) || '0') || 0,
           converted_score: Number.parseFloat(readText(row, ['환산점수', 'converted_score']) || '0') || 0,
           test_document: readText(row, ['테스트 문서', 'test_document']) || null,
+          owner_id: ownerEmpId && profileIdMap[ownerEmpId] ? profileIdMap[ownerEmpId] : null,
+          controller_id: controllerEmpId && profileIdMap[controllerEmpId] ? profileIdMap[controllerEmpId] : null,
           active: true,
         }
 
