@@ -163,36 +163,36 @@ export default function NewsPage() {
           </form>
 
           {/* 공시 목록 */}
-          <div className="overflow-hidden rounded-2xl bg-slate-950 text-white shadow-2xl">
-            <div className="border-b border-white/10 px-5 py-3">
-              <p className="text-sm font-bold text-white">
+          <div className="overflow-hidden rounded-2xl bg-sky-50 border border-sky-200 shadow-lg">
+            <div className="border-b border-sky-200 bg-sky-100 px-5 py-3">
+              <p className="text-sm font-bold text-sky-900">
                 {data?.corpName ?? '동양'} 공시 ({data?.dartItems.length ?? 0}건)
               </p>
             </div>
 
             {loading && !data ? (
-              <div className="flex items-center justify-center py-12 text-slate-400">
+              <div className="flex items-center justify-center py-12 text-sky-400">
                 <Loader2 size={20} className="animate-spin mr-2" />로딩 중...
               </div>
             ) : (
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-sky-100">
                 {(data?.dartItems ?? []).map(item => (
                   <a
                     key={item.rcept_no}
                     href={item.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="group flex items-start justify-between gap-3 px-5 py-3 transition hover:bg-white/5"
+                    className="group flex items-start justify-between gap-3 px-5 py-3 bg-white hover:bg-sky-50 transition"
                   >
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-brand-300">{item.corp_name}</p>
-                      <p className="mt-0.5 text-sm font-medium leading-5 text-white truncate">{item.report_nm}</p>
-                      <p className="mt-0.5 text-[11px] text-slate-400">
+                      <p className="text-xs font-bold text-sky-700">{item.corp_name}</p>
+                      <p className="mt-0.5 text-sm font-medium leading-5 text-slate-900 truncate">{item.report_nm}</p>
+                      <p className="mt-0.5 text-[11px] text-slate-500">
                         {formatDartDate(item.rcept_dt)}
                         {item.rm ? ` · ${item.rm}` : ''}
                       </p>
                     </div>
-                    <ExternalLink size={14} className="mt-1 shrink-0 text-slate-500 transition group-hover:text-brand-300" />
+                    <ExternalLink size={14} className="mt-1 shrink-0 text-sky-400 transition group-hover:text-sky-700" />
                   </a>
                 ))}
                 {data && data.dartItems.length === 0 && (
@@ -201,12 +201,12 @@ export default function NewsPage() {
               </div>
             )}
 
-            <div className="border-t border-white/10 px-5 py-3">
+            <div className="border-t border-sky-200 bg-sky-50 px-5 py-3">
               <a
                 href={data?.dartAllUrl ?? 'https://dart.fss.or.kr/'}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 text-xs font-semibold text-brand-300 transition hover:text-white"
+                className="inline-flex items-center gap-2 text-xs font-semibold text-sky-700 transition hover:text-sky-900"
               >
                 DART에서 전체보기 <ExternalLink size={12} />
               </a>

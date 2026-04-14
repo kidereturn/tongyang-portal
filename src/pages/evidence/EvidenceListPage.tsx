@@ -43,6 +43,8 @@ export default function EvidenceListPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [evidenceCounts, setEvidenceCounts] = useState<Record<string, number>>({})
+  const [approvalStatuses, setApprovalStatuses] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (loadError) {
@@ -80,6 +82,26 @@ export default function EvidenceListPage() {
       const rows = data ?? []
       setActivities(rows)
       setFiltered(rows)
+
+      // Load evidence counts and approval statuses in parallel
+      const activityIds = rows.map((r: Activity) => r.id)
+      if (activityIds.length > 0) {
+        const [uploadsRes, approvalsRes] = await Promise.all([
+          db.from('evidence_uploads').select('activity_id').in('activity_id', activityIds),
+          db.from('approval_requests').select('activity_id, status').in('activity_id', activityIds),
+        ])
+        const counts: Record<string, number> = {}
+        for (const u of uploadsRes.data ?? []) {
+          counts[u.activity_id] = (counts[u.activity_id] ?? 0) + 1
+        }
+        setEvidenceCounts(counts)
+
+        const statuses: Record<string, string> = {}
+        for (const a of approvalsRes.data ?? []) {
+          statuses[a.activity_id] = a.status
+        }
+        setApprovalStatuses(statuses)
+      }
     } catch {
       setActivities([])
       setFiltered([])
@@ -295,9 +317,11 @@ export default function EvidenceListPage() {
                   <th className="min-w-[180px]">통제활동명</th>
                   <th className="min-w-[160px]">제출 증빙 설명</th>
                   <th className="text-center min-w-[120px]">증빙 Upload</th>
+                  <th className="text-center">증빙수</th>
                   {profile?.role === 'admin' && <th>승인자</th>}
                   <th className="text-center">KPI점수</th>
                   <th className="text-center">상신여부</th>
+                  <th className="text-center">승인상태</th>
                   <th className="w-6"></th>
                 </tr>
               </thead>
@@ -347,6 +371,11 @@ export default function EvidenceListPage() {
                           <span className="text-xs text-gray-400">-</span>
                         )}
                       </td>
+                      <td className="text-center">
+                        <span className={clsx('text-xs font-bold', (evidenceCounts[act.id] ?? 0) > 0 ? 'text-brand-700' : 'text-gray-300')}>
+                          {evidenceCounts[act.id] ?? 0}
+                        </span>
+                      </td>
                       {profile?.role === 'admin' && (
                         <td className="text-xs text-gray-500">{act.controller_name ?? '-'}</td>
                       )}
@@ -355,6 +384,17 @@ export default function EvidenceListPage() {
                       </td>
                       <td className="text-center">
                         <span className={si.cls}>{si.label}</span>
+                      </td>
+                      <td className="text-center">
+                        {approvalStatuses[act.id] === 'approved' ? (
+                          <span className="badge-green">승인완료</span>
+                        ) : approvalStatuses[act.id] === 'rejected' ? (
+                          <span className="badge-red">반려</span>
+                        ) : approvalStatuses[act.id] === 'submitted' ? (
+                          <span className="badge-yellow">승인대기</span>
+                        ) : (
+                          <span className="text-xs text-gray-300">-</span>
+                        )}
                       </td>
                       <td>
                         <ChevronRight size={13} className="text-gray-200 group-hover:text-gray-400 transition-colors" />

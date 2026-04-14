@@ -32,8 +32,8 @@ const MORE_ITEMS = [
   { to: '/courses', icon: BookOpen, label: '내 강좌' },
   { to: '/bingo', icon: Gamepad2, label: '빙고퀴즈' },
   { to: '/chatbot', icon: Bot, label: 'AI 챗봇' },
-  { to: '/map', icon: Map, label: '지도' },
-  { to: '/news', icon: Newspaper, label: '뉴스 분석' },
+  { to: '/map', icon: Map, label: '지도', roles: ['admin'] },
+  { to: '/news', icon: Newspaper, label: '회사소식과 뉴스' },
   { to: '/kpi', icon: TrendingUp, label: 'KPI 결과' },
   { to: '/webtoon', icon: Image, label: '웹툰' },
   { to: '/profile', icon: User, label: '내 정보' },
@@ -106,7 +106,7 @@ export default function MobileTabBar() {
             {/* 추가 메뉴 */}
             <p className="mb-2 px-1 text-xs font-bold uppercase tracking-wider text-slate-400">추가 메뉴</p>
             <div className="grid grid-cols-4 gap-2 mb-5">
-              {MORE_ITEMS.map(item => (
+              {MORE_ITEMS.filter(t => !(t as any).roles || ((t as any).roles as string[]).includes(role as never)).map(item => (
                 <NavLink
                   key={item.to}
                   to={item.to}

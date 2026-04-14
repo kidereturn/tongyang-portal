@@ -506,9 +506,13 @@ export default function BingoPage() {
           빙고퀴즈 5x5
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-brand-50/90">
-          25칸 빙고판에서 문제를 풀어 정답 칸을 채우세요. 5번·10번·15번째 문제는 주관식!
-          <br />한 문제당 <b className="text-yellow-300">10초</b> 시간제한. <b className="text-yellow-300">빙고 3줄 완성</b> 시 축하와 함께 선물을 증정합니다!
+          25칸 빙고판에서 문제를 풀어 정답 칸을 채우세요.
+          한 문제당 <b className="text-yellow-300">10초</b> 시간제한!
         </p>
+        <div className="mt-3 inline-flex items-center gap-2 rounded-xl bg-amber-500/20 border border-amber-400/30 px-4 py-2">
+          <Gift size={18} className="text-amber-300" />
+          <span className="text-sm font-bold text-amber-200">3줄 완성 시 기프티콘 선물!</span>
+        </div>
       </div>
 
       {/* Bingo status */}
@@ -527,16 +531,15 @@ export default function BingoPage() {
         </button>
       </div>
 
-      {/* Bingo Board */}
-      <div className="mx-auto max-w-lg">
+      {/* Bingo Board + Question side by side */}
+      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+      <div>
         <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
           {questions.map((_q, idx) => {
             const answered = answers[idx]
             const isActive = activeIdx === idx
             const isBingoLine = bingoIndices.has(idx)
             const cellNum = idx + 1
-            const isSubjective = cellNum === 5 || cellNum === 10 || cellNum === 15
-
             return (
               <button
                 key={idx}
@@ -554,9 +557,6 @@ export default function BingoPage() {
                 )}
               >
                 {cellNum}
-                {isSubjective && answered === undefined && (
-                  <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 text-[9px] sm:text-[10px] font-semibold text-amber-500">주관</span>
-                )}
                 {answered?.correct && (
                   <span className="absolute inset-0 flex items-center justify-center text-2xl sm:text-3xl opacity-30">O</span>
                 )}
@@ -569,6 +569,8 @@ export default function BingoPage() {
         </div>
       </div>
 
+      {/* Right column: Question panel */}
+      <div className="space-y-4">
       {/* Last message */}
       {lastMessage && !activeQuestion && (
         <div className={clsx(
@@ -580,7 +582,7 @@ export default function BingoPage() {
       )}
 
       {/* Active question panel */}
-      {activeQuestion && activeIdx !== null && (
+      {activeQuestion && activeIdx !== null ? (
         <div className="card overflow-hidden border-2 border-brand-200 shadow-xl">
           {/* Timer bar */}
           <div className="relative h-2 bg-slate-100">
@@ -667,6 +669,11 @@ export default function BingoPage() {
             </div>
           </div>
         </div>
+      ) : (
+        <div className="card p-6 text-center text-sm text-slate-400">
+          <p className="text-lg mb-2">👈</p>
+          <p>왼쪽 빙고판에서 번호를 클릭하세요</p>
+        </div>
       )}
 
       {/* Answer history (collapsed) */}
@@ -689,6 +696,8 @@ export default function BingoPage() {
           </div>
         </details>
       )}
+      </div>{/* end right column */}
+      </div>{/* end grid */}
 
       {/* Explosion overlay */}
       {showExplosion && (

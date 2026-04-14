@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import { ChevronDown } from 'lucide-react'
+
 const FAMILY_SITES = [
   { label: '유진그룹', href: 'https://www.eugenes.co.kr/' },
   { label: '유진기업', href: 'https://eugenecorp.co.kr/' },
@@ -10,48 +13,43 @@ const FAMILY_SITES = [
 ]
 
 export default function Footer() {
+  const [familyOpen, setFamilyOpen] = useState(false)
+
   return (
     <footer className="mt-12 border-t border-slate-200 bg-slate-950 text-slate-200">
-      <div className="mx-auto grid max-w-screen-2xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.3fr_1fr]">
-        <div className="space-y-4">
-          <div>
-            <p className="text-xs font-semibold tracking-[0.24em] text-slate-400">TONGYANG LMS</p>
-            <h2 className="mt-2 text-2xl font-black text-white">(주)동양 내부회계 LMS</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-              내부회계관리제도 운영, 증빙결재, 학습이력, 현장 주소, 공시와 뉴스까지 한 번에 관리하는
-              사번 기반 포털입니다.
-            </p>
-          </div>
-
-          <div className="grid gap-2 text-sm text-slate-300 sm:grid-cols-2">
-            <p>대표 사이트: <a className="text-white hover:underline" href="https://tongyanginc.co.kr/" target="_blank" rel="noreferrer">tongyanginc.co.kr</a></p>
-            <p>문의: 02-6150-7133</p>
-            <p>안내: 법적고지 / 개인정보처리방침 / 이메일주소 무단수집거부</p>
-            <p>기준 참고: 동양 공식 사이트 푸터 구성</p>
-          </div>
+      <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4 px-4 py-6 sm:px-6">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-400">
+          <span className="font-bold text-white">(주)동양 내부회계 LMS</span>
+          <a className="hover:text-white transition" href="https://tongyanginc.co.kr/" target="_blank" rel="noreferrer">tongyanginc.co.kr</a>
+          <span>문의: 02-6150-7172</span>
+          <span>법적고지 · 개인정보처리방침 · 이메일주소 무단수집거부</span>
+          <span>© 2026 TONGYANG Inc.</span>
         </div>
 
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-            <p className="text-sm font-bold text-white">패밀리 사이트</p>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        {/* 패밀리 사이트 드롭다운 */}
+        <div className="relative">
+          <button
+            onClick={() => setFamilyOpen(v => !v)}
+            className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
+          >
+            패밀리 사이트
+            <ChevronDown size={14} className={`transition ${familyOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {familyOpen && (
+            <div className="absolute bottom-full right-0 mb-1 w-48 rounded-xl border border-white/10 bg-slate-900 py-1 shadow-xl z-50">
               {FAMILY_SITES.map(site => (
                 <a
                   key={site.href}
                   href={site.href}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:border-brand-400 hover:text-white"
+                  className="block px-3 py-2 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
                 >
                   {site.label}
                 </a>
               ))}
             </div>
-          </div>
-
-          <p className="text-xs text-slate-400">
-            Copyright 2026 TONGYANG Inc. All rights reserved.
-          </p>
+          )}
         </div>
       </div>
     </footer>

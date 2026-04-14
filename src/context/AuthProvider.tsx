@@ -70,15 +70,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (mounted) setState(prev => ({ ...prev, loading: false }))
     }, 5000)
 
+    // Proactive session refresh every 10 minutes to prevent token expiration
+    const refreshInterval = setInterval(async () => {
+      try {
+        const { data } = await supabase.auth.refreshSession()
+        if (mounted && data.session) {
+          setState(prev => ({ ...prev, session: data.session, user: data.session!.user }))
+        }
+      } catch { /* silent */ }
+    }, 10 * 60 * 1000)
+
     return () => {
       mounted = false
       clearTimeout(timeout)
+      clearInterval(refreshInterval)
       subscription.unsubscribe()
     }
   }, [])
 
   async function signOut() {
-    await supabase.auth.signOut()
+    try {
+      await supabase.auth.signOut()
+    } catch { /* ignore */ }
+    // Force clear auth state and storage even if signOut fails
+    setState({ user: null, session: null, profile: null, loading: false })
+    try {
+      Object.keys(window.localStorage).forEach(key => {
+        if (key.startsWith('sb-')) window.localStorage.removeItem(key)
+      })
+    } catch { /* ignore */ }
   }
 
   return (

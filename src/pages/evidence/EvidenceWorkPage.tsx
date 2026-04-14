@@ -157,7 +157,7 @@ export default function EvidenceWorkPage() {
 
   // ── 파일 다운로드 ───────────────────────────────────────────
   async function handleDownload(filePath: string, fileName: string) {
-    const { data } = await supabase.storage.from('evidence').createSignedUrl(filePath, 60)
+    const { data } = await supabase.storage.from('evidence').createSignedUrl(filePath, 3600)
     if (data?.signedUrl) {
       const a = document.createElement('a'); a.href = data.signedUrl; a.download = fileName; a.click()
     }

@@ -670,7 +670,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
 
 function FileDownloadBtn({ path, name }: { path: string; name: string }) {
   async function handleDownload() {
-    const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 60)
+    const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 3600)
     if (!data?.signedUrl) return
 
     const link = document.createElement('a')

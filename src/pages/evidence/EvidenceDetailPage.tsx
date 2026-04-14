@@ -121,7 +121,7 @@ export default function EvidenceDetailPage() {
     if (!rec?.file_path) return
     const { data } = await supabase.storage
       .from('evidence')
-      .createSignedUrl(rec.file_path, 60)
+      .createSignedUrl(rec.file_path, 3600)
     if (data?.signedUrl) window.open(data.signedUrl, '_blank')
   }
 

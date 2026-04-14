@@ -165,9 +165,11 @@ export default function DashboardPage() {
         .eq('active', true)
 
       if (profile.role === 'owner') {
-        activityQuery = activityQuery.eq('owner_id', profile.id)
+        if (profile.employee_id) activityQuery = activityQuery.eq('owner_employee_id', profile.employee_id)
+        else activityQuery = activityQuery.eq('owner_id', profile.id)
       } else if (profile.role === 'controller') {
-        activityQuery = activityQuery.eq('controller_id', profile.id)
+        if (profile.employee_id) activityQuery = activityQuery.eq('controller_employee_id', profile.employee_id)
+        else activityQuery = activityQuery.eq('controller_id', profile.id)
       }
 
       const timeout = new Promise((_, reject) => {

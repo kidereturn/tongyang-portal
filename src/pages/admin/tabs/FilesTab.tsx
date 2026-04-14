@@ -23,7 +23,7 @@ export default function FilesTab() {
   }, [])
 
   async function downloadFile(path: string, name: string) {
-    const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 60)
+    const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 3600)
     if (!data?.signedUrl) return
     const anchor = document.createElement('a')
     anchor.href = data.signedUrl
