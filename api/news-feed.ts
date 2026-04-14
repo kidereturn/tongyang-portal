@@ -27,12 +27,20 @@ type FinanceRow = {
 
 const DART_API_KEY = process.env.VITE_DART_API_KEY ?? process.env.DART_API_KEY
 
-/* 동양 계열사 기본 코드 */
+/* 동양 계열사 및 주요 기업 코드 */
 const KNOWN_CORPS: Record<string, string> = {
   '동양': '00117337',
   '동양물산': '00155282',
   '동양생명': '00266965',
   '동양파일': '00351863',
+  '동양시멘트': '00126217',
+  '동양매직': '00103740',
+  '삼성전자': '00126380',
+  '현대자동차': '00164742',
+  'SK하이닉스': '00164779',
+  'LG에너지솔루션': '01637396',
+  'NAVER': '00266961',
+  '카카오': '00258801',
 }
 
 function json(body: unknown, status = 200) {

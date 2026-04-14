@@ -131,17 +131,47 @@ export default function NewsPage() {
           </div>
 
           {/* 검색 필터 */}
-          <form onSubmit={handleDartSearch} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <form onSubmit={handleDartSearch} className="rounded-2xl border border-sky-200 bg-white p-4 shadow-sm">
+            {/* 계열사 빠른 선택 */}
+            <div className="mb-3">
+              <label className="mb-1.5 block text-[11px] font-semibold text-slate-500">계열사 바로가기</label>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { name: '동양', desc: '(주)동양' },
+                  { name: '동양물산', desc: '동양물산기업' },
+                  { name: '동양생명', desc: '동양생명보험' },
+                  { name: '동양파일', desc: '동양파일' },
+                  { name: '동양시멘트', desc: '동양시멘트' },
+                  { name: '동양매직', desc: '동양매직' },
+                ].map(c => (
+                  <button
+                    key={c.name}
+                    type="button"
+                    onClick={() => { setCorpName(c.name); loadFeed(c.name) }}
+                    className={clsx(
+                      'px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all',
+                      corpName === c.name
+                        ? 'bg-sky-600 text-white border-sky-600'
+                        : 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100'
+                    )}
+                    title={c.desc}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto]">
               <div>
-                <label className="mb-1 block text-[11px] font-semibold text-slate-500">회사명</label>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-500">회사명 직접 입력</label>
                 <div className="relative">
                   <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
                     value={corpName}
                     onChange={e => setCorpName(e.target.value)}
-                    placeholder="동양"
+                    placeholder="회사명 입력 (예: 삼성전자)"
                     className="form-input pl-8 text-sm"
                   />
                 </div>
