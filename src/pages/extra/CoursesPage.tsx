@@ -204,17 +204,17 @@ export default function CoursesPage() {
     const status = pct >= 95 ? 'completed' : pct > 0 ? 'in_progress' : 'not_started'
 
     try {
-      await (supabase as any).from('learning_progress').upsert({
-        user_id: profile.id,
-        course_id: selectedVideo.id,
-        watched_seconds: Math.round(watchLimitRef.current),
-        duration_seconds: Math.round(d),
-        progress_percent: pct,
-        status,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,course_id' })
+      const { error } = await supabase.rpc('upsert_learning_progress' as any, {
+        p_user_id: profile.id,
+        p_course_id: selectedVideo.id,
+        p_watched_seconds: Math.round(watchLimitRef.current),
+        p_duration_seconds: Math.round(d),
+        p_progress_percent: pct,
+        p_status: status,
+      })
+      if (error) console.error('[CoursesPage] rpc save error:', error.message, error.code)
     } catch (err) {
-      console.warn('[CoursesPage] save progress error:', err)
+      console.error('[CoursesPage] save progress exception:', err)
     }
   }
 
@@ -227,22 +227,31 @@ export default function CoursesPage() {
     }, 10000)
 
     function handleBeforeUnload() {
-      // Use sendBeacon as fallback for unload
       if (watchLimitRef.current <= 0 || !profile?.id || !selectedVideo?.id) return
       const d = duration || 0
       const pct = d > 0 ? Math.min(100, Math.round((watchLimitRef.current / d) * 100)) : 0
       const status = pct >= 95 ? 'completed' : pct > 0 ? 'in_progress' : 'not_started'
-      const body = JSON.stringify({
-        user_id: profile.id,
-        course_id: selectedVideo.id,
-        watched_seconds: Math.round(watchLimitRef.current),
-        duration_seconds: Math.round(d),
-        progress_percent: pct,
-        status,
-        updated_at: new Date().toISOString(),
-      })
-      // Best-effort save on close
-      navigator.sendBeacon?.(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/learning_progress?on_conflict=user_id,course_id`, new Blob([body], { type: 'application/json' }))
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+      try {
+        fetch(`${supabaseUrl}/rest/v1/rpc/upsert_learning_progress`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            p_user_id: profile.id,
+            p_course_id: selectedVideo.id,
+            p_watched_seconds: Math.round(watchLimitRef.current),
+            p_duration_seconds: Math.round(d),
+            p_progress_percent: pct,
+            p_status: status,
+          }),
+          keepalive: true,
+        })
+      } catch { /* best effort on page close */ }
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
 
