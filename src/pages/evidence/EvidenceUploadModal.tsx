@@ -416,17 +416,19 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
       }
 
       try {
-        await supabase.functions.invoke('send-approval-email', {
-          body: {
-            type: 'submitted',
-            to: activity.controller_email,
-            ownerName: activity.owner_name ?? profile?.full_name ?? '',
-            controlCode: activity.control_code,
-            activityTitle: activity.title ?? '',
-            department: activity.department ?? '',
-            portalUrl: window.location.origin,
-          },
-        })
+        if (activity.controller_email) {
+          await supabase.functions.invoke('send-approval-email', {
+            body: {
+              type: 'submitted',
+              to: activity.controller_email,
+              recipientName: activity.controller_name ?? '통제책임자',
+              submitterName: activity.owner_name ?? profile?.full_name ?? '',
+              controlCode: activity.control_code ?? '',
+              activityTitle: activity.title ?? '',
+              uniqueKey: activity.unique_key ?? '',
+            },
+          })
+        }
       } catch {
         // Keep the submission successful even if email delivery fails.
       }
@@ -442,7 +444,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
 
   return (
     <div className="modal-overlay" onClick={event => { if (event.target === event.currentTarget) onClose() }}>
-      <div className="modal-box w-[98vw] max-w-[1560px] max-h-[94vh]">
+      <div className="modal-box w-[98vw] sm:w-[96vw] max-w-[1560px] max-h-[94vh]">
         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-start justify-between z-10">
           <div>
             <h2 className="text-lg font-black text-gray-900">
