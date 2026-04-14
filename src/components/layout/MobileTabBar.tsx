@@ -12,7 +12,6 @@ import {
   Map,
   Menu,
   Newspaper,
-  Settings,
   Shield,
   TrendingUp,
   User,

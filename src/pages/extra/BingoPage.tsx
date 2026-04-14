@@ -530,7 +530,7 @@ export default function BingoPage() {
       {/* Bingo Board */}
       <div className="mx-auto max-w-lg">
         <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-          {questions.map((q, idx) => {
+          {questions.map((_q, idx) => {
             const answered = answers[idx]
             const isActive = activeIdx === idx
             const isBingoLine = bingoIndices.has(idx)

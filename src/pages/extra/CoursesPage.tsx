@@ -196,21 +196,22 @@ export default function CoursesPage() {
   }
 
   // Save progress helper — reused in interval, unload, and video switch
-  const saveProgressRef = useRef<() => Promise<void>>()
+  const saveProgressRef = useRef<(() => Promise<void>) | null>(null)
   saveProgressRef.current = async () => {
     if (!profile?.id || !selectedVideo?.id || watchLimitRef.current <= 0) return
     const d = duration || (playerRef.current?.getDuration?.() ?? 0)
     const pct = d > 0 ? Math.min(100, Math.round((watchLimitRef.current / d) * 100)) : 0
-    const status = pct >= 95 ? 'completed' : pct > 0 ? 'in_progress' : 'not_started'
+    const st = pct >= 95 ? 'completed' : pct > 0 ? 'in_progress' : 'not_started'
 
     try {
-      const { error } = await supabase.rpc('upsert_learning_progress' as any, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).rpc('upsert_learning_progress', {
         p_user_id: profile.id,
         p_course_id: selectedVideo.id,
         p_watched_seconds: Math.round(watchLimitRef.current),
         p_duration_seconds: Math.round(d),
         p_progress_percent: pct,
-        p_status: status,
+        p_status: st,
       })
       if (error) console.error('[CoursesPage] rpc save error:', error.message, error.code)
     } catch (err) {
