@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ExternalLink, Loader2, Newspaper, RefreshCw, Search, TrendingUp } from 'lucide-react'
+import clsx from 'clsx'
 
 type NewsItem = {
   id: string
@@ -246,54 +247,116 @@ export default function NewsPage() {
           )}
         </section>
 
-        {/* ───── RIGHT: 네이버 뉴스 ───── */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-black text-slate-900">금융 뉴스</h2>
-            {data?.refreshedAt && (
-              <p className="text-[11px] text-slate-400">
-                {new Date(data.refreshedAt).toLocaleString('ko-KR')}
-              </p>
-            )}
-          </div>
-
-          {loading && !data ? (
-            <div className="space-y-2">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="card px-4 py-3">
-                  <div className="skeleton h-4 w-4/5 rounded" />
-                  <div className="mt-2 skeleton h-3 w-1/3 rounded" />
-                </div>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="rounded-2xl border border-red-100 bg-red-50 p-5 text-sm text-red-700">{error}</div>
-          ) : (
-            <div className="space-y-1.5">
-              {data?.newsItems.map(item => (
-                <a
-                  key={item.id}
-                  href={item.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="group flex items-start gap-3 rounded-xl border border-slate-100 bg-white px-4 py-2.5 transition hover:border-brand-100 hover:shadow-md"
-                >
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-bold leading-5 text-slate-900 transition group-hover:text-brand-700 line-clamp-2">
-                      {item.title}
-                    </h3>
-                    <p className="mt-1 text-[11px] text-slate-400">{item.source} · {item.date}</p>
-                  </div>
-                  <ExternalLink size={14} className="mt-0.5 shrink-0 text-slate-300 transition group-hover:text-brand-600" />
-                </a>
-              ))}
-              {data?.newsItems.length === 0 && (
-                <div className="text-center py-8 text-sm text-slate-400">뉴스를 불러올 수 없습니다.</div>
-              )}
-            </div>
-          )}
-        </section>
+        {/* ───── RIGHT: 뉴스 4탭 ───── */}
+        <NewsTabs newsItems={data?.newsItems ?? []} refreshedAt={data?.refreshedAt} loading={loading && !data} error={error} />
       </div>
     </div>
+  )
+}
+
+/* ─── 뉴스 4탭 컴포넌트 ─── */
+type NewsTabItem = { id: string; title: string; url: string }
+const NEWS_TABS = [
+  { key: 'finance', label: '금융', query: '금융+시장' },
+  { key: 'remicon', label: '레미콘', query: '레미콘+동양' },
+  { key: 'construction', label: '건설', query: '건설+산업+산군' },
+  { key: 'plant', label: '플랜트·환경', query: '플랜트+산업용송풍기+환경설비' },
+] as const
+
+function NewsTabs({ newsItems, refreshedAt, loading, error }: {
+  newsItems: NewsItem[]; refreshedAt?: string; loading: boolean; error: string | null
+}) {
+  const [tab, setTab] = useState<string>('finance')
+  const [tabNews, setTabNews] = useState<Record<string, NewsTabItem[]>>({})
+  const [tabLoading, setTabLoading] = useState<Record<string, boolean>>({})
+
+  // Finance tab uses the pre-fetched newsItems
+  useEffect(() => {
+    if (newsItems.length > 0) {
+      setTabNews(prev => ({ ...prev, finance: newsItems.map(n => ({ id: n.id, title: n.title, url: n.url })) }))
+    }
+  }, [newsItems])
+
+  // Load other tabs on demand via Naver search
+  useEffect(() => {
+    if (tab === 'finance' || tabNews[tab]) return
+    setTabLoading(prev => ({ ...prev, [tab]: true }))
+    const tabDef = NEWS_TABS.find(t => t.key === tab)
+    if (!tabDef) return
+
+    fetch(`/api/news-feed?news_query=${encodeURIComponent(tabDef.query)}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then((d: FeedResponse) => {
+        setTabNews(prev => ({ ...prev, [tab]: (d.newsItems ?? []).map(n => ({ id: n.id, title: n.title, url: n.url })) }))
+      })
+      .catch(() => {
+        setTabNews(prev => ({ ...prev, [tab]: [] }))
+      })
+      .finally(() => {
+        setTabLoading(prev => ({ ...prev, [tab]: false }))
+      })
+  }, [tab, tabNews])
+
+  const currentItems = tabNews[tab] ?? []
+  const isLoading = tab === 'finance' ? loading : (tabLoading[tab] ?? false)
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-black text-slate-900">뉴스</h2>
+        {refreshedAt && (
+          <p className="text-[11px] text-slate-400">{new Date(refreshedAt).toLocaleString('ko-KR')}</p>
+        )}
+      </div>
+
+      {/* Tab buttons */}
+      <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+        {NEWS_TABS.map(t => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={clsx(
+              'flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition',
+              tab === t.key ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      {error && tab === 'finance' ? (
+        <div className="rounded-2xl border border-red-100 bg-red-50 p-5 text-sm text-red-700">{error}</div>
+      ) : isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="card px-4 py-2.5"><div className="skeleton h-4 w-4/5 rounded" /><div className="mt-2 skeleton h-3 w-1/3 rounded" /></div>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-1 max-h-[540px] overflow-y-auto">
+          {currentItems.map((item, i) => (
+            <a
+              key={item.id + '-' + i}
+              href={item.url}
+              target="_blank"
+              rel="noreferrer"
+              className="group flex items-start gap-3 rounded-xl border border-slate-100 bg-white px-4 py-2 transition hover:border-brand-100 hover:shadow-md"
+            >
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm font-bold leading-5 text-slate-900 transition group-hover:text-brand-700 line-clamp-1">
+                  {item.title}
+                </h3>
+              </div>
+              <ExternalLink size={13} className="mt-0.5 shrink-0 text-slate-300 transition group-hover:text-brand-600" />
+            </a>
+          ))}
+          {currentItems.length === 0 && (
+            <div className="text-center py-8 text-sm text-slate-400">뉴스가 없습니다.</div>
+          )}
+        </div>
+      )}
+    </section>
   )
 }

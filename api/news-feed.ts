@@ -101,6 +101,36 @@ async function fetchNaverFinanceNews(): Promise<NewsItem[]> {
   return items
 }
 
+async function fetchNaverSearchNews(query: string): Promise<NewsItem[]> {
+  const encodedQuery = encodeURIComponent(query)
+  const response = await fetch(`https://search.naver.com/search.naver?where=news&query=${encodedQuery}&sort=1`, {
+    headers: { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+    cache: 'no-store',
+  })
+  if (!response.ok) return []
+
+  const html = await response.text()
+  // Match news titles and URLs from Naver search results
+  const regex = /<a[^>]*class="news_tit"[^>]*href="([^"]+)"[^>]*title="([^"]+)"/g
+  const items: NewsItem[] = []
+  let match: RegExpExecArray | null = null
+
+  while ((match = regex.exec(html)) && items.length < 10) {
+    const url = match[1]
+    const title = decodeHtml(match[2])
+    if (!title || title.length < 4) continue
+    items.push({
+      id: `search-${items.length}`,
+      title,
+      summary: '',
+      source: '네이버 검색',
+      date: new Date().toISOString().slice(0, 10),
+      url,
+    })
+  }
+  return items
+}
+
 async function lookupCorpCode(corpName: string): Promise<string | null> {
   const known = KNOWN_CORPS[corpName]
   if (known) return known
@@ -168,6 +198,24 @@ async function fetchFinancials(corpCode: string): Promise<FinanceRow[]> {
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
+
+    /* ── 뉴스 검색 전용 경로 ── */
+    const newsQuery = url.searchParams.get('news_query')
+    if (newsQuery) {
+      const newsItems = await fetchNaverSearchNews(newsQuery).catch(() => [])
+      return json({
+        ok: true,
+        refreshedAt: new Date().toISOString(),
+        corpName: '',
+        corpCode: '',
+        dartAllUrl: '',
+        newsItems,
+        dartItems: [],
+        financials: [],
+      })
+    }
+
+    /* ── 기본 경로: DART 공시 + 네이버 금융 뉴스 ── */
     const corpNameParam = url.searchParams.get('corp_name') || '동양'
     const bgnDe = url.searchParams.get('bgn_de') || undefined
     const endDe = url.searchParams.get('end_de') || undefined
