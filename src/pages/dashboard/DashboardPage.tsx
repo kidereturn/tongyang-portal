@@ -10,6 +10,11 @@ import {
   Pie,
   Cell,
   Legend,
+  LineChart,
+  Line,
+  CartesianGrid,
+  RadialBarChart,
+  RadialBar,
 } from 'recharts'
 import {
   FileCheck2,
@@ -58,6 +63,19 @@ interface DashboardActivity {
   updated_at: string | null
   owner_id: string | null
   controller_id: string | null
+  department: string | null
+}
+
+interface DeptData {
+  name: string
+  total: number
+  approved: number
+  pending: number
+}
+
+interface DailyData {
+  day: string
+  count: number
 }
 
 const PIE_COLORS = ['#f59e0b', '#6366f1', '#22c55e', '#ef4444']
@@ -132,6 +150,8 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Stats>({ total: 0, pendingApproval: 0, approved: 0, rejected: 0 })
   const [monthly, setMonthly] = useState<MonthlyData[]>([])
   const [actStats, setActStats] = useState<ActivityStat[]>([])
+  const [deptStats, setDeptStats] = useState<DeptData[]>([])
+  const [dailyActivity, setDailyActivity] = useState<DailyData[]>([])
   const [userCount, setUserCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -161,7 +181,7 @@ export default function DashboardPage() {
     try {
       let activityQuery = db
         .from('activities')
-        .select('id, control_code, submission_status, created_at, updated_at, owner_id, controller_id')
+        .select('id, control_code, submission_status, created_at, updated_at, owner_id, controller_id, department')
         .eq('active', true)
 
       if (profile.role === 'owner') {
@@ -222,6 +242,36 @@ export default function DashboardPage() {
       if (status === 'approved') monthMap[key].approved += 1
       if (status === 'rejected') monthMap[key].rejected += 1
     })
+
+      // 부서별 통계
+      const deptMap: Record<string, DeptData> = {}
+      activityRecords.forEach(record => {
+        const dept = record.department ?? '미지정'
+        if (!deptMap[dept]) deptMap[dept] = { name: dept, total: 0, approved: 0, pending: 0 }
+        deptMap[dept].total += 1
+        const st = getSubmissionStatus(record.submission_status)
+        if (st === 'approved') deptMap[dept].approved += 1
+        if (st === 'pendingApproval') deptMap[dept].pending += 1
+      })
+
+      // 일별 활동 추이 (최근 14일)
+      const dailyMap: Record<string, number> = {}
+      for (let d = 13; d >= 0; d--) {
+        const dt = new Date(now.getFullYear(), now.getMonth(), now.getDate() - d)
+        const key = `${dt.getMonth() + 1}/${dt.getDate()}`
+        dailyMap[key] = 0
+      }
+      activityRecords.forEach(record => {
+        const baseDate = record.updated_at ?? record.created_at
+        if (!baseDate) return
+        const dt = new Date(baseDate)
+        if (Number.isNaN(dt.getTime())) return
+        const key = `${dt.getMonth() + 1}/${dt.getDate()}`
+        if (dailyMap[key] !== undefined) dailyMap[key] += 1
+      })
+
+      setDeptStats(Object.values(deptMap).sort((a, b) => b.total - a.total).slice(0, 8))
+      setDailyActivity(Object.entries(dailyMap).map(([day, count]) => ({ day, count })))
 
       setStats(nextStats)
       setMonthly(Object.values(monthMap))
@@ -499,6 +549,84 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* 부서별 현황 + 일별 활동 추이 */}
+      {!loading && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* 부서별 증빙 현황 */}
+          {deptStats.length > 0 && (
+            <div className="card p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Users size={15} className="text-brand-500" />
+                <p className="font-bold text-gray-900 text-sm">부서별 증빙 현황</p>
+              </div>
+              {deptStats.every(d => d.total === 0) ? (
+                <div className="flex items-center justify-center h-48 text-gray-300 text-sm">데이터 없음</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={deptStats} layout="vertical" barSize={14}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis type="number" tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} allowDecimals={false} />
+                    <YAxis type="category" dataKey="name" tick={{ fill: '#6b7280', fontSize: 11 }} width={60} axisLine={false} />
+                    <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 12 }} />
+                    <Bar dataKey="approved" fill="#22c55e" radius={[0, 3, 3, 0]} name="승인" stackId="a" />
+                    <Bar dataKey="pending" fill="#6366f1" radius={[0, 3, 3, 0]} name="결재대기" stackId="a" />
+                    <Bar dataKey="total" fill="#e5e7eb" radius={[0, 3, 3, 0]} name="전체" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          )}
+
+          {/* 일별 활동 추이 (최근 14일) */}
+          <div className="card p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp size={15} className="text-brand-500" />
+              <p className="font-bold text-gray-900 text-sm">일별 활동 추이 (최근 14일)</p>
+            </div>
+            {dailyActivity.every(d => d.count === 0) ? (
+              <div className="flex items-center justify-center h-48 text-gray-300 text-sm">데이터 없음</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={dailyActivity}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="day" tick={{ fill: '#9ca3af', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 12 }} />
+                  <Line type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={2} dot={{ r: 3, fill: '#6366f1' }} name="활동 건수" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 완료율 게이지 */}
+      {!loading && stats.total > 0 && (
+        <div className="card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Activity size={15} className="text-brand-500" />
+            <p className="font-bold text-gray-900 text-sm">전체 진행률</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {[
+              { label: '상신완료율', value: stats.total > 0 ? Math.round(((stats.pendingApproval + stats.approved + stats.rejected) / stats.total) * 100) : 0, color: '#6366f1' },
+              { label: '승인 완료율', value: stats.total > 0 ? Math.round((stats.approved / stats.total) * 100) : 0, color: '#22c55e' },
+              { label: '반려율', value: (stats.approved + stats.rejected) > 0 ? Math.round((stats.rejected / (stats.approved + stats.rejected)) * 100) : 0, color: '#ef4444' },
+            ].map(g => (
+              <div key={g.label} className="text-center">
+                <ResponsiveContainer width="100%" height={120}>
+                  <RadialBarChart cx="50%" cy="50%" innerRadius="60%" outerRadius="85%" startAngle={180} endAngle={0} data={[{ value: g.value, fill: g.color }]}>
+                    <RadialBar background dataKey="value" cornerRadius={10} />
+                  </RadialBarChart>
+                </ResponsiveContainer>
+                <p className="text-2xl font-black text-gray-900 -mt-6">{g.value}%</p>
+                <p className="text-xs text-gray-500 mt-1">{g.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {actStats.length > 0 && !loading && (
         <div className="card p-5">

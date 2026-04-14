@@ -1,42 +1,40 @@
-import { useEffect, useState } from 'react'
-import { ExternalLink, Loader2, Newspaper, RefreshCw, Search, TrendingUp } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  BarChart3,
+  Building2,
+  ExternalLink,
+  Loader2,
+  Newspaper,
+  RefreshCw,
+  Search,
+  TrendingUp,
+  X,
+} from 'lucide-react'
 import clsx from 'clsx'
 
-type NewsItem = {
-  id: string
-  title: string
-  source: string
-  date: string
-  url: string
-}
-
-type DartItem = {
-  corp_name: string
-  report_nm: string
-  rcept_dt: string
-  rm: string
-  rcept_no: string
-  url: string
-}
-
-type FinanceRow = {
-  account_nm: string
-  thstrm_amount: string
-  frmtrm_amount: string
-  bfefrmtrm_amount: string
+/* ──────── Types ──────── */
+type NewsItem = { id: string; title: string; source: string; date: string; url: string }
+type DartItem = { corp_name: string; report_nm: string; rcept_dt: string; rm: string; rcept_no: string; url: string }
+type FinanceRow = { account_nm: string; thstrm_amount: string; frmtrm_amount: string; bfefrmtrm_amount: string }
+type StockInfo = {
+  name: string; price: string; change: string; changeRate: string
+  marketCap: string; per: string; pbr: string; dividendYield: string
+  high52w: string; low52w: string; volume: string
 }
 
 type FeedResponse = {
-  ok: boolean
-  refreshedAt: string
-  corpName: string
-  corpCode: string
-  dartAllUrl: string
-  newsItems: NewsItem[]
-  dartItems: DartItem[]
-  financials: FinanceRow[]
+  ok: boolean; refreshedAt: string; corpName: string; corpCode: string
+  stockCode?: string; dartAllUrl: string
+  newsItems: NewsItem[]; dartItems: DartItem[]; financials: FinanceRow[]
+  stockInfo?: StockInfo | null
 }
 
+type CompanySearchResult = {
+  corp_code: string; corp_name: string; stock_code: string
+  listed: boolean; ceo_nm?: string; corp_cls?: string; induty_code?: string
+}
+
+/* ──────── Helpers ──────── */
 function formatDartDate(v: string) {
   if (!v || v.length !== 8) return v
   return `${v.slice(0, 4)}.${v.slice(4, 6)}.${v.slice(6, 8)}`
@@ -46,11 +44,10 @@ function formatAmount(v: string) {
   if (!v || v === '-') return '-'
   const n = Number(v.replace(/,/g, ''))
   if (Number.isNaN(n)) return v
-  if (Math.abs(n) >= 1e8) return `${(n / 1e8).toFixed(1)}억`
-  if (Math.abs(n) >= 1e4) return `${(n / 1e4).toFixed(0)}만`
-  return n.toLocaleString()
+  return n.toLocaleString('ko-KR')
 }
 
+/* ──────── Main Page ──────── */
 export default function NewsPage() {
   const [data, setData] = useState<FeedResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -58,40 +55,73 @@ export default function NewsPage() {
 
   /* DART 검색 필터 */
   const [corpName, setCorpName] = useState('동양')
+  const [corpCode, setCorpCode] = useState('')
+  const [stockCode, setStockCode] = useState('')
   const [bgnDe, setBgnDe] = useState('')
   const [endDe, setEndDe] = useState('')
+  const [showSearchPopup, setShowSearchPopup] = useState(false)
 
-  async function loadFeed(searchCorpName?: string) {
-    setLoading(true)
-    setError(null)
+  const loadFeed = useCallback(
+    async (overrides?: { name?: string; code?: string; stock?: string }) => {
+      setLoading(true)
+      setError(null)
 
-    const params = new URLSearchParams()
-    params.set('corp_name', searchCorpName ?? corpName)
-    if (bgnDe) params.set('bgn_de', bgnDe)
-    if (endDe) params.set('end_de', endDe)
+      const params = new URLSearchParams()
+      params.set('corp_name', overrides?.name ?? corpName)
+      if (overrides?.code ?? corpCode) params.set('corp_code', overrides?.code ?? corpCode)
+      if (overrides?.stock ?? stockCode) params.set('stock_code', overrides?.stock ?? stockCode)
+      if (bgnDe) params.set('bgn_de', bgnDe)
+      if (endDe) params.set('end_de', endDe)
 
-    try {
-      const response = await fetch(`/api/news-feed?${params}`, { cache: 'no-store' })
-      const payload = (await response.json()) as FeedResponse & { error?: string }
-      if (!response.ok || !payload.ok) throw new Error(payload.error ?? '데이터를 불러오지 못했습니다.')
-      setData(payload)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setLoading(false)
-    }
-  }
+      try {
+        const response = await fetch(`/api/news-feed?${params}`, { cache: 'no-store' })
+        const payload = (await response.json()) as FeedResponse & { error?: string }
+        if (!response.ok || !payload.ok) throw new Error(payload.error ?? '데이터를 불러오지 못했습니다.')
+        setData(payload)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e))
+      } finally {
+        setLoading(false)
+      }
+    },
+    [corpName, corpCode, stockCode, bgnDe, endDe],
+  )
 
-  useEffect(() => { void loadFeed() }, [])
+  useEffect(() => {
+    void loadFeed()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function handleDartSearch(e: React.FormEvent) {
     e.preventDefault()
     loadFeed()
   }
 
-  /* 재무제표 주요 항목 필터 */
-  const KEY_ACCOUNTS = ['자산총계', '부채총계', '자본총계', '매출액', '영업이익', '당기순이익']
-  const keyFinancials = (data?.financials ?? []).filter(r => KEY_ACCOUNTS.some(k => r.account_nm.includes(k)))
+  function handleCompanySelect(result: CompanySearchResult) {
+    setCorpName(result.corp_name)
+    setCorpCode(result.corp_code)
+    setStockCode(result.stock_code)
+    setShowSearchPopup(false)
+    loadFeed({ name: result.corp_name, code: result.corp_code, stock: result.stock_code })
+  }
+
+  /* 계열사 정보 (corp_code, stock_code 포함) */
+  const AFFILIATES: { name: string; corp_code: string; stock_code: string }[] = [
+    { name: '동양', corp_code: '00117337', stock_code: '001520' },
+    { name: '한일합섬', corp_code: '01569856', stock_code: '' },
+    { name: '유진홈센터', corp_code: '00856931', stock_code: '' },
+    { name: '금왕에프원', corp_code: '01718540', stock_code: '' },
+    { name: '유진리츠운용', corp_code: '01934917', stock_code: '' },
+    { name: '유진이엔티', corp_code: '01795868', stock_code: '' },
+    { name: '유진기업㈜', corp_code: '00184667', stock_code: '023410' },
+  ]
+
+  function handleAffiliateClick(aff: { name: string; corp_code: string; stock_code: string }) {
+    setCorpName(aff.name.replace('㈜', ''))
+    setCorpCode(aff.corp_code)
+    setStockCode(aff.stock_code)
+    loadFeed({ name: aff.name.replace('㈜', ''), code: aff.corp_code, stock: aff.stock_code })
+  }
 
   return (
     <div className="space-y-6">
@@ -102,10 +132,10 @@ export default function NewsPage() {
             <p className="text-xs font-semibold tracking-[0.24em] text-slate-400">LIVE FEED</p>
             <h1 className="mt-2 flex items-center gap-2 text-3xl font-black">
               <Newspaper size={28} className="text-brand-300" />
-              뉴스 · 공시
+              뉴스 · 공시 · 재무
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-              DART 공시와 네이버 금융 뉴스를 실시간 조회합니다.
+              DART 공시, 실시간 주가, 재무제표, 네이버 금융 뉴스를 통합 조회합니다.
             </p>
           </div>
           <button
@@ -125,9 +155,7 @@ export default function NewsPage() {
           <div className="flex items-center gap-2">
             <TrendingUp size={18} className="text-brand-600" />
             <h2 className="text-lg font-black text-slate-900">DART 공시</h2>
-            {data?.corpName && (
-              <span className="badge-blue text-xs">{data.corpName}</span>
-            )}
+            {data?.corpName && <span className="badge-blue text-xs">{data.corpName}</span>}
           </div>
 
           {/* 검색 필터 */}
@@ -136,44 +164,43 @@ export default function NewsPage() {
             <div className="mb-3">
               <label className="mb-1.5 block text-[11px] font-semibold text-slate-500">계열사 바로가기</label>
               <div className="flex flex-wrap gap-1.5">
-                {[
-                  { name: '동양', desc: '(주)동양' },
-                  { name: '동양물산', desc: '동양물산기업' },
-                  { name: '동양생명', desc: '동양생명보험' },
-                  { name: '동양파일', desc: '동양파일' },
-                  { name: '동양시멘트', desc: '동양시멘트' },
-                  { name: '동양매직', desc: '동양매직' },
-                ].map(c => (
+                {AFFILIATES.map(aff => (
                   <button
-                    key={c.name}
+                    key={aff.name}
                     type="button"
-                    onClick={() => { setCorpName(c.name); loadFeed(c.name) }}
+                    onClick={() => handleAffiliateClick(aff)}
                     className={clsx(
                       'px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all',
-                      corpName === c.name
+                      (corpCode === aff.corp_code || (!corpCode && corpName === aff.name.replace('㈜', '')))
                         ? 'bg-sky-600 text-white border-sky-600'
-                        : 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100'
+                        : 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100',
                     )}
-                    title={c.desc}
                   >
-                    {c.name}
+                    {aff.name}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto]">
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto_auto]">
               <div>
-                <label className="mb-1 block text-[11px] font-semibold text-slate-500">회사명 직접 입력</label>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-500">회사명</label>
                 <div className="relative">
                   <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
                     value={corpName}
-                    onChange={e => setCorpName(e.target.value)}
-                    placeholder="회사명 입력 (예: 삼성전자)"
-                    className="form-input pl-8 text-sm"
+                    onChange={e => { setCorpName(e.target.value); setCorpCode(''); setStockCode('') }}
+                    placeholder="회사명 입력"
+                    className="form-input pl-8 pr-20 text-sm"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowSearchPopup(true)}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 rounded-md bg-sky-600 px-2 py-1 text-[11px] font-bold text-white hover:bg-sky-700 transition"
+                  >
+                    회사명찾기
+                  </button>
                 </div>
               </div>
               <div>
@@ -193,6 +220,9 @@ export default function NewsPage() {
             </div>
           </form>
 
+          {/* 주가 정보 (상장사) */}
+          {data?.stockInfo && <StockInfoCard info={data.stockInfo} />}
+
           {/* 공시 목록 */}
           <div className="overflow-hidden rounded-2xl bg-sky-50 border border-sky-200 shadow-lg">
             <div className="border-b border-sky-200 bg-sky-100 px-5 py-3">
@@ -203,10 +233,11 @@ export default function NewsPage() {
 
             {loading && !data ? (
               <div className="flex items-center justify-center py-12 text-sky-400">
-                <Loader2 size={20} className="animate-spin mr-2" />로딩 중...
+                <Loader2 size={20} className="animate-spin mr-2" />
+                로딩 중...
               </div>
             ) : (
-              <div className="divide-y divide-sky-100">
+              <div className="divide-y divide-sky-100 max-h-[500px] overflow-y-auto">
                 {(data?.dartItems ?? []).map(item => (
                   <a
                     key={item.rcept_no}
@@ -245,15 +276,16 @@ export default function NewsPage() {
           </div>
 
           {/* 재무제표 요약 */}
-          {keyFinancials.length > 0 && (
+          {(data?.financials ?? []).length > 0 && (
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h3 className="mb-3 text-sm font-black text-slate-900">
-                {data?.corpName} 주요 재무지표 ({new Date().getFullYear() - 1}년)
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-black text-slate-900">
+                <BarChart3 size={16} className="text-sky-600" />
+                {data?.corpName} 주요 재무지표
               </h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-100 text-left text-[11px] font-semibold text-slate-500">
+                    <tr className="border-b-2 border-sky-100 text-left text-[11px] font-semibold text-slate-500">
                       <th className="py-2 pr-4">항목</th>
                       <th className="py-2 pr-4 text-right">당기</th>
                       <th className="py-2 pr-4 text-right">전기</th>
@@ -261,18 +293,32 @@ export default function NewsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {keyFinancials.map((r, i) => (
-                      <tr key={i} className="border-b border-slate-50 text-xs">
-                        <td className="py-2 pr-4 font-medium text-slate-800">{r.account_nm}</td>
-                        <td className="py-2 pr-4 text-right font-bold text-slate-900">{formatAmount(r.thstrm_amount)}</td>
-                        <td className="py-2 pr-4 text-right text-slate-500">{formatAmount(r.frmtrm_amount)}</td>
-                        <td className="py-2 text-right text-slate-400">{formatAmount(r.bfefrmtrm_amount)}</td>
-                      </tr>
-                    ))}
+                    {(data?.financials ?? []).map((r, i) => {
+                      const isNegative = (v: string) => {
+                        const n = Number(v.replace(/,/g, ''))
+                        return !Number.isNaN(n) && n < 0
+                      }
+                      return (
+                        <tr key={i} className="border-b border-slate-50 hover:bg-sky-50/50 transition">
+                          <td className="py-2.5 pr-4 font-semibold text-slate-800 text-xs">{r.account_nm}</td>
+                          <td className={clsx('py-2.5 pr-4 text-right font-bold text-xs', isNegative(r.thstrm_amount) ? 'text-red-600' : 'text-slate-900')}>
+                            {formatAmount(r.thstrm_amount)}
+                          </td>
+                          <td className={clsx('py-2.5 pr-4 text-right text-xs', isNegative(r.frmtrm_amount) ? 'text-red-500' : 'text-slate-500')}>
+                            {formatAmount(r.frmtrm_amount)}
+                          </td>
+                          <td className={clsx('py-2.5 text-right text-xs', isNegative(r.bfefrmtrm_amount) ? 'text-red-400' : 'text-slate-400')}>
+                            {formatAmount(r.bfefrmtrm_amount)}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
-              <p className="mt-2 text-[10px] text-slate-400">출처: DART 전자공시 (개별재무제표 기준, 단위: 원)</p>
+              <p className="mt-2 text-[10px] text-slate-400">
+                출처: DART 전자공시 (연결재무제표 우선, 개별재무제표 폴백 / 단위: 원)
+              </p>
             </div>
           )}
         </section>
@@ -280,34 +326,239 @@ export default function NewsPage() {
         {/* ───── RIGHT: 뉴스 4탭 ───── */}
         <NewsTabs newsItems={data?.newsItems ?? []} refreshedAt={data?.refreshedAt} loading={loading && !data} error={error} />
       </div>
+
+      {/* 회사명찾기 팝업 */}
+      {showSearchPopup && (
+        <CompanySearchPopup
+          initialQuery={corpName}
+          onSelect={handleCompanySelect}
+          onClose={() => setShowSearchPopup(false)}
+        />
+      )}
     </div>
   )
 }
 
-/* ─── 뉴스 4탭 컴포넌트 ─── */
+/* ──────── 주가 정보 카드 ──────── */
+function StockInfoCard({ info }: { info: StockInfo }) {
+  const isNeg = info.change.startsWith('-')
+  const isPos = info.change.startsWith('+')
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+          <TrendingUp size={16} className="text-sky-600" />
+          {info.name || '주가 정보'}
+        </h3>
+        <div className="text-right">
+          <p className="text-xl font-black text-slate-900">{info.price || '-'}<span className="text-xs text-slate-400 ml-1">원</span></p>
+          {info.change && (
+            <p className={clsx('text-xs font-bold', isNeg ? 'text-blue-600' : isPos ? 'text-red-600' : 'text-slate-500')}>
+              {info.change} ({info.changeRate})
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {[
+          { label: '시가총액', value: info.marketCap },
+          { label: 'PER', value: info.per },
+          { label: 'PBR', value: info.pbr },
+          { label: '배당수익률', value: info.dividendYield },
+          { label: '52주 최고', value: info.high52w },
+          { label: '52주 최저', value: info.low52w },
+          { label: '거래량', value: info.volume },
+        ]
+          .filter(x => x.value)
+          .map((x, i) => (
+            <div key={i} className="rounded-lg bg-white border border-slate-100 px-3 py-2">
+              <p className="text-[10px] font-semibold text-slate-400">{x.label}</p>
+              <p className="text-xs font-bold text-slate-800 mt-0.5">{x.value}</p>
+            </div>
+          ))}
+      </div>
+    </div>
+  )
+}
+
+/* ──────── 회사명찾기 팝업 ──────── */
+function CompanySearchPopup({
+  initialQuery,
+  onSelect,
+  onClose,
+}: {
+  initialQuery: string
+  onSelect: (r: CompanySearchResult) => void
+  onClose: () => void
+}) {
+  const [query, setQuery] = useState(initialQuery)
+  const [results, setResults] = useState<CompanySearchResult[]>([])
+  const [searching, setSearching] = useState(false)
+  const [searched, setSearched] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
+
+  const doSearch = useCallback(async (q: string) => {
+    if (!q.trim()) { setResults([]); setSearched(false); return }
+    setSearching(true)
+    setSearched(true)
+    try {
+      const res = await fetch(`/api/dart-company-search?query=${encodeURIComponent(q.trim())}`, { cache: 'no-store' })
+      const data = await res.json()
+      setResults(data.results ?? [])
+    } catch {
+      setResults([])
+    } finally {
+      setSearching(false)
+    }
+  }, [])
+
+  function handleInputChange(value: string) {
+    setQuery(value)
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => doSearch(value), 400)
+  }
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    clearTimeout(debounceRef.current)
+    doSearch(query)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 bg-sky-50 px-5 py-4">
+          <h3 className="flex items-center gap-2 text-base font-black text-sky-900">
+            <Building2 size={20} />
+            회사명 찾기 (DART)
+          </h3>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Search */}
+        <form onSubmit={handleSearchSubmit} className="flex gap-2 p-4 border-b border-slate-100">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={e => handleInputChange(e.target.value)}
+              placeholder="회사명을 입력하세요 (예: 삼성전자, 한일합섬)"
+              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={searching}
+            className="rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-sky-700 transition disabled:opacity-50"
+          >
+            {searching ? <Loader2 size={16} className="animate-spin" /> : '검색'}
+          </button>
+        </form>
+
+        {/* Results */}
+        <div className="max-h-[400px] overflow-y-auto">
+          {searching ? (
+            <div className="flex items-center justify-center py-12 text-sky-400">
+              <Loader2 size={20} className="animate-spin mr-2" />
+              DART 법인 데이터에서 검색 중...
+            </div>
+          ) : results.length > 0 ? (
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-slate-50 border-b border-slate-200">
+                <tr className="text-left text-[11px] font-semibold text-slate-500">
+                  <th className="px-4 py-2.5">회사명</th>
+                  <th className="px-4 py-2.5">대표자</th>
+                  <th className="px-4 py-2.5">종목코드</th>
+                  <th className="px-4 py-2.5">법인코드</th>
+                  <th className="px-4 py-2.5">상장</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {results.map((r, i) => (
+                  <tr
+                    key={`${r.corp_code}-${i}`}
+                    onClick={() => onSelect(r)}
+                    className="cursor-pointer hover:bg-sky-50 transition"
+                  >
+                    <td className="px-4 py-2.5 font-bold text-slate-900">{r.corp_name}</td>
+                    <td className="px-4 py-2.5 text-slate-600">{r.ceo_nm || '-'}</td>
+                    <td className="px-4 py-2.5 text-slate-600 font-mono text-xs">{r.stock_code || '-'}</td>
+                    <td className="px-4 py-2.5 text-slate-400 font-mono text-[11px]">{r.corp_code}</td>
+                    <td className="px-4 py-2.5">
+                      {r.listed ? (
+                        <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">상장</span>
+                      ) : (
+                        <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">비상장</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : searched ? (
+            <div className="py-12 text-center text-sm text-slate-400">
+              검색 결과가 없습니다.
+            </div>
+          ) : (
+            <div className="py-12 text-center text-sm text-slate-400">
+              회사명을 입력하면 DART에 등록된 약 90,000개 법인에서 검색합니다.
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-slate-200 bg-slate-50 px-5 py-3 text-[11px] text-slate-400">
+          출처: DART 전자공시시스템 법인 코드 데이터
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ──────── 뉴스 4탭 ──────── */
 type NewsTabItem = { id: string; title: string; url: string }
 const NEWS_TABS = [
-  { key: 'finance', label: '금융', query: '금융+시장' },
-  { key: 'remicon', label: '레미콘', query: '레미콘+동양' },
-  { key: 'construction', label: '건설', query: '건설+산업+산군' },
-  { key: 'plant', label: '플랜트·환경', query: '플랜트+산업용송풍기+환경설비' },
+  { key: 'finance', label: '금융', query: '금융+주식+증시+경제' },
+  { key: 'remicon', label: '레미콘', query: '레미콘+레디믹스트+콘크리트+시멘트+골재' },
+  { key: 'construction', label: '건설', query: '건설+건축+토목+시공+산업+인프라' },
+  { key: 'plant', label: '플랜트·환경', query: '플랜트+산업용송풍기+환경설비+집진기+배기가스+소각로' },
 ] as const
 
-function NewsTabs({ newsItems, refreshedAt, loading, error }: {
-  newsItems: NewsItem[]; refreshedAt?: string; loading: boolean; error: string | null
+function NewsTabs({
+  newsItems,
+  refreshedAt,
+  loading,
+  error,
+}: {
+  newsItems: NewsItem[]
+  refreshedAt?: string
+  loading: boolean
+  error: string | null
 }) {
   const [tab, setTab] = useState<string>('finance')
   const [tabNews, setTabNews] = useState<Record<string, NewsTabItem[]>>({})
   const [tabLoading, setTabLoading] = useState<Record<string, boolean>>({})
 
-  // Finance tab uses the pre-fetched newsItems
   useEffect(() => {
     if (newsItems.length > 0) {
       setTabNews(prev => ({ ...prev, finance: newsItems.map(n => ({ id: n.id, title: n.title, url: n.url })) }))
     }
   }, [newsItems])
 
-  // Load other tabs on demand via Naver search
   useEffect(() => {
     if (tab === 'finance' || tabNews[tab]) return
     setTabLoading(prev => ({ ...prev, [tab]: true }))
@@ -317,7 +568,10 @@ function NewsTabs({ newsItems, refreshedAt, loading, error }: {
     fetch(`/api/news-feed?news_query=${encodeURIComponent(tabDef.query)}`, { cache: 'no-store' })
       .then(r => r.json())
       .then((d: FeedResponse) => {
-        setTabNews(prev => ({ ...prev, [tab]: (d.newsItems ?? []).map(n => ({ id: n.id, title: n.title, url: n.url })) }))
+        setTabNews(prev => ({
+          ...prev,
+          [tab]: (d.newsItems ?? []).map(n => ({ id: n.id, title: n.title, url: n.url })),
+        }))
       })
       .catch(() => {
         setTabNews(prev => ({ ...prev, [tab]: [] }))
@@ -347,7 +601,7 @@ function NewsTabs({ newsItems, refreshedAt, loading, error }: {
             onClick={() => setTab(t.key)}
             className={clsx(
               'flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition',
-              tab === t.key ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              tab === t.key ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700',
             )}
           >
             {t.label}
@@ -361,11 +615,14 @@ function NewsTabs({ newsItems, refreshedAt, loading, error }: {
       ) : isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="card px-4 py-2.5"><div className="skeleton h-4 w-4/5 rounded" /><div className="mt-2 skeleton h-3 w-1/3 rounded" /></div>
+            <div key={i} className="card px-4 py-2.5">
+              <div className="skeleton h-4 w-4/5 rounded" />
+              <div className="mt-2 skeleton h-3 w-1/3 rounded" />
+            </div>
           ))}
         </div>
       ) : (
-        <div className="space-y-1 max-h-[540px] overflow-y-auto">
+        <div className="space-y-1 max-h-[700px] overflow-y-auto">
           {currentItems.map((item, i) => (
             <a
               key={item.id + '-' + i}

@@ -70,20 +70,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (mounted) setState(prev => ({ ...prev, loading: false }))
     }, 5000)
 
-    // Proactive session refresh every 10 minutes to prevent token expiration
-    const refreshInterval = setInterval(async () => {
-      try {
-        const { data } = await supabase.auth.refreshSession()
-        if (mounted && data.session) {
-          setState(prev => ({ ...prev, session: data.session, user: data.session!.user }))
-        }
-      } catch { /* silent */ }
-    }, 10 * 60 * 1000)
+    // Supabase autoRefreshToken handles session refresh automatically.
+    // No additional interval needed.
 
     return () => {
       mounted = false
       clearTimeout(timeout)
-      clearInterval(refreshInterval)
       subscription.unsubscribe()
     }
   }, [])

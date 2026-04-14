@@ -4,6 +4,7 @@ import {
   Search, RefreshCw, Download, Filter,
   AlertCircle, ChevronRight
 } from 'lucide-react'
+import * as XLSX from 'xlsx'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import clsx from 'clsx'
@@ -140,18 +141,28 @@ export default function EvidenceListPage() {
   function openUploadModal(act: Activity) { setSelectedActivity(act); setModalOpen(true) }
   function handleClose(refresh?: boolean) { setModalOpen(false); setSelectedActivity(null); if (refresh) fetchActivities() }
 
-  function downloadCSV() {
-    const headers = ['통제번호','담당자','관련부서','통제활동명','제출증빙설명','승인자','KPI점수','상신여부']
-    const rows = filtered.map(a => [
-      a.control_code ?? '', a.owner_name ?? '', a.department ?? '', a.title ?? '',
-      a.description ?? '', a.controller_name ?? '', a.kpi_score?.toString() ?? '', a.submission_status,
-    ])
-    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n')
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url
-    a.download = `증빙관리_${new Date().toISOString().slice(0,10)}.csv`
-    a.click(); URL.revokeObjectURL(url)
+  function downloadExcel() {
+    const rows = filtered.map((a, i) => ({
+      '번호': i + 1,
+      '통제번호': a.control_code ?? '',
+      '담당자': a.owner_name ?? '',
+      '관련부서': a.department ?? '',
+      '통제활동명': a.title ?? '',
+      '제출증빙설명': a.description ?? '',
+      '승인자': a.controller_name ?? '',
+      'KPI점수': a.kpi_score ?? '',
+      '상신여부': a.submission_status ?? '',
+      '증빙수': evidenceCounts[a.id] ?? 0,
+      '승인상태': approvalStatuses[a.id] === 'approved' ? '승인완료' : approvalStatuses[a.id] === 'rejected' ? '반려' : approvalStatuses[a.id] === 'submitted' ? '승인대기' : '-',
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [
+      { wch: 5 }, { wch: 14 }, { wch: 10 }, { wch: 14 }, { wch: 40 },
+      { wch: 36 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 6 }, { wch: 10 },
+    ]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, '증빙관리')
+    XLSX.writeFile(wb, `증빙관리_${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
   if (loading) return (
@@ -206,8 +217,8 @@ export default function EvidenceListPage() {
           <button onClick={fetchActivities} className="btn-ghost text-xs px-3 py-2">
             <RefreshCw size={14} />새로고침
           </button>
-          <button onClick={downloadCSV} className="btn-secondary text-xs px-3 py-2">
-            <Download size={14} />다운로드
+          <button onClick={downloadExcel} className="btn-secondary text-xs px-3 py-2">
+            <Download size={14} />엑셀 다운로드
           </button>
         </div>
       </div>
@@ -332,60 +343,60 @@ export default function EvidenceListPage() {
                   const isView = profile?.role === 'controller' || (profile?.role === 'admin')
                   return (
                     <tr key={act.id} className="group">
-                      <td className="text-center text-xs text-gray-400">{i + 1}</td>
-                      <td>
-                        <code className="text-xs bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">
+                      <td className="text-center text-sm text-gray-400 py-3">{i + 1}</td>
+                      <td className="py-3">
+                        <code className="text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded font-semibold">
                           {act.control_code}
                         </code>
                       </td>
                       {profile?.role !== 'owner' && (
-                        <td className="font-medium text-sm text-gray-800">{act.owner_name ?? '-'}</td>
+                        <td className="font-semibold text-sm text-gray-800 py-3">{act.owner_name ?? '-'}</td>
                       )}
-                      <td className="text-xs text-gray-500">{act.department ?? '-'}</td>
-                      <td>
-                        <span className="text-sm text-gray-700" title={act.title ?? ''}>
-                          {act.title && act.title.length > 28 ? act.title.slice(0, 28) + '…' : (act.title ?? '-')}
+                      <td className="text-sm text-gray-600 py-3">{act.department ?? '-'}</td>
+                      <td className="py-3">
+                        <span className="text-sm font-medium text-gray-700 cursor-help" title={act.title ?? ''}>
+                          {act.title && act.title.length > 36 ? act.title.slice(0, 36) + '…' : (act.title ?? '-')}
                         </span>
                       </td>
-                      <td>
-                        <span className="text-xs text-gray-500" title={act.description ?? ''}>
-                          {act.description && act.description.length > 32 ? act.description.slice(0, 32) + '…' : (act.description ?? '-')}
+                      <td className="py-3">
+                        <span className="text-sm text-gray-600 cursor-help" title={act.description ?? ''}>
+                          {act.description && act.description.length > 40 ? act.description.slice(0, 40) + '…' : (act.description ?? '-')}
                         </span>
                       </td>
-                      <td className="text-center">
+                      <td className="text-center py-3">
                         {canUpload ? (
                           <button
                             onClick={() => openUploadModal(act)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-brand-50 text-brand-700 border border-brand-100 rounded-lg text-xs font-semibold hover:bg-brand-100 transition-all"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-brand-50 text-brand-700 border border-brand-100 rounded-lg text-sm font-semibold hover:bg-brand-100 transition-all"
                           >
-                            <Upload size={11} />증빙 Upload
+                            <Upload size={13} />증빙 Upload
                           </button>
                         ) : isView ? (
                           <button
                             onClick={() => openUploadModal(act)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-all"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg text-sm font-semibold hover:bg-blue-100 transition-all"
                           >
-                            <FileCheck2 size={11} />증빙확인
+                            <FileCheck2 size={13} />증빙확인
                           </button>
                         ) : (
-                          <span className="text-xs text-gray-400">-</span>
+                          <span className="text-sm text-gray-400">-</span>
                         )}
                       </td>
-                      <td className="text-center">
-                        <span className={clsx('text-xs font-bold', (evidenceCounts[act.id] ?? 0) > 0 ? 'text-brand-700' : 'text-gray-300')}>
+                      <td className="text-center py-3">
+                        <span className={clsx('text-sm font-bold', (evidenceCounts[act.id] ?? 0) > 0 ? 'text-brand-700' : 'text-gray-300')}>
                           {evidenceCounts[act.id] ?? 0}
                         </span>
                       </td>
                       {profile?.role === 'admin' && (
-                        <td className="text-xs text-gray-500">{act.controller_name ?? '-'}</td>
+                        <td className="text-sm text-gray-600 py-3">{act.controller_name ?? '-'}</td>
                       )}
-                      <td className="text-center text-xs font-semibold text-gray-700">
+                      <td className="text-center text-sm font-semibold text-gray-700 py-3">
                         {act.kpi_score != null ? act.kpi_score.toFixed(1) : '-'}
                       </td>
-                      <td className="text-center">
+                      <td className="text-center py-3">
                         <span className={si.cls}>{si.label}</span>
                       </td>
-                      <td className="text-center">
+                      <td className="text-center py-3">
                         {approvalStatuses[act.id] === 'approved' ? (
                           <span className="badge-green">승인완료</span>
                         ) : approvalStatuses[act.id] === 'rejected' ? (
@@ -393,11 +404,11 @@ export default function EvidenceListPage() {
                         ) : approvalStatuses[act.id] === 'submitted' ? (
                           <span className="badge-yellow">승인대기</span>
                         ) : (
-                          <span className="text-xs text-gray-300">-</span>
+                          <span className="text-sm text-gray-300">-</span>
                         )}
                       </td>
-                      <td>
-                        <ChevronRight size={13} className="text-gray-200 group-hover:text-gray-400 transition-colors" />
+                      <td className="py-3">
+                        <ChevronRight size={14} className="text-gray-200 group-hover:text-gray-400 transition-colors" />
                       </td>
                     </tr>
                   )

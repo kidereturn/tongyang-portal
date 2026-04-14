@@ -10,8 +10,10 @@ import {
   AlertCircle,
   Download,
   Trash2,
+  FileSpreadsheet,
 } from 'lucide-react'
 import clsx from 'clsx'
+import * as XLSX from 'xlsx'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 
@@ -638,10 +640,34 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
         </div>
 
         <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex items-center justify-between">
-          <button onClick={() => onClose()} className="btn-ghost">
-            <X size={15} />
-            닫기
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => onClose()} className="btn-ghost">
+              <X size={15} />
+              닫기
+            </button>
+            <button
+              onClick={() => {
+                const rows = items.map((item, idx) => ({
+                  '번호': idx + 1,
+                  'Transaction ID': item.transaction_id ?? '-',
+                  '거래일': item.transaction_date ?? '-',
+                  '거래설명': item.description ?? '-',
+                  '추가정보': item.extra_info ?? '-',
+                  '업로드파일수': item.uploads.length,
+                  '파일명': item.uploads.map(u => u.file_name).join(', ') || '-',
+                }))
+                const ws = XLSX.utils.json_to_sheet(rows)
+                ws['!cols'] = [{ wch: 5 }, { wch: 24 }, { wch: 14 }, { wch: 44 }, { wch: 20 }, { wch: 10 }, { wch: 40 }]
+                const wb = XLSX.utils.book_new()
+                XLSX.utils.book_append_sheet(wb, ws, '모집단')
+                XLSX.writeFile(wb, `모집단_${activity.control_code}_${new Date().toISOString().slice(0, 10)}.xlsx`)
+              }}
+              className="btn-secondary text-xs"
+            >
+              <FileSpreadsheet size={14} />
+              엑셀 다운로드
+            </button>
+          </div>
 
           {!viewOnly && (
             <div className="flex items-center gap-3">

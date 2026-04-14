@@ -83,33 +83,55 @@ export default function TopNav() {
   const visibleItems = filterNavItems(profile?.role)
   const isAdmin = profile?.role === 'admin'
 
+  const abortRef = useRef<AbortController | null>(null)
+  const fetchingRef = useRef(false)
+
   const fetchNotifications = useCallback(async () => {
-    if (!profile?.id) return
-    const { data } = await (supabase as any)
-      .from('notifications')
-      .select('id, title, body, is_read, created_at, sender_id')
-      .eq('recipient_id', profile.id)
-      .order('created_at', { ascending: false })
-      .limit(20) as { data: Array<{ id: string; title: string; body: string | null; is_read: boolean; created_at: string; sender_id: string | null }> | null }
-    if (data) {
-      const senderIds = [...new Set(data.map(n => n.sender_id).filter(Boolean))]
-      const senderMap: Record<string, string> = {}
-      if (senderIds.length) {
-        const { data: profiles } = await (supabase as any).from('profiles').select('id, full_name').in('id', senderIds) as { data: Array<{ id: string; full_name: string | null }> | null }
-        for (const p of profiles ?? []) senderMap[p.id] = p.full_name ?? ''
+    if (!profile?.id || fetchingRef.current) return
+    fetchingRef.current = true
+
+    // Cancel any in-flight request
+    if (abortRef.current) abortRef.current.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
+    try {
+      const { data } = await (supabase as any)
+        .from('notifications')
+        .select('id, title, body, is_read, created_at, sender_id')
+        .eq('recipient_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(20)
+        .abortSignal(controller.signal) as { data: Array<{ id: string; title: string; body: string | null; is_read: boolean; created_at: string; sender_id: string | null }> | null }
+      if (controller.signal.aborted) return
+      if (data) {
+        const senderIds = [...new Set(data.map(n => n.sender_id).filter(Boolean))]
+        const senderMap: Record<string, string> = {}
+        if (senderIds.length) {
+          const { data: profiles } = await (supabase as any).from('profiles').select('id, full_name').in('id', senderIds).abortSignal(controller.signal) as { data: Array<{ id: string; full_name: string | null }> | null }
+          if (controller.signal.aborted) return
+          for (const p of profiles ?? []) senderMap[p.id] = p.full_name ?? ''
+        }
+        setNotifications(data.map(n => ({
+          ...n,
+          sender: n.sender_id ? { full_name: senderMap[n.sender_id] ?? null } : null,
+        })))
+        setUnreadCount(data.filter(n => !n.is_read).length)
       }
-      setNotifications(data.map(n => ({
-        ...n,
-        sender: n.sender_id ? { full_name: senderMap[n.sender_id] ?? null } : null,
-      })))
-      setUnreadCount(data.filter(n => !n.is_read).length)
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+    } finally {
+      fetchingRef.current = false
     }
   }, [profile?.id])
 
   useEffect(() => {
     fetchNotifications()
-    const interval = setInterval(fetchNotifications, 30_000)
-    return () => clearInterval(interval)
+    const interval = setInterval(fetchNotifications, 60_000)
+    return () => {
+      clearInterval(interval)
+      if (abortRef.current) abortRef.current.abort()
+    }
   }, [fetchNotifications])
 
   async function markAsRead(id: string) {

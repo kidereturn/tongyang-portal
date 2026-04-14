@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Gamepad2, Gift, RefreshCw, Sparkles, Trophy, X } from 'lucide-react'
+import { Gamepad2, Gift, RefreshCw, Sparkles, Trophy } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
@@ -199,13 +199,12 @@ const ALL_QUESTIONS: QuizQuestion[] = [
 ]
 
 // ────────────────────────────────────────────
-// 25문제를 랜덤 배치, 5번/10번/15번은 주관식
+// 25문제를 랜덤 배치, 주관식 위치도 매번 랜덤
 // ────────────────────────────────────────────
 function buildBingoQuestions(): QuizQuestion[] {
   const multiples = ALL_QUESTIONS.filter(q => q.type === 'multiple')
   const subjectives = ALL_QUESTIONS.filter(q => q.type === 'subjective')
 
-  // Shuffle
   const shuffleArr = <T,>(arr: T[]): T[] => {
     const a = [...arr]
     for (let i = a.length - 1; i > 0; i--) {
@@ -218,13 +217,17 @@ function buildBingoQuestions(): QuizQuestion[] {
   const shuffledMulti = shuffleArr(multiples)
   const shuffledSub = shuffleArr(subjectives)
 
+  // 주관식 3개 위치를 0~24 중 랜덤 선택
+  const allPositions = Array.from({ length: 25 }, (_, i) => i)
+  const shuffledPositions = shuffleArr(allPositions)
+  const subjectivePositions = new Set(shuffledPositions.slice(0, 3))
+
   const result: QuizQuestion[] = []
   let mi = 0
   let si = 0
 
-  for (let pos = 1; pos <= 25; pos++) {
-    if (pos === 5 || pos === 10 || pos === 15) {
-      // Subjective slots — cycle through available subjective questions
+  for (let pos = 0; pos < 25; pos++) {
+    if (subjectivePositions.has(pos)) {
       result.push(shuffledSub[si % shuffledSub.length])
       si++
     } else {
@@ -397,13 +400,6 @@ export default function BingoPage() {
     setSelectedChoice('')
   }
 
-  function cancelQuestion() {
-    if (timerRef.current) clearInterval(timerRef.current)
-    setActiveIdx(null)
-    setSubjectiveAnswer('')
-    setSelectedChoice('')
-  }
-
   async function notifyAdminBingoWin() {
     try {
       const userName = profile?.full_name ?? '알 수 없음'
@@ -498,20 +494,22 @@ export default function BingoPage() {
         .shockwave-anim { animation: shockwave 0.8s ease-out forwards; }
       `}</style>
 
-      {/* Header */}
-      <div className="rounded-[28px] bg-gradient-to-r from-brand-700 via-indigo-700 to-slate-900 px-6 py-8 text-white shadow-2xl">
-        <p className="text-xs font-semibold tracking-[0.24em] text-brand-100/70">BINGO QUIZ</p>
-        <h1 className="mt-2 flex items-center gap-2 text-3xl font-black">
-          <Gamepad2 size={28} className="text-brand-200" />
-          빙고퀴즈 5x5
-        </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-brand-50/90">
-          25칸 빙고판에서 문제를 풀어 정답 칸을 채우세요.
-          한 문제당 <b className="text-yellow-300">10초</b> 시간제한!
-        </p>
-        <div className="mt-3 inline-flex items-center gap-2 rounded-xl bg-amber-500/20 border border-amber-400/30 px-4 py-2">
-          <Gift size={18} className="text-amber-300" />
-          <span className="text-sm font-bold text-amber-200">3줄 완성 시 기프티콘 선물!</span>
+      {/* Header — compact */}
+      <div className="rounded-2xl bg-gradient-to-r from-brand-700 via-indigo-700 to-slate-900 px-5 py-5 text-white shadow-xl">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <h1 className="flex items-center gap-2 text-xl font-black">
+              <Gamepad2 size={22} className="text-brand-200" />
+              빙고퀴즈 5x5
+            </h1>
+            <p className="mt-1 text-xs text-brand-50/80">
+              25칸 빙고판 · 문제당 <b className="text-yellow-300">10초</b> · 주관식은 랜덤 위치!
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-xl bg-amber-500/20 border border-amber-400/30 px-3 py-1.5">
+            <Gift size={15} className="text-amber-300" />
+            <span className="text-xs font-bold text-amber-200">3줄 완성 → 기프티콘!</span>
+          </div>
         </div>
       </div>
 
@@ -532,9 +530,9 @@ export default function BingoPage() {
       </div>
 
       {/* Bingo Board + Question side by side */}
-      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+      <div className="grid gap-4 xl:grid-cols-[280px_1fr]">
       <div>
-        <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+        <div className="grid grid-cols-5 gap-1 sm:gap-1.5 max-w-[280px]">
           {questions.map((_q, idx) => {
             const answered = answers[idx]
             const isActive = activeIdx === idx
@@ -546,7 +544,7 @@ export default function BingoPage() {
                 onClick={() => openCell(idx)}
                 disabled={answered !== undefined || activeIdx !== null}
                 className={clsx(
-                  'relative aspect-square rounded-xl sm:rounded-2xl border-2 text-lg sm:text-xl font-black transition-all duration-200',
+                  'relative aspect-square rounded-lg sm:rounded-xl border-2 text-sm sm:text-base font-black transition-all duration-200',
                   answered === undefined && activeIdx === null && 'hover:scale-105 hover:shadow-lg cursor-pointer',
                   answered === undefined && !isActive && 'bg-white border-slate-200 text-slate-700',
                   answered?.correct && isBingoLine && 'bg-gradient-to-br from-amber-400 to-yellow-500 border-amber-500 text-white shadow-lg ring-2 ring-amber-300',
@@ -558,10 +556,10 @@ export default function BingoPage() {
               >
                 {cellNum}
                 {answered?.correct && (
-                  <span className="absolute inset-0 flex items-center justify-center text-2xl sm:text-3xl opacity-30">O</span>
+                  <span className="absolute inset-0 flex items-center justify-center text-lg sm:text-xl opacity-30">O</span>
                 )}
                 {answered && !answered.correct && (
-                  <span className="absolute inset-0 flex items-center justify-center text-2xl sm:text-3xl opacity-30">X</span>
+                  <span className="absolute inset-0 flex items-center justify-center text-lg sm:text-xl opacity-30">X</span>
                 )}
               </button>
             )
@@ -650,7 +648,7 @@ export default function BingoPage() {
               </div>
             )}
 
-            {/* Action buttons */}
+            {/* Action buttons — 취소 없음, 반드시 답변해야 함 */}
             <div className="flex gap-3">
               <button
                 onClick={submitAnswer}
@@ -662,9 +660,6 @@ export default function BingoPage() {
                 className="btn-primary flex-1"
               >
                 제출
-              </button>
-              <button onClick={cancelQuestion} className="btn-ghost">
-                <X size={15} /> 취소
               </button>
             </div>
           </div>
