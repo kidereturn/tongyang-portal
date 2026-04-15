@@ -300,9 +300,31 @@ export default function BingoPage() {
   const [showCelebration, setShowCelebration] = useState(false)
   const [lastMessage, setLastMessage] = useState<{ correct: boolean; text: string } | null>(null)
   const [showExplosion, setShowExplosion] = useState(false)
+  const [dailyPlays, setDailyPlays] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const activeIdxRef = useRef<number | null>(null)
   const notifiedRef = useRef(false)
+
+  const MAX_DAILY_PLAYS = 3
+
+  // 오늘 도전 횟수 로드
+  useEffect(() => {
+    if (!profile?.id) return
+    const key = `bingo_plays_${profile.id}_${new Date().toISOString().slice(0, 10)}`
+    const count = parseInt(localStorage.getItem(key) ?? '0', 10)
+    setDailyPlays(count)
+  }, [profile?.id])
+
+  function incrementDailyPlays() {
+    if (!profile?.id) return
+    const key = `bingo_plays_${profile.id}_${new Date().toISOString().slice(0, 10)}`
+    const next = dailyPlays + 1
+    localStorage.setItem(key, String(next))
+    setDailyPlays(next)
+  }
+
+  const remainingPlays = MAX_DAILY_PLAYS - dailyPlays
+  const canPlay = remainingPlays > 0
 
   const correctSet = useMemo(() => {
     const s = new Set<number>()
@@ -374,6 +396,14 @@ export default function BingoPage() {
 
   function openCell(idx: number) {
     if (answers[idx] !== undefined || activeIdx !== null) return
+    if (!canPlay && Object.keys(answers).length === 0) {
+      alert(`오늘의 도전 기회 ${MAX_DAILY_PLAYS}회를 모두 사용했습니다.\n내일 다시 도전하세요!`)
+      return
+    }
+    // 게임 시작 시(첫 셀 클릭) 도전 횟수 증가
+    if (Object.keys(answers).length === 0) {
+      incrementDailyPlays()
+    }
     setActiveIdx(idx)
     setLastMessage(null)
     setSubjectiveAnswer('')
@@ -422,16 +452,15 @@ export default function BingoPage() {
       }
 
       try {
-        await supabase.functions.invoke('send-email', {
+        await supabase.functions.invoke('send-approval-email', {
           body: {
+            type: 'bingo_winner',
             to: 'junghoon.ha@tongyanginc.co.kr',
-            subject: `[동양 LMS] 빙고퀴즈 3줄 완성 - ${userName}`,
-            html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px;">
-              <h2 style="color:#1e40af;">빙고퀴즈 3줄 완성 알림</h2>
-              <p>이름: ${userName} / 사번: ${employeeId} / 부서: ${dept}</p>
-              <p>달성일: ${today}</p>
-              <p style="color:#64748b;">선물 지급을 검토해 주세요.</p>
-            </div>`,
+            recipientName: '관리자',
+            submitterName: userName,
+            controlCode: `빙고 3줄 완성`,
+            activityTitle: `${userName}(${employeeId}) - ${dept}`,
+            uniqueKey: `bingo-${today}`,
           },
         })
       } catch { /* email optional */ }
@@ -487,11 +516,23 @@ export default function BingoPage() {
           0% { transform: scale(0); opacity: 0.8; border-width: 8px; }
           100% { transform: scale(8); opacity: 0; border-width: 1px; }
         }
+        @keyframes giftFlash {
+          0%, 100% { opacity: 1; transform: scale(1) rotate(0deg); }
+          25% { opacity: 0.9; transform: scale(1.08) rotate(-2deg); background: linear-gradient(135deg, #f59e0b, #ef4444); }
+          50% { opacity: 1; transform: scale(1.12) rotate(2deg); background: linear-gradient(135deg, #ef4444, #8b5cf6); }
+          75% { opacity: 0.9; transform: scale(1.05) rotate(-1deg); background: linear-gradient(135deg, #8b5cf6, #f59e0b); }
+        }
+        @keyframes hurryFlash {
+          0%, 100% { opacity: 1; color: #ef4444; transform: scale(1); }
+          50% { opacity: 0.4; color: #f97316; transform: scale(1.15); }
+        }
         .bomb-anim { animation: bombShake 0.8s ease-in-out infinite; }
         .fuse-glow { animation: fuseGlow 0.5s ease-in-out infinite; }
         .confetti { animation: confettiFall 3s linear forwards; }
         .explode-anim { animation: explode 1s ease-out forwards; }
         .shockwave-anim { animation: shockwave 0.8s ease-out forwards; }
+        .gift-flash { animation: giftFlash 1.5s ease-in-out infinite; }
+        .hurry-flash { animation: hurryFlash 0.4s ease-in-out infinite; }
       `}</style>
 
       {/* Header — compact */}
@@ -503,12 +544,13 @@ export default function BingoPage() {
               빙고퀴즈 5x5
             </h1>
             <p className="mt-1 text-xs text-brand-50/80">
-              25칸 빙고판 · 문제당 <b className="text-yellow-300">10초</b> · 주관식은 랜덤 위치!
+              25칸 빙고판 · 문제당 <b className="text-yellow-300">10초</b> · 하루 <b className="text-yellow-300">{MAX_DAILY_PLAYS}회</b> 도전 · 주관식은 랜덤 위치!
             </p>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-xl bg-amber-500/20 border border-amber-400/30 px-3 py-1.5">
-            <Gift size={15} className="text-amber-300" />
-            <span className="text-xs font-bold text-amber-200">3줄 완성 → 기프티콘!</span>
+          <div className="gift-flash inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-red-500 border border-amber-400/30 px-4 py-2 shadow-lg">
+            <Gift size={18} className="text-white" />
+            <span className="text-sm font-black text-white drop-shadow-md">3줄 완성 기프티콘 증정!</span>
+            <span className="text-lg">🎁</span>
           </div>
         </div>
       </div>
@@ -524,9 +566,27 @@ export default function BingoPage() {
           <span className="text-sm text-slate-600">정답 <b className="text-emerald-600">{correctSet.size}</b></span>
           <span className="text-sm text-slate-400">/ 25</span>
         </div>
-        <button onClick={resetGame} className="ml-auto btn-ghost text-xs">
-          <RefreshCw size={14} /> 새 게임
-        </button>
+        <div className={clsx(
+          'flex items-center gap-1.5 rounded-2xl border px-4 py-2 shadow-sm',
+          canPlay ? 'border-amber-200 bg-amber-50' : 'border-red-200 bg-red-50'
+        )}>
+          <span className="text-xs font-semibold text-slate-600">오늘 도전</span>
+          <span className={clsx('text-sm font-black', canPlay ? 'text-amber-600' : 'text-red-500')}>
+            {dailyPlays}/{MAX_DAILY_PLAYS}
+          </span>
+          <span className="text-xs text-slate-400">
+            {canPlay ? `(${remainingPlays}회 남음)` : '(소진)'}
+          </span>
+        </div>
+        {canPlay ? (
+          <button onClick={resetGame} className="ml-auto btn-ghost text-xs">
+            <RefreshCw size={14} /> 새 게임
+          </button>
+        ) : (
+          <span className="ml-auto text-xs text-red-500 font-semibold">
+            오늘의 도전 기회를 모두 사용했습니다. 내일 다시 도전하세요!
+          </span>
+        )}
       </div>
 
       {/* Bingo Board + Question side by side */}
@@ -598,6 +658,9 @@ export default function BingoPage() {
             <div className="flex items-center justify-between mb-4">
               <span className="badge badge-blue">문제 {activeIdx + 1} / 25</span>
               <div className="flex items-center gap-2">
+                {timer <= 5 && timer > 0 && (
+                  <span className="hurry-flash text-lg font-black mr-1">HURRY UP!!!</span>
+                )}
                 <span className={clsx('text-3xl bomb-anim', timer <= 3 && 'fuse-glow')}>
                   💣
                 </span>

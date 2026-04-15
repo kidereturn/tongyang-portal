@@ -1,11 +1,16 @@
 import { useState } from 'react'
 import {
+  Award,
   Bell,
+  Bot,
+  ClipboardList,
   Database,
   Download,
   FileSpreadsheet,
   Image,
+  Megaphone,
   PlayCircle,
+  Settings,
   Shield,
   Users,
 } from 'lucide-react'
@@ -21,6 +26,12 @@ import FilesTab from './tabs/FilesTab'
 import NotificationsTab from './tabs/NotificationsTab'
 import VideosTab from './tabs/VideosTab'
 import WebtoonTab from './tabs/WebtoonTab'
+import SettingsTab from './tabs/SettingsTab'
+import LoginLogsTab from './tabs/LoginLogsTab'
+import QuizResultsTab from './tabs/QuizResultsTab'
+import NoticesTab from './tabs/NoticesTab'
+import PointsTab from './tabs/PointsTab'
+import ChatbotDocsTab from './tabs/ChatbotDocsTab'
 
 const TABS: Array<{ key: Tab; label: string; icon: React.ElementType }> = [
   { key: 'upload-users', label: '사용자 초기 업로드', icon: Users },
@@ -32,6 +43,12 @@ const TABS: Array<{ key: Tab; label: string; icon: React.ElementType }> = [
   { key: 'notifications', label: '알림 발송', icon: Bell },
   { key: 'videos', label: '강좌 동영상', icon: PlayCircle },
   { key: 'webtoon', label: '웹툰 관리', icon: Image },
+  { key: 'settings', label: '사이트 설정', icon: Settings },
+  { key: 'login-logs', label: '로그인 이력', icon: ClipboardList },
+  { key: 'quiz-results', label: '강좌/퀴즈 현황', icon: Award },
+  { key: 'notices', label: '공지/매뉴얼', icon: Megaphone },
+  { key: 'points', label: '포인트 관리', icon: Award },
+  { key: 'chatbot-docs', label: 'AI 챗봇 문서', icon: Bot },
 ]
 
 export default function AdminPage() {
@@ -68,11 +85,11 @@ export default function AdminPage() {
             key={item.key}
             onClick={() => setTab(item.key)}
             className={clsx(
-              'flex items-center gap-1.5 whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-semibold transition-all',
+              'flex items-center gap-1 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all',
               tab === item.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             )}
           >
-            <item.icon size={15} />
+            <item.icon size={13} />
             {item.label}
           </button>
         ))}
@@ -87,6 +104,12 @@ export default function AdminPage() {
       {tab === 'notifications' && <NotificationsTab />}
       {tab === 'videos' && <VideosTab />}
       {tab === 'webtoon' && <WebtoonTab />}
+      {tab === 'settings' && <SettingsTab />}
+      {tab === 'login-logs' && <LoginLogsTab />}
+      {tab === 'quiz-results' && <QuizResultsTab />}
+      {tab === 'notices' && <NoticesTab />}
+      {tab === 'points' && <PointsTab />}
+      {tab === 'chatbot-docs' && <ChatbotDocsTab />}
     </div>
   )
 }

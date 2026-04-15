@@ -60,14 +60,13 @@ export default function LearningPage() {
 
         setAllProgress(progressData ?? [])
 
-        // 3) 고유 강좌 목록 추출
-        const courseMap = new Map<string, string>()
-        for (const p of progressData ?? []) {
-          if (p.course_id && !courseMap.has(p.course_id)) {
-            courseMap.set(p.course_id, p.course_name || `강좌 ${courseMap.size + 1}`)
-          }
-        }
-        const courseList: CourseInfo[] = Array.from(courseMap.entries()).map(([id, name]) => ({ id, name }))
+        // 3) 전체 강좌 목록을 course_videos 테이블에서 가져오기
+        const { data: videoData } = await (supabase as any)
+          .from('course_videos')
+          .select('id, title')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+        const courseList: CourseInfo[] = (videoData ?? []).map((v: { id: string; title: string }) => ({ id: v.id, name: v.title }))
         setCourses(courseList)
       } catch (err) {
         console.error('[LearningPage] load error:', err)
@@ -123,42 +122,77 @@ export default function LearningPage() {
     return rows
   }, [allProfiles, isAdmin, profile?.id, search])
 
-  const completedCount = filteredRows.filter(r => progressMap[r.id]?.status === 'completed').length
-  const inProgressCount = filteredRows.filter(r => progressMap[r.id]?.status === 'in_progress').length
-  const notStartedCount = filteredRows.length - completedCount - inProgressCount
+  // Flatten: one row per (user, course) combination
+  type FlatRow = {
+    profile: ProfileRow
+    progress: ProgressRow | null
+    courseName: string
+  }
+  const flatRows = useMemo(() => {
+    const result: FlatRow[] = []
+    for (const row of filteredRows) {
+      const userCourses = userCourseMap[row.id] ?? []
+      const progressByCourse = new Map(userCourses.map(uc => [uc.course_id, uc]))
+      if (selectedCourse === 'all') {
+        // Show ALL courses for each user (including unstarted)
+        for (const c of courses) {
+          const prog = progressByCourse.get(c.id)
+          result.push({
+            profile: row,
+            progress: prog ?? null,
+            courseName: c.name,
+          })
+        }
+        // If no courses exist, show a placeholder
+        if (courses.length === 0) {
+          result.push({ profile: row, progress: null, courseName: '-' })
+        }
+      } else {
+        const matched = progressByCourse.get(selectedCourse)
+        result.push({
+          profile: row,
+          progress: matched ?? null,
+          courseName: courses.find(c => c.id === selectedCourse)?.name ?? '-',
+        })
+      }
+    }
+    return result
+  }, [filteredRows, userCourseMap, selectedCourse, courses])
+
+  // Stats based on flatRows (per user-course pair) for accurate counting
+  const completedCount = flatRows.filter(fr => fr.progress?.status === 'completed').length
+  const inProgressCount = flatRows.filter(fr => fr.progress?.status === 'in_progress').length
+  const notStartedCount = flatRows.filter(fr => !fr.progress || fr.progress.status === 'not_started').length
 
   function downloadExcel() {
-    const rows = filteredRows.map(row => {
-      const progress = progressMap[row.id]
-      const status = progress?.status ?? 'not_started'
-      const courseName = selectedCourse === 'all' ? '전체' : (courses.find(c => c.id === selectedCourse)?.name ?? '-')
+    const rows = flatRows.map(fr => {
+      const status = fr.progress?.status ?? 'not_started'
       return {
-        '사번': row.employee_id ?? '-',
-        '이름': row.full_name ?? '-',
-        '소속팀': row.department ?? '-',
-        '역할': row.role === 'admin' ? '관리자' : row.role === 'controller' ? '승인자' : '담당자',
-        '강좌': courseName,
+        '사번': fr.profile.employee_id ?? '-',
+        '이름': fr.profile.full_name ?? '-',
+        '소속팀': fr.profile.department ?? '-',
+        '강좌': fr.courseName,
         '상태': status === 'completed' ? '이수완료' : status === 'in_progress' ? '수강중' : '미시작',
-        '진도율(%)': progress?.progress_percent ?? 0,
-        '최근 업데이트': progress?.updated_at ? new Date(progress.updated_at).toLocaleString('ko-KR') : '-',
+        '진도율(%)': fr.progress?.progress_percent ?? 0,
+        '최근 업데이트': fr.progress?.updated_at ? new Date(fr.progress.updated_at).toLocaleString('ko-KR') : '-',
       }
     })
     const ws = XLSX.utils.json_to_sheet(rows)
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, '학습현황')
+    XLSX.utils.book_append_sheet(wb, ws, '강좌관리')
     ws['!cols'] = [
-      { wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 8 }, { wch: 24 }, { wch: 10 }, { wch: 10 }, { wch: 22 },
+      { wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 30 }, { wch: 10 }, { wch: 10 }, { wch: 22 },
     ]
-    XLSX.writeFile(wb, `학습현황_${new Date().toISOString().slice(0, 10)}.xlsx`)
+    XLSX.writeFile(wb, `강좌관리_${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
   return (
     <div className="space-y-6">
       <div className="rounded-[28px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-6 py-8 text-white shadow-2xl">
-        <p className="text-xs font-semibold tracking-[0.24em] text-slate-400">LEARNING STATUS</p>
+        <p className="text-xs font-semibold tracking-[0.24em] text-slate-400">COURSE MANAGEMENT</p>
         <h1 className="mt-2 flex items-center gap-2 text-3xl font-black">
           <BarChart2 size={28} className="text-brand-300" />
-          학습현황
+          강좌관리
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
           {isAdmin
@@ -172,8 +206,8 @@ export default function LearningPage() {
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
             <Users size={18} />
           </div>
-          <p className="mt-4 text-sm text-slate-500">전체 대상</p>
-          <p className="mt-1 text-3xl font-black text-slate-900">{filteredRows.length}</p>
+          <p className="mt-4 text-sm text-slate-500">전체 강좌</p>
+          <p className="mt-1 text-3xl font-black text-slate-900">{isAdmin ? flatRows.length : courses.length}</p>
         </div>
         <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
@@ -233,8 +267,8 @@ export default function LearningPage() {
 
       <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl">
         <div className="border-b border-slate-100 px-5 py-4">
-          <h2 className="text-lg font-black text-slate-900">사번별 학습 대시보드</h2>
-          <p className="mt-1 text-sm text-slate-500">내부회계관리제도 강좌</p>
+          <h2 className="text-lg font-black text-slate-900">강좌관리</h2>
+          <p className="mt-1 text-sm text-slate-500">내부회계관리제도 강좌 학습현황</p>
         </div>
 
         {loading ? (
@@ -255,57 +289,24 @@ export default function LearningPage() {
                   <th className="px-5 py-3">사번</th>
                   <th className="px-5 py-3">이름</th>
                   <th className="px-5 py-3">소속팀</th>
-                  <th className="px-5 py-3">역할</th>
-                  {selectedCourse === 'all' && courses.length > 0 && <th className="px-5 py-3">강좌</th>}
+                  <th className="px-5 py-3">강좌</th>
                   <th className="px-5 py-3">상태</th>
                   <th className="px-5 py-3">진도율</th>
                   <th className="px-5 py-3">최근 업데이트</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredRows.map(row => {
-                  const progress = progressMap[row.id]
-                  const status = progress?.status ?? 'not_started'
-                  const percent = progress?.progress_percent ?? 0
-                  const userCourses = userCourseMap[row.id] ?? []
+                {flatRows.map((fr, idx) => {
+                  const status = fr.progress?.status ?? 'not_started'
+                  const percent = fr.progress?.progress_percent ?? 0
                   return (
-                    <tr key={row.id} className="text-sm text-slate-700 hover:bg-slate-50/50">
-                      <td className="px-5 py-4 font-mono text-xs text-slate-500">{row.employee_id ?? '-'}</td>
-                      <td className="px-5 py-4 font-semibold text-slate-900">{row.full_name ?? '-'}</td>
-                      <td className="px-5 py-4">{row.department ?? '-'}</td>
+                    <tr key={`${fr.profile.id}-${fr.progress?.course_id ?? idx}`} className="text-sm text-slate-700 hover:bg-slate-50/50">
+                      <td className="px-5 py-4 font-mono text-xs text-slate-500">{fr.profile.employee_id ?? '-'}</td>
+                      <td className="px-5 py-4 font-semibold text-slate-900">{fr.profile.full_name ?? '-'}</td>
+                      <td className="px-5 py-4">{fr.profile.department ?? '-'}</td>
                       <td className="px-5 py-4">
-                        <span className={clsx(
-                          'inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                          row.role === 'admin' ? 'bg-purple-50 text-purple-700' :
-                          row.role === 'controller' ? 'bg-blue-50 text-blue-700' :
-                          'bg-slate-100 text-slate-600'
-                        )}>
-                          {row.role === 'admin' ? '관리자' : row.role === 'controller' ? '승인자' : '담당자'}
-                        </span>
+                        <span className="text-sm text-slate-700 font-medium">{fr.courseName}</span>
                       </td>
-                      {selectedCourse === 'all' && courses.length > 0 && (
-                        <td className="px-5 py-4">
-                          {userCourses.length > 0 ? (
-                            <div className="space-y-1">
-                              {userCourses.map((uc, idx) => (
-                                <div key={idx} className="flex items-center gap-2 text-xs">
-                                  <span className={clsx(
-                                    'inline-block w-2 h-2 rounded-full',
-                                    uc.status === 'completed' ? 'bg-emerald-500' :
-                                    uc.status === 'in_progress' ? 'bg-blue-500' : 'bg-slate-300'
-                                  )} />
-                                  <span className="text-slate-600 truncate max-w-[140px]" title={uc.course_name || uc.course_id}>
-                                    {uc.course_name || `강좌 ${idx + 1}`}
-                                  </span>
-                                  <span className="font-semibold text-slate-800">{uc.progress_percent}%</span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-slate-400">-</span>
-                          )}
-                        </td>
-                      )}
                       <td className="px-5 py-4">
                         <span className={clsx(
                           'inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
@@ -328,7 +329,7 @@ export default function LearningPage() {
                         </div>
                       </td>
                       <td className="px-5 py-4 text-xs text-slate-500">
-                        {progress?.updated_at ? new Date(progress.updated_at).toLocaleString('ko-KR') : '-'}
+                        {fr.progress?.updated_at ? new Date(fr.progress.updated_at).toLocaleString('ko-KR') : '-'}
                       </td>
                     </tr>
                   )

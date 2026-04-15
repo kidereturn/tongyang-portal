@@ -7,13 +7,22 @@ type Episode = {
   id: string
   episode_number: number
   title: string
-  image_path: string
+  image_path: string   // 단일 경로 또는 "part1.jpg,part2.jpg,..." 쉼표 구분
   created_at: string
+  updated_at?: string
 }
 
-function getPublicUrl(path: string) {
+/** image_path를 파싱하여 개별 경로 배열로 반환 */
+function parsePaths(imagePath: string): string[] {
+  return imagePath.split(',').map(p => p.trim()).filter(Boolean)
+}
+
+function getPublicUrl(path: string, bustCache?: string) {
   const { data } = (supabase.storage as any).from('webtoon').getPublicUrl(path)
-  return data?.publicUrl ?? ''
+  const url = data?.publicUrl ?? ''
+  if (!url) return url
+  const ts = bustCache ? encodeURIComponent(bustCache) : Date.now()
+  return `${url}?t=${ts}`
 }
 
 export default function WebtoonPage() {
@@ -27,7 +36,7 @@ export default function WebtoonPage() {
       try {
         const { data } = await (supabase as any)
           .from('webtoon_episodes')
-          .select('*')
+          .select('id, episode_number, title, image_path, created_at, updated_at')
           .order('episode_number') as { data: Episode[] | null }
         setEpisodes(data ?? [])
       } catch (err) {
@@ -53,9 +62,11 @@ export default function WebtoonPage() {
 
   function goPrev() {
     setCurrent(prev => Math.max(0, prev - 1))
+    scrollToTop()
   }
   function goNext() {
     setCurrent(prev => Math.min(episodes.length - 1, prev + 1))
+    scrollToTop()
   }
 
   const ep = episodes[current]
@@ -95,6 +106,9 @@ export default function WebtoonPage() {
     )
   }
 
+  const cacheKey = ep?.updated_at ?? ep?.created_at
+  const imagePaths = ep ? parsePaths(ep.image_path) : []
+
   return (
     <div className="space-y-6">
       {/* Hero */}
@@ -110,11 +124,11 @@ export default function WebtoonPage() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {episodes.map((e, idx) => (
           <button
             key={e.id}
-            onClick={() => setCurrent(idx)}
+            onClick={() => { setCurrent(idx); scrollToTop() }}
             className={clsx(
               'rounded-xl px-5 py-2.5 text-sm font-bold transition',
               idx === current
@@ -146,27 +160,22 @@ export default function WebtoonPage() {
         )}
       </div>
 
-      {/* Webtoon Viewer */}
+      {/* Webtoon Viewer - 분할된 이미지를 이어서 표시 */}
       {ep && (
         <div className="mx-auto max-w-[720px] bg-white">
-          <img
-            key={ep.id}
-            src={getPublicUrl(ep.image_path)}
-            alt={ep.title}
-            className="w-full"
-            loading="eager"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement
-              target.style.display = 'none'
-              if (target.parentElement) {
-                target.parentElement.innerHTML = `
-                  <div class="flex flex-col items-center justify-center py-20 text-slate-400">
-                    <p class="text-lg font-bold">이미지를 불러올 수 없습니다</p>
-                    <p class="mt-2 text-sm">${ep.title}</p>
-                  </div>`
-              }
-            }}
-          />
+          {imagePaths.map((path, idx) => (
+            <img
+              key={`${ep.id}-${idx}`}
+              src={getPublicUrl(path, cacheKey)}
+              alt={`${ep.title} ${imagePaths.length > 1 ? `(${idx + 1}/${imagePaths.length})` : ''}`}
+              className="w-full block"
+              loading={idx === 0 ? 'eager' : 'lazy'}
+              onError={(e) => {
+                const target = e.target as HTMLImageElement
+                target.style.display = 'none'
+              }}
+            />
+          ))}
         </div>
       )}
 
@@ -183,7 +192,7 @@ export default function WebtoonPage() {
           {episodes.map((_, idx) => (
             <button
               key={idx}
-              onClick={() => setCurrent(idx)}
+              onClick={() => { setCurrent(idx); scrollToTop() }}
               className={clsx(
                 'h-2.5 rounded-full transition-all',
                 idx === current ? 'w-8 bg-brand-600' : 'w-2.5 bg-slate-300 hover:bg-slate-400'

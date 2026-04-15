@@ -11,6 +11,7 @@ import {
   LogOut,
   Map,
   Menu,
+  MessageCircle,
   Newspaper,
   Shield,
   TrendingUp,
@@ -36,6 +37,7 @@ const MORE_ITEMS = [
   { to: '/news', icon: Newspaper, label: '회사소식과 뉴스' },
   { to: '/kpi', icon: TrendingUp, label: 'KPI 결과' },
   { to: '/webtoon', icon: Image, label: '웹툰' },
+  { to: '/tellme', icon: MessageCircle, label: 'Tell me!!' },
   { to: '/profile', icon: User, label: '내 정보' },
 ]
 

@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   LogOut,
   Map,
+  MessageCircle,
   Newspaper,
   Settings,
   Shield,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '../../hooks/useAuth'
+import { usePoints } from '../../hooks/usePoints'
 import { supabase } from '../../lib/supabase'
 
 type Notification = {
@@ -41,17 +43,18 @@ type NavItem = {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/dashboard', label: '통합대시보드', icon: LayoutDashboard },
+  { to: '/dashboard', label: 'HOME', icon: LayoutDashboard },
   { to: '/evidence', label: '증빙관리', icon: FileCheck2, roles: ['admin', 'owner'] },
   { to: '/inbox', label: '내승인함', icon: Inbox, roles: ['admin', 'controller'] },
   { to: '/courses', label: '내 강좌', icon: BookOpen },
-  { to: '/learning', label: '학습현황', icon: BarChart2 },
+  { to: '/learning', label: '강좌관리', icon: BarChart2 },
   { to: '/map', label: '지도', icon: Map, roles: ['admin'] },
   { to: '/news', label: '회사소식과 뉴스', icon: Newspaper },
   { to: '/kpi', label: 'KPI결과', icon: TrendingUp },
   { to: '/bingo', label: '빙고퀴즈', icon: Gamepad2 },
   { to: '/webtoon', label: '웹툰', icon: Image },
   { to: '/chatbot', label: 'AI챗봇', icon: Bot },
+  { to: '/tellme', label: 'Tell me!!', icon: MessageCircle },
 ]
 
 const ROLE_LABEL: Record<string, string> = {
@@ -72,6 +75,7 @@ function filterNavItems(role?: string | null) {
 
 export default function TopNav() {
   const { profile, signOut } = useAuth()
+  const { totalPoints } = usePoints()
   const navigate = useNavigate()
   const [profileOpen, setProfileOpen] = useState(false)
   const [notiOpen, setNotiOpen] = useState(false)
@@ -173,27 +177,27 @@ export default function TopNav() {
         <div className="mx-auto flex h-14 sm:h-16 max-w-screen-2xl items-center gap-3 px-3 sm:px-4 md:px-6">
           <Link to="/dashboard" className="mr-1 flex items-center shrink-0">
             <div className="hidden lg:block">
-              <p className="text-sm font-black leading-tight text-slate-900">(주)동양 내부회계 LMS</p>
+              <p className="text-sm font-black leading-tight text-slate-900">(주)동양 내부회계 PORTAL</p>
               <p className="text-[10px] font-medium tracking-[0.14em] text-slate-400">
-                TONGYANG ACCOUNTING EDUTECH
+                TONGYANG INTERNAL CONTROLS
               </p>
             </div>
-            <p className="text-sm font-black text-slate-900 lg:hidden">(주)동양 LMS</p>
+            <p className="text-sm font-black text-slate-900 lg:hidden">(주)동양 PORTAL</p>
           </Link>
 
-          <nav className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto lg:flex">
+          <nav className="hidden min-w-0 flex-1 items-center gap-0.5 overflow-x-auto scrollbar-hide lg:flex">
             {visibleItems.map(item => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
                   clsx(
-                    'inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold whitespace-nowrap transition',
+                    'inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-[13px] font-semibold whitespace-nowrap transition',
                     isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                   )
                 }
               >
-                <item.icon size={15} />
+                <item.icon size={14} />
                 <span>{item.label}</span>
               </NavLink>
             ))}
@@ -203,12 +207,12 @@ export default function TopNav() {
                 to="/admin"
                 className={({ isActive }) =>
                   clsx(
-                    'inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold whitespace-nowrap transition',
+                    'inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-[13px] font-semibold whitespace-nowrap transition',
                     isActive ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                   )
                 }
               >
-                <Shield size={15} />
+                <Shield size={14} />
                 <span>관리자</span>
               </NavLink>
             )}
@@ -285,7 +289,10 @@ export default function TopNav() {
                   {profile?.full_name?.slice(0, 1) ?? '?'}
                 </div>
                 <div className="hidden text-left md:block">
-                  <p className="text-sm font-bold text-slate-900">{profile?.full_name ?? '사용자'}</p>
+                  <p className="text-sm font-bold text-slate-900">
+                    {profile?.full_name ?? '사용자'}
+                    <span className="ml-1.5 text-xs font-black text-amber-500">{totalPoints}P</span>
+                  </p>
                 </div>
                 {profile?.role && (
                   <span className={clsx('badge border text-xs', ROLE_CLASS[profile.role] ?? 'badge-gray')}>

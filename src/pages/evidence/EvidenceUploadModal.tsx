@@ -110,7 +110,23 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
   const [submitting, setSubmitting] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
   const [error, setError] = useState('')
+  const [uploadBlocked, setUploadBlocked] = useState(false)
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+
+  // Check upload block setting
+  useEffect(() => {
+    if (viewOnly) return
+    ;(async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'evidence_upload_blocked')
+          .maybeSingle()
+        if (data?.value?.blocked) setUploadBlocked(true)
+      } catch { /* */ }
+    })()
+  }, [viewOnly])
 
   useEffect(() => {
     async function load() {
@@ -174,6 +190,10 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
 
   function handleFileSelect(itemId: string, files: FileList | null) {
     if (!files || files.length === 0) return
+    if (uploadBlocked) {
+      setError('현재 관리자에 의해 증빙 업로드가 차단되어 있습니다.')
+      return
+    }
 
     setItems(previous =>
       previous.map(item => {

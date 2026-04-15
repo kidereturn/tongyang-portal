@@ -44,7 +44,9 @@ function formatAmount(v: string) {
   if (!v || v === '-') return '-'
   const n = Number(v.replace(/,/g, ''))
   if (Number.isNaN(n)) return v
-  return n.toLocaleString('ko-KR')
+  // Convert to 백만원 (millions)
+  const millions = Math.round(n / 1_000_000)
+  return millions.toLocaleString('ko-KR')
 }
 
 /* ──────── Main Page ──────── */
@@ -105,15 +107,16 @@ export default function NewsPage() {
     loadFeed({ name: result.corp_name, code: result.corp_code, stock: result.stock_code })
   }
 
-  /* 계열사 정보 (corp_code, stock_code 포함) */
+  /* 계열사 정보 (corp_code, stock_code 포함) - 상장 3사 우선 */
   const AFFILIATES: { name: string; corp_code: string; stock_code: string }[] = [
     { name: '동양', corp_code: '00117337', stock_code: '001520' },
+    { name: '유진기업㈜', corp_code: '00184667', stock_code: '023410' },
+    { name: '유진투자증권', corp_code: '00130608', stock_code: '001200' },
     { name: '한일합섬', corp_code: '01569856', stock_code: '' },
     { name: '유진홈센터', corp_code: '00856931', stock_code: '' },
     { name: '금왕에프원', corp_code: '01718540', stock_code: '' },
     { name: '유진리츠운용', corp_code: '01934917', stock_code: '' },
     { name: '유진이엔티', corp_code: '01795868', stock_code: '' },
-    { name: '유진기업㈜', corp_code: '00184667', stock_code: '023410' },
   ]
 
   function handleAffiliateClick(aff: { name: string; corp_code: string; stock_code: string }) {
@@ -317,7 +320,7 @@ export default function NewsPage() {
                 </table>
               </div>
               <p className="mt-2 text-[10px] text-slate-400">
-                출처: DART 전자공시 (연결재무제표 우선, 개별재무제표 폴백 / 단위: 원)
+                출처: DART 전자공시 (연결재무제표 우선, 개별재무제표 폴백 / 단위: 백만원)
               </p>
             </div>
           )}
@@ -344,6 +347,14 @@ function StockInfoCard({ info }: { info: StockInfo }) {
   const isNeg = info.change.startsWith('-')
   const isPos = info.change.startsWith('+')
 
+  // Mini price range chart (52-week)
+  const parsePriceNum = (v: string) => Number(v.replace(/,/g, '').replace(/원/g, ''))
+  const low = parsePriceNum(info.low52w || '0')
+  const high = parsePriceNum(info.high52w || '0')
+  const cur = parsePriceNum(info.price || '0')
+  const range = high - low
+  const pct = range > 0 ? Math.max(0, Math.min(100, ((cur - low) / range) * 100)) : 50
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
@@ -360,6 +371,33 @@ function StockInfoCard({ info }: { info: StockInfo }) {
           )}
         </div>
       </div>
+
+      {/* 52-week mini price chart */}
+      {info.high52w && info.low52w && (
+        <div className="mb-3 rounded-xl bg-white border border-slate-100 p-3">
+          <p className="text-[10px] font-semibold text-slate-400 mb-2">52주 가격범위</p>
+          <div className="relative h-6">
+            {/* Background bar */}
+            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 rounded-full bg-gradient-to-r from-blue-100 via-slate-100 to-red-100" />
+            {/* Current position marker */}
+            <div
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10"
+              style={{ left: `${pct}%` }}
+            >
+              <div className={clsx(
+                'w-4 h-4 rounded-full border-2 shadow-md',
+                isPos ? 'bg-red-500 border-red-300' : isNeg ? 'bg-blue-500 border-blue-300' : 'bg-slate-500 border-slate-300'
+              )} />
+            </div>
+          </div>
+          <div className="flex justify-between mt-1">
+            <span className="text-[10px] text-blue-500 font-semibold">{info.low52w}</span>
+            <span className="text-[10px] text-slate-400 font-semibold">현재 {Math.round(pct)}%</span>
+            <span className="text-[10px] text-red-500 font-semibold">{info.high52w}</span>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {[
           { label: '시가총액', value: info.marketCap },
@@ -587,7 +625,7 @@ function NewsTabs({
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-black text-slate-900">뉴스</h2>
+        <h2 className="text-lg font-black text-slate-900">News &amp; Coverage</h2>
         {refreshedAt && (
           <p className="text-[11px] text-slate-400">{new Date(refreshedAt).toLocaleString('ko-KR')}</p>
         )}
@@ -622,8 +660,8 @@ function NewsTabs({
           ))}
         </div>
       ) : (
-        <div className="space-y-1 max-h-[700px] overflow-y-auto">
-          {currentItems.map((item, i) => (
+        <div className="space-y-1">
+          {currentItems.slice(0, 30).map((item, i) => (
             <a
               key={item.id + '-' + i}
               href={item.url}

@@ -102,7 +102,8 @@ export default function InboxPage() {
     } finally {
       setLoading(false)
     }
-  }, [profile])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id, profile?.role])
 
   useEffect(() => { fetchInbox() }, [fetchInbox])
 
@@ -131,14 +132,16 @@ export default function InboxPage() {
         })
         .eq('id', item.id)
 
-      // 2. activities submission_status 업데이트
+      // 2. activities submission_status 업데이트 (activity_id 또는 unique_key로)
+      const newStatus = decision === 'approved' ? '승인' : '반려'
       if (item.activity_id) {
         await db.from('activities')
-          .update({
-            submission_status: decision === 'approved' ? '승인' : '반려',
-            updated_at: new Date().toISOString(),
-          })
+          .update({ submission_status: newStatus, updated_at: new Date().toISOString() })
           .eq('id', item.activity_id)
+      } else if (item.unique_key) {
+        await db.from('activities')
+          .update({ submission_status: newStatus, updated_at: new Date().toISOString() })
+          .eq('unique_key', item.unique_key)
       }
 
       // 3. 이메일 알림 발송 (send-approval-email Edge Function)
@@ -169,13 +172,17 @@ export default function InboxPage() {
   }
 
   async function handleAdminCancel(item: ApprovalItem) {
-    if (!confirm('관리자 권한으로 이 결재를 취소(초기화)하시겠습니까?')) return
+    if (!confirm('관리자 권한으로 이 결재를 취소(반려)하시겠습니까?\n상신여부: 반려, 승인상태: 초기화, 증빙 Upload 재활성화')) return
     setProcessing(item.id)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
-    await db.from('approval_requests').update({ status: 'submitted' }).eq('id', item.id)
+    // 결재 요청 삭제 (승인상태 공란 처리)
+    await db.from('approval_requests').delete().eq('id', item.id)
+    // 상신여부를 반려로 설정 → 증빙 Upload 버튼 재활성화
     if (item.activity_id) {
-      await db.from('activities').update({ submission_status: '완료' }).eq('id', item.activity_id)
+      await db.from('activities').update({ submission_status: '반려', updated_at: new Date().toISOString() }).eq('id', item.activity_id)
+    } else if (item.unique_key) {
+      await db.from('activities').update({ submission_status: '반려', updated_at: new Date().toISOString() }).eq('unique_key', item.unique_key)
     }
     setProcessing(null)
     fetchInbox()

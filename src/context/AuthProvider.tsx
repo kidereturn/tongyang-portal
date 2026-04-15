@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import type { Database } from '../types/database'
@@ -28,11 +28,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session: null,
     loading: true,
   })
+  const lastProfileJson = useRef<string>('')
+  const fetchingProfile = useRef(false)
+
+  // Stable profile setter — only updates if profile data actually changed
+  const setProfileStable = useCallback((data: Profile | null) => {
+    const json = JSON.stringify(data)
+    if (json === lastProfileJson.current) return // no change, skip re-render
+    lastProfileJson.current = json
+    setState(prev => ({ ...prev, profile: data, loading: false }))
+  }, [])
 
   useEffect(() => {
     let mounted = true
 
     async function fetchProfile(userId: string) {
+      if (fetchingProfile.current) return
+      fetchingProfile.current = true
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data, error: fetchError } = await (supabase as any)
@@ -46,20 +58,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setState(prev => ({ ...prev, loading: false }))
           return
         }
-        setState(prev => ({ ...prev, profile: data ?? null, loading: false }))
+        setProfileStable(data ?? null)
       } catch {
         if (mounted) setState(prev => ({ ...prev, loading: false }))
+      } finally {
+        fetchingProfile.current = false
       }
+    }
+
+    // Log login to DB
+    async function logLogin(userId: string, profileData: Profile | null) {
+      try {
+        let ip = ''
+        try {
+          const ipRes = await fetch('https://api.ipify.org?format=json')
+          const ipData = await ipRes.json()
+          ip = ipData.ip ?? ''
+        } catch { /* fallback */ }
+
+        await (supabase as any).from('login_logs').insert({
+          user_id: userId,
+          employee_id: profileData?.employee_id ?? null,
+          full_name: profileData?.full_name ?? null,
+          department: profileData?.department ?? null,
+          ip_address: ip,
+          user_agent: navigator.userAgent.slice(0, 200),
+        })
+      } catch { /* silent */ }
     }
 
     // Single listener — fires INITIAL_SESSION on load, then auth events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         if (!mounted) return
         if (session?.user) {
           setState(prev => ({ ...prev, session, user: session.user }))
-          await fetchProfile(session.user.id)
+          // Only re-fetch profile on actual sign-in, not token refresh
+          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || !state.profile) {
+            await fetchProfile(session.user.id)
+            // Log login on actual sign-in
+            if (event === 'SIGNED_IN') {
+              const json = lastProfileJson.current
+              const profileData = json ? JSON.parse(json) as Profile : null
+              logLogin(session.user.id, profileData)
+              // Award login points
+              try {
+                await (supabase as any).from('user_points').insert({
+                  user_id: session.user.id,
+                  action: 'login',
+                  points: 10,
+                  description: '로그인 포인트',
+                })
+              } catch { /* silent */ }
+            }
+          } else {
+            setState(prev => ({ ...prev, loading: false }))
+          }
         } else {
+          lastProfileJson.current = ''
           setState({ user: null, session: null, profile: null, loading: false })
         }
       }

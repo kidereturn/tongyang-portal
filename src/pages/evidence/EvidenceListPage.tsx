@@ -110,7 +110,7 @@ export default function EvidenceListPage() {
     } finally {
       setLoading(false)
     }
-  }, [profile])
+  }, [profile?.id, profile?.role, profile?.employee_id, profile?.full_name])
 
   useEffect(() => { fetchActivities() }, [fetchActivities])
 
@@ -318,21 +318,21 @@ export default function EvidenceListPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="data-table">
+            <table className="data-table text-xs">
               <thead>
                 <tr>
-                  <th className="text-center w-10">#</th>
+                  <th className="text-center w-8">#</th>
                   <th>통제번호</th>
                   {profile?.role !== 'owner' && <th>담당자</th>}
                   <th>관련부서</th>
                   <th className="min-w-[180px]">통제활동명</th>
                   <th className="min-w-[160px]">제출 증빙 설명</th>
                   <th className="text-center min-w-[120px]">증빙 Upload</th>
-                  <th className="text-center">증빙수</th>
+                  <th className="text-center min-w-[80px]">증빙수</th>
                   {profile?.role === 'admin' && <th>승인자</th>}
-                  <th className="text-center">KPI점수</th>
-                  <th className="text-center">상신여부</th>
-                  <th className="text-center">승인상태</th>
+                  <th className="text-center min-w-[90px]">KPI점수</th>
+                  <th className="text-center min-w-[100px]">상신여부</th>
+                  <th className="text-center min-w-[100px]">승인상태</th>
                   <th className="w-6"></th>
                 </tr>
               </thead>

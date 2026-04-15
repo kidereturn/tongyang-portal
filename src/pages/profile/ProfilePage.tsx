@@ -30,7 +30,8 @@ export default function ProfilePage() {
       setPhone(profile.phone ?? '')
       setContactEmail(profile.contact_email ?? '')
     }
-  }, [profile])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id])
 
   async function handleSave() {
     if (!profile) return

@@ -3,6 +3,7 @@ import { BookOpen, PauseCircle, PlayCircle, RotateCcw } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import CourseQuizModal from '../../components/CourseQuizModal'
 
 declare global {
   interface Window {
@@ -41,6 +42,7 @@ export default function CoursesPage() {
   const [currentTime, setCurrentTime] = useState(0)
   const [progress, setProgress] = useState(0)
   const [playbackRate, setPlaybackRate] = useState(1)
+  const [playerError, setPlayerError] = useState<string | null>(null)
 
   const watchedLabel = useMemo(() => {
     const m = Math.floor(currentTime / 60)
@@ -107,34 +109,56 @@ export default function CoursesPage() {
 
     function createPlayer() {
       if (!window.YT?.Player) return
-      // Destroy existing player if any
+      // Destroy existing player — this removes the DOM div, so we must re-create it
       if (playerRef.current?.destroy) {
-        playerRef.current.destroy()
+        try { playerRef.current.destroy() } catch { /* ignore */ }
         playerRef.current = null
+      }
+      // Re-create the container div (destroy() removes it from DOM)
+      const container = document.getElementById('yt-player-wrap')
+      if (container) {
+        const existing = document.getElementById('youtube-course-player')
+        if (!existing) {
+          const div = document.createElement('div')
+          div.id = 'youtube-course-player'
+          div.className = 'h-full w-full'
+          container.appendChild(div)
+        }
       }
 
       playerRef.current = new window.YT.Player('youtube-course-player', {
         videoId: selectedVideo!.youtube_id,
         playerVars: {
-          controls: 0,
-          disablekb: 1,
+          controls: 1,
+          disablekb: 0,
           rel: 0,
           modestbranding: 1,
           playsinline: 1,
-          cc_load_policy: 1, // auto-show subtitles
+          cc_load_policy: 1,
+          origin: window.location.origin,
         },
         events: {
           onReady: () => {
             setReady(true)
+            setPlayerError(null)
             const d = Number(playerRef.current.getDuration?.() ?? 0)
             setDuration(d)
-            // Resume from saved position
             if (watchLimitRef.current > 0 && playerRef.current?.seekTo) {
               playerRef.current.seekTo(watchLimitRef.current, true)
             }
           },
           onStateChange: (event: { data: number }) => {
             setPlaying(event.data === 1)
+          },
+          onError: (event: { data: number }) => {
+            const errors: Record<number, string> = {
+              2: '잘못된 동영상 ID입니다',
+              5: '플레이어 오류가 발생했습니다',
+              100: '동영상을 찾을 수 없습니다 (삭제/비공개)',
+              101: '임베딩이 차단된 동영상입니다',
+              150: '임베딩이 차단된 동영상입니다',
+            }
+            setPlayerError(errors[event.data] ?? `재생 오류 (코드: ${event.data})`)
           },
         },
       })
@@ -144,6 +168,7 @@ export default function CoursesPage() {
     setReady(false)
     setPlaying(false)
     setPlaybackRate(1)
+    setPlayerError(null)
 
     if (!window.YT?.Player) {
       const script = document.createElement('script')
@@ -264,6 +289,33 @@ export default function CoursesPage() {
     }
   }, [profile?.id, selectedVideo?.id, duration])
 
+  // Quiz modal state
+  const [quizOpen, setQuizOpen] = useState(false)
+  const quizTriggeredRef = useRef<Set<string>>(new Set())
+
+  // Check if quiz should trigger (progress >= 95%)
+  useEffect(() => {
+    if (!profile?.id || !selectedVideo?.id || progress < 95) return
+    if (quizTriggeredRef.current.has(selectedVideo.id)) return
+    // Check if user already took quiz for this course
+    ;(async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from('quiz_results')
+          .select('id')
+          .eq('user_id', profile.id)
+          .eq('course_id', selectedVideo.id)
+          .limit(1)
+        if (data && data.length > 0) {
+          quizTriggeredRef.current.add(selectedVideo.id)
+          return // Already took quiz
+        }
+        quizTriggeredRef.current.add(selectedVideo.id)
+        setQuizOpen(true)
+      } catch { /* silent */ }
+    })()
+  }, [profile?.id, selectedVideo?.id, progress])
+
   // Load all video progress for the sidebar list
   const [videoProgress, setVideoProgress] = useState<Record<string, number>>({})
   useEffect(() => {
@@ -346,8 +398,14 @@ export default function CoursesPage() {
             )}
           </div>
 
-          <div className="aspect-video bg-black">
+          <div className="aspect-video bg-black relative" id="yt-player-wrap">
             <div id="youtube-course-player" className="h-full w-full" />
+            {playerError && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white">
+                <p className="text-lg font-bold text-red-400">{playerError}</p>
+                <p className="mt-2 text-sm text-slate-400">다른 강좌를 선택하거나 관리자에게 문의하세요</p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-4 px-5 py-5">
@@ -455,6 +513,16 @@ export default function CoursesPage() {
           </div>
         </section>
       </div>
+
+      {/* Course completion quiz modal */}
+      {selectedVideo && (
+        <CourseQuizModal
+          courseId={selectedVideo.id}
+          courseTitle={selectedVideo.title}
+          open={quizOpen}
+          onClose={() => setQuizOpen(false)}
+        />
+      )}
     </div>
   )
 }

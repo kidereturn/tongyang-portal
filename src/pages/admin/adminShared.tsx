@@ -13,6 +13,12 @@ export type Tab =
   | 'notifications'
   | 'videos'
   | 'webtoon'
+  | 'settings'
+  | 'login-logs'
+  | 'quiz-results'
+  | 'notices'
+  | 'points'
+  | 'chatbot-docs'
 
 export type UserRow = {
   id: string

@@ -46,6 +46,8 @@ const LearningPage    = lazyRetry(() => import('./pages/extra/LearningPage'))
 const BingoPage       = lazyRetry(() => import('./pages/extra/BingoPage'))
 const WebtoonPage     = lazyRetry(() => import('./pages/extra/WebtoonPage'))
 const ProfilePage     = lazyRetry(() => import('./pages/profile/ProfilePage'))
+const TellMePage      = lazyRetry(() => import('./pages/extra/TellMePage'))
+const NoticeDetailPage = lazyRetry(() => import('./pages/notices/NoticeDetailPage'))
 
 function LoadingScreen() {
   return (
@@ -159,6 +161,8 @@ export default function App() {
               <Route path="chatbot"    element={<ErrorBoundary><ChatbotPage /></ErrorBoundary>} />
               <Route path="bingo"      element={<ErrorBoundary><BingoPage /></ErrorBoundary>} />
               <Route path="webtoon"    element={<ErrorBoundary><WebtoonPage /></ErrorBoundary>} />
+              <Route path="tellme"     element={<ErrorBoundary><TellMePage /></ErrorBoundary>} />
+              <Route path="notice/:id" element={<ErrorBoundary><NoticeDetailPage /></ErrorBoundary>} />
               <Route path="profile"    element={<ErrorBoundary><ProfilePage /></ErrorBoundary>} />
               <Route path="admin/*"    element={<AdminRoute><ErrorBoundary><AdminPage /></ErrorBoundary></AdminRoute>} />
             </Route>

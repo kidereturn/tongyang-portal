@@ -28,6 +28,11 @@ import {
   Bell,
   Activity,
   LayoutDashboard,
+  BookOpen,
+  Gamepad2,
+  Info,
+  Trophy,
+  Star,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import clsx from 'clsx'
@@ -155,6 +160,11 @@ export default function DashboardPage() {
   const [userCount, setUserCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [dbNotices, setDbNotices] = useState<Array<{ id: string; type: string; title: string; badge: string; badge_color: string; created_at: string }>>([])
+  const [pointsRanking, setPointsRanking] = useState<Array<{ user_id: string; full_name: string | null; total_points: number }>>([])
+  const [quizPerfect, setQuizPerfect] = useState<Array<{ id: string; full_name: string | null; created_at: string }>>([])
+  const [learningStats, setLearningStats] = useState({ total: 10, inProgress: 0, completed: 0 })
+
 
   const approvalRate = stats.approved + stats.rejected > 0
     ? Math.round((stats.approved / (stats.approved + stats.rejected)) * 100)
@@ -165,7 +175,53 @@ export default function DashboardPage() {
 
   useEffect(() => {
     void fetchAll()
-  }, [profile])
+    void fetchExtras()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id])
+
+  async function fetchExtras() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+    try {
+      // Notices
+      const { data: notices } = await db.from('notices').select('id, type, title, badge, badge_color, created_at')
+        .order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(10)
+      setDbNotices(notices ?? [])
+
+      // Points ranking TOP 5
+      const { data: pts } = await db.rpc('get_points_ranking')
+      setPointsRanking((pts ?? []).slice(0, 5))
+
+      // Quiz perfect scorers
+      const { data: qr } = await db.from('quiz_results').select('id, user_id, score, total_questions, created_at')
+        .eq('score', 10).order('created_at', { ascending: false }).limit(5)
+      if (qr && qr.length > 0) {
+        const userIds = [...new Set(qr.map((r: any) => r.user_id))]
+        const { data: profiles } = await db.from('profiles').select('id, full_name').in('id', userIds)
+        const nameMap: Record<string, string> = {}
+        for (const p of profiles ?? []) nameMap[p.id] = p.full_name ?? ''
+        setQuizPerfect(qr.map((r: any) => ({ ...r, full_name: nameMap[r.user_id] ?? null })))
+      }
+
+      // Learning stats
+      const { data: cVids } = await db.from('course_videos').select('id').eq('is_active', true)
+      const totalCourses = cVids?.length ?? 10
+      const { data: allProg } = await db.from('learning_progress').select('user_id, course_id, progress_percent')
+      const progRows = allProg ?? []
+      if (profile?.role === 'admin') {
+        const inProg = progRows.filter((p: any) => p.progress_percent > 0 && p.progress_percent < 95).length
+        const comp = progRows.filter((p: any) => p.progress_percent >= 95).length
+        setLearningStats({ total: totalCourses, inProgress: inProg, completed: comp })
+      } else if (profile?.id) {
+        const myProg = progRows.filter((p: any) => p.user_id === profile.id)
+        const inProg = myProg.filter((p: any) => p.progress_percent > 0 && p.progress_percent < 95).length
+        const comp = myProg.filter((p: any) => p.progress_percent >= 95).length
+        setLearningStats({ total: totalCourses, inProgress: inProg, completed: comp })
+      } else {
+        setLearningStats({ total: totalCourses, inProgress: 0, completed: 0 })
+      }
+    } catch { /* silent */ }
+  }
 
   async function fetchAll() {
     if (!profile) {
@@ -377,6 +433,63 @@ export default function DashboardPage() {
               )}
             </>
           )}
+        </div>
+      </div>
+
+      {/* 공지사항 / 매뉴얼 + 리더보드 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        {/* 공지사항 + 매뉴얼 통합 리스트 */}
+        <div className="lg:col-span-2 card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Info size={15} className="text-amber-500" />
+            <p className="font-bold text-gray-900 text-sm">공지사항 / 매뉴얼</p>
+          </div>
+          <div className="space-y-1.5 max-h-[220px] overflow-y-auto">
+            {dbNotices.map(n => (
+              <Link key={n.id} to={`/notice/${n.id}`} className="flex items-start gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-slate-50 transition group">
+                <span className={clsx('shrink-0 mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold',
+                  n.type === 'notice' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                )}>
+                  {n.type === 'notice' ? n.badge : '매뉴얼'}
+                </span>
+                <p className="flex-1 text-slate-700 truncate group-hover:text-brand-700 transition">{n.title}</p>
+                <span className="shrink-0 text-[10px] text-slate-400">{new Date(n.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</span>
+              </Link>
+            ))}
+            {dbNotices.length === 0 && <p className="text-xs text-slate-400 py-4 text-center">등록된 공지사항이 없습니다</p>}
+          </div>
+        </div>
+
+        {/* 실시간 리더보드 */}
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Trophy size={15} className="text-amber-500" />
+            <p className="font-bold text-gray-900 text-sm">실시간 랭킹</p>
+          </div>
+          {/* 포인트 TOP 5 */}
+          <p className="text-[10px] font-bold text-slate-400 mb-1.5">POINT TOP 5</p>
+          <div className="space-y-1 mb-3">
+            {pointsRanking.map((r, i) => (
+              <div key={r.user_id} className="flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5">
+                <span className="text-sm">{i === 0 ? '\uD83E\uDD47' : i === 1 ? '\uD83E\uDD48' : i === 2 ? '\uD83E\uDD49' : `${i+1}`}</span>
+                <span className="flex-1 text-xs font-semibold text-slate-800 truncate">{r.full_name ?? '사용자'}</span>
+                <span className="text-xs font-black text-amber-500">{r.total_points}P</span>
+              </div>
+            ))}
+            {pointsRanking.length === 0 && <p className="text-[10px] text-slate-400 text-center py-2">데이터 없음</p>}
+          </div>
+          {/* 퀴즈 만점자 */}
+          <p className="text-[10px] font-bold text-slate-400 mb-1.5">QUIZ PERFECT</p>
+          <div className="space-y-1">
+            {quizPerfect.map(r => (
+              <div key={r.id} className="flex items-center gap-2 rounded-lg bg-amber-50 px-2.5 py-1.5">
+                <Star size={12} className="text-amber-500 shrink-0" />
+                <span className="flex-1 text-xs font-semibold text-slate-800 truncate">{r.full_name ?? '사용자'}</span>
+                <span className="text-[10px] text-slate-400">{new Date(r.created_at).toLocaleDateString('ko-KR', { month:'short', day:'numeric' })}</span>
+              </div>
+            ))}
+            {quizPerfect.length === 0 && <p className="text-[10px] text-slate-400 text-center py-2">아직 만점자가 없습니다</p>}
+          </div>
         </div>
       </div>
 
@@ -652,6 +765,55 @@ export default function DashboardPage() {
               )
             })}
           </div>
+        </div>
+      )}
+
+      {/* 강좌학습현황 + 빙고참여현황 */}
+      {!loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Link to="/learning" className="card p-5 hover:shadow-md transition-all group">
+            <div className="flex items-center gap-2 mb-3">
+              <BookOpen size={15} className="text-blue-500" />
+              <p className="font-bold text-gray-900 text-sm">강좌학습현황</p>
+              <ArrowRight size={12} className="ml-auto text-gray-300 group-hover:text-brand-500 transition" />
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="rounded-xl bg-blue-50 p-3">
+                <p className="text-xs text-blue-500">총 강좌</p>
+                <p className="text-lg font-black text-blue-700">{learningStats.total}</p>
+              </div>
+              <div className="rounded-xl bg-emerald-50 p-3">
+                <p className="text-xs text-emerald-500">수강중</p>
+                <p className="text-lg font-black text-emerald-700">{learningStats.inProgress}</p>
+              </div>
+              <div className="rounded-xl bg-slate-100 p-3">
+                <p className="text-xs text-slate-500">이수완료</p>
+                <p className="text-lg font-black text-slate-700">{learningStats.completed}</p>
+              </div>
+            </div>
+            <p className="text-[11px] text-gray-400 mt-3">강좌관리 페이지에서 상세 진도율을 확인하세요</p>
+          </Link>
+
+          <Link to="/bingo" className="card p-5 hover:shadow-md transition-all group">
+            <div className="flex items-center gap-2 mb-3">
+              <Gamepad2 size={15} className="text-purple-500" />
+              <p className="font-bold text-gray-900 text-sm">빙고퀴즈 참여현황</p>
+              <ArrowRight size={12} className="ml-auto text-gray-300 group-hover:text-brand-500 transition" />
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-center">
+              <div className="rounded-xl bg-purple-50 p-3">
+                <p className="text-xs text-purple-500">빙고퀴즈</p>
+                <p className="text-lg font-black text-purple-700">5x5</p>
+              </div>
+              <div className="rounded-xl bg-amber-50 p-3">
+                <p className="text-xs text-amber-500">목표</p>
+                <p className="text-lg font-black text-amber-700">3줄</p>
+              </div>
+            </div>
+            <div className="mt-3 rounded-xl bg-gradient-to-r from-amber-50 to-red-50 border border-amber-100 px-3 py-2 text-center">
+              <p className="text-xs font-bold text-amber-700">3줄 완성 시 기프티콘 증정! 🎁</p>
+            </div>
+          </Link>
         </div>
       )}
 
