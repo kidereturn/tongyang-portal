@@ -176,16 +176,22 @@ export default function InboxPage() {
     setProcessing(item.id)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
-    // 결재 요청 삭제 (승인상태 공란 처리)
-    await db.from('approval_requests').delete().eq('id', item.id)
-    // 상신여부를 반려로 설정 → 증빙 Upload 버튼 재활성화
-    if (item.activity_id) {
-      await db.from('activities').update({ submission_status: '반려', updated_at: new Date().toISOString() }).eq('id', item.activity_id)
-    } else if (item.unique_key) {
-      await db.from('activities').update({ submission_status: '반려', updated_at: new Date().toISOString() }).eq('unique_key', item.unique_key)
+    try {
+      // 결재 요청 삭제 (승인상태 공란 처리)
+      await db.from('approval_requests').delete().eq('id', item.id)
+      // 상신여부를 반려로 설정 → 증빙 Upload 버튼 재활성화
+      if (item.activity_id) {
+        await db.from('activities').update({ submission_status: '반려', updated_at: new Date().toISOString() }).eq('id', item.activity_id)
+      } else if (item.unique_key) {
+        await db.from('activities').update({ submission_status: '반려', updated_at: new Date().toISOString() }).eq('unique_key', item.unique_key)
+      }
+      fetchInbox()
+    } catch (err) {
+      console.error('[InboxPage] handleAdminCancel error:', err)
+      alert('취소 처리 중 오류가 발생했습니다.')
+    } finally {
+      setProcessing(null)
     }
-    setProcessing(null)
-    fetchInbox()
   }
 
   function openViewModal(item: ApprovalItem) {

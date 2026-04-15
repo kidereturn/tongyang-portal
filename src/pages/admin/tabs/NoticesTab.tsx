@@ -80,8 +80,13 @@ export default function NoticesTab() {
 
   async function handleDelete(id: string) {
     if (!confirm('정말 삭제하시겠습니까?')) return
-    await (supabase as any).from('notices').delete().eq('id', id)
-    fetchNotices()
+    try {
+      await (supabase as any).from('notices').delete().eq('id', id)
+      fetchNotices()
+    } catch (err) {
+      console.error('[NoticesTab] handleDelete error:', err)
+      alert('삭제 실패')
+    }
   }
 
   const showForm = isNew || editing

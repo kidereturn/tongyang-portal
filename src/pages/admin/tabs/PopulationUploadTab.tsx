@@ -16,10 +16,16 @@ export default function PopulationUploadTab({ onDone }: { onDone: () => void }) 
     if (!file) return
     const reader = new FileReader()
     reader.onload = loaded => {
-      const workbook = XLSX.read(loaded.target?.result, { type: 'binary' })
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
-      setPreview(XLSX.utils.sheet_to_json<Record<string, string>>(worksheet, { defval: '' }).slice(0, 5))
+      try {
+        const workbook = XLSX.read(loaded.target?.result, { type: 'binary' })
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+        setPreview(XLSX.utils.sheet_to_json<Record<string, string>>(worksheet, { defval: '' }).slice(0, 5))
+      } catch (err) {
+        console.error('[PopulationUploadTab] file parse error:', err)
+        alert('파일을 읽을 수 없습니다. 올바른 Excel 파일인지 확인해주세요.')
+      }
     }
+    reader.onerror = () => alert('파일 읽기 중 오류가 발생했습니다.')
     reader.readAsBinaryString(file)
   }
 
@@ -33,77 +39,84 @@ export default function PopulationUploadTab({ onDone }: { onDone: () => void }) 
 
     const reader = new FileReader()
     reader.onload = async loaded => {
-      const workbook = XLSX.read(loaded.target?.result, { type: 'binary', cellDates: true })
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '' })
-      const errors: string[] = []
-      let upserted = 0
-      const db = supabase as any
+      try {
+        const workbook = XLSX.read(loaded.target?.result, { type: 'binary', cellDates: true })
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '' })
+        const errors: string[] = []
+        let upserted = 0
+        const db = supabase as any
 
-      setProgress({ current: 0, total: rows.length, phase: '기존 데이터 정리 중...' })
+        setProgress({ current: 0, total: rows.length, phase: '기존 데이터 정리 중...' })
 
-      const uniqueKeys = Array.from(
-        new Set(
-          rows
-            .map(row => {
-              const controlCode = readText(row, ['통제번호', 'control_code'])
-              const department = readText(row, ['관련부서', 'department'])
-              return controlCode && department ? `${controlCode}${department}` : readText(row, ['고유키', 'unique_key'])
-            })
-            .filter(Boolean)
+        const uniqueKeys = Array.from(
+          new Set(
+            rows
+              .map(row => {
+                const controlCode = readText(row, ['통제번호', 'control_code'])
+                const department = readText(row, ['관련부서', 'department'])
+                return controlCode && department ? `${controlCode}${department}` : readText(row, ['고유키', 'unique_key'])
+              })
+              .filter(Boolean)
+          )
         )
-      )
 
-      for (let index = 0; index < uniqueKeys.length; index += 100) {
-        const { error } = await db.from('population_items').delete().in('unique_key', uniqueKeys.slice(index, index + 100))
-        if (error) {
-          errors.push(`기존 모집단 삭제 실패: ${error.message}`)
-          break
-        }
-      }
-
-      setProgress({ current: 0, total: rows.length, phase: '모집단 등록 중...' })
-
-      for (let index = 0; index < rows.length; index += 1) {
-        if (index % 10 === 0) setProgress({ current: index, total: rows.length, phase: '모집단 등록 중...' })
-        const row = rows[index]
-        const controlCode = readText(row, ['통제번호', 'control_code'])
-        const department = readText(row, ['관련부서', 'department'])
-        const uniqueKey = controlCode && department ? `${controlCode}${department}` : readText(row, ['고유키', 'unique_key'])
-        if (!uniqueKey) continue
-
-        const sampleId = readText(row, ['Sample ID', 'sample_id'])
-        const transactionId = String(row['Transaction ID'] ?? row.transaction_id ?? '').trim() || null
-        const transactionDate =
-          toDateString(row['거래일'] ?? row.transaction_date) ??
-          toDateString(row['Transaction Date'] ?? row.transaction_date)
-
-        const payload = {
-          unique_key: uniqueKey,
-          control_code: controlCode || null,
-          dept_code: readText(row, ['부서코드', 'dept_code']) || null,
-          related_dept: department || null,
-          sample_id: sampleId ? `${sampleId}__${index + 1}` : `${uniqueKey}__${index + 1}`,
-          transaction_id: transactionId,
-          transaction_date: transactionDate,
-          description: readText(row, ['거래설명', 'description']) || null,
-          extra_info: readText(row, ['추가 정보 1', 'extra_info']) || null,
-          extra_info_2: readText(row, ['추가 정보 2', 'extra_info_2']) || null,
-          extra_info_3: readText(row, ['추가 정보 3', 'extra_info_3']) || null,
-          extra_info_4: readText(row, ['추가 정보 4', 'extra_info_4']) || null,
+        for (let index = 0; index < uniqueKeys.length; index += 100) {
+          const { error } = await db.from('population_items').delete().in('unique_key', uniqueKeys.slice(index, index + 100))
+          if (error) {
+            errors.push(`기존 모집단 삭제 실패: ${error.message}`)
+            break
+          }
         }
 
-        const { error } = await db.from('population_items').insert(payload)
-        if (error) errors.push(`[${sampleId || uniqueKey}] ${error.message}`)
-        else upserted += 1
-      }
+        setProgress({ current: 0, total: rows.length, phase: '모집단 등록 중...' })
 
-      setProgress({ current: rows.length, total: rows.length, phase: '완료' })
-      setResult({ upserted, errors })
-      setUploading(false)
-      onDone()
+        for (let index = 0; index < rows.length; index += 1) {
+          if (index % 10 === 0) setProgress({ current: index, total: rows.length, phase: '모집단 등록 중...' })
+          const row = rows[index]
+          const controlCode = readText(row, ['통제번호', 'control_code'])
+          const department = readText(row, ['관련부서', 'department'])
+          const uniqueKey = controlCode && department ? `${controlCode}${department}` : readText(row, ['고유키', 'unique_key'])
+          if (!uniqueKey) continue
+
+          const sampleId = readText(row, ['Sample ID', 'sample_id'])
+          const transactionId = String(row['Transaction ID'] ?? row.transaction_id ?? '').trim() || null
+          const transactionDate =
+            toDateString(row['거래일'] ?? row.transaction_date) ??
+            toDateString(row['Transaction Date'] ?? row.transaction_date)
+
+          const payload = {
+            unique_key: uniqueKey,
+            control_code: controlCode || null,
+            dept_code: readText(row, ['부서코드', 'dept_code']) || null,
+            related_dept: department || null,
+            sample_id: sampleId ? `${sampleId}__${index + 1}` : `${uniqueKey}__${index + 1}`,
+            transaction_id: transactionId,
+            transaction_date: transactionDate,
+            description: readText(row, ['거래설명', 'description']) || null,
+            extra_info: readText(row, ['추가 정보 1', 'extra_info']) || null,
+            extra_info_2: readText(row, ['추가 정보 2', 'extra_info_2']) || null,
+            extra_info_3: readText(row, ['추가 정보 3', 'extra_info_3']) || null,
+            extra_info_4: readText(row, ['추가 정보 4', 'extra_info_4']) || null,
+          }
+
+          const { error } = await db.from('population_items').insert(payload)
+          if (error) errors.push(`[${sampleId || uniqueKey}] ${error.message}`)
+          else upserted += 1
+        }
+
+        setProgress({ current: rows.length, total: rows.length, phase: '완료' })
+        setResult({ upserted, errors })
+        onDone()
+      } catch (err) {
+        console.error('[PopulationUploadTab] upload error:', err)
+        alert('업로드 처리 중 오류가 발생했습니다.')
+      } finally {
+        setUploading(false)
+      }
     }
 
+    reader.onerror = () => { alert('파일 읽기 중 오류가 발생했습니다.'); setUploading(false) }
     reader.readAsBinaryString(file)
   }
 

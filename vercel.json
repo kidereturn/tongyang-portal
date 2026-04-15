@@ -5,8 +5,13 @@
       "maxDuration": 30,
       "includeFiles": "api/corp-codes.json"
     },
-    "api/news-feed.ts": {
-      "maxDuration": 30
-    }
+    "api/news-feed.ts": { "maxDuration": 30 },
+    "api/chatbot.ts": { "maxDuration": 30 },
+    "api/pdf-extract.ts": { "maxDuration": 60 },
+    "api/bingo-daily.ts": { "maxDuration": 15 },
+    "api/learning-progress.ts": { "maxDuration": 15 },
+    "api/admin/replace-users.ts": { "maxDuration": 30 },
+    "api/admin/reset-user-passwords.ts": { "maxDuration": 30 },
+    "api/admin/update-users.ts": { "maxDuration": 30 }
   }
 }

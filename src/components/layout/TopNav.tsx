@@ -124,6 +124,7 @@ export default function TopNav() {
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return
+      console.error('[TopNav] fetchNotifications error:', err)
     } finally {
       fetchingRef.current = false
     }
