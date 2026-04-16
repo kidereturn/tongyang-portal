@@ -193,20 +193,20 @@ export default function PointsTab() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-xl bg-amber-50 border border-amber-100 p-4 text-center">
-          <p className="text-[10px] font-bold text-amber-500">전체 포인트</p>
-          <p className="text-2xl font-black text-amber-700">{totalPoints.toLocaleString()}<span className="text-xs ml-0.5">P</span></p>
+          <p className="text-[10px] font-bold text-accent-600">전체 포인트</p>
+          <p className="text-2xl font-bold text-amber-700">{totalPoints.toLocaleString()}<span className="text-xs ml-0.5">P</span></p>
         </div>
         <div className="rounded-xl bg-blue-50 border border-blue-100 p-4 text-center">
           <p className="text-[10px] font-bold text-blue-500">보유자 수</p>
-          <p className="text-2xl font-black text-blue-700">{usersWithPoints}<span className="text-xs ml-0.5">명</span></p>
+          <p className="text-2xl font-bold text-blue-700">{usersWithPoints}<span className="text-xs ml-0.5">명</span></p>
         </div>
         <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4 text-center">
           <p className="text-[10px] font-bold text-emerald-500">전체 사용자</p>
-          <p className="text-2xl font-black text-emerald-700">{rows.length}<span className="text-xs ml-0.5">명</span></p>
+          <p className="text-2xl font-bold text-emerald-700">{rows.length}<span className="text-xs ml-0.5">명</span></p>
         </div>
         <div className="rounded-xl bg-purple-50 border border-purple-100 p-4 text-center">
           <p className="text-[10px] font-bold text-purple-500">평균 포인트</p>
-          <p className="text-2xl font-black text-purple-700">
+          <p className="text-2xl font-bold text-purple-700">
             {rows.length > 0 ? Math.round(totalPoints / rows.length) : 0}<span className="text-xs ml-0.5">P</span>
           </p>
         </div>
@@ -215,11 +215,11 @@ export default function PointsTab() {
       {/* Monthly history */}
       {monthlyData.length > 0 && (
         <div className="card p-4">
-          <p className="text-sm font-bold text-slate-900 mb-3">월별 포인트 이력</p>
+          <p className="text-sm font-bold text-brand-900 mb-3">월별 포인트 이력</p>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-slate-200 text-left text-[11px] font-semibold text-slate-500">
+                <tr className="border-b border-warm-200 text-left text-[11px] font-semibold text-warm-500">
                   <th className="py-2 px-3">월</th>
                   <th className="py-2 px-3 text-right">참여자 수</th>
                   <th className="py-2 px-3 text-right">총 포인트</th>
@@ -228,11 +228,11 @@ export default function PointsTab() {
               </thead>
               <tbody>
                 {monthlyData.map(m => (
-                  <tr key={m.month} className="border-b border-slate-50 hover:bg-slate-50">
-                    <td className="py-2 px-3 font-semibold text-slate-800">{m.month}</td>
-                    <td className="py-2 px-3 text-right text-slate-600">{m.totalUsers}명</td>
+                  <tr key={m.month} className="border-b border-warm-50 hover:bg-warm-50">
+                    <td className="py-2 px-3 font-semibold text-brand-800">{m.month}</td>
+                    <td className="py-2 px-3 text-right text-warm-600">{m.totalUsers}명</td>
                     <td className="py-2 px-3 text-right font-bold text-amber-600">{m.totalPoints.toLocaleString()}P</td>
-                    <td className="py-2 px-3 text-right text-slate-500">{m.avgPoints}P</td>
+                    <td className="py-2 px-3 text-right text-warm-500">{m.avgPoints}P</td>
                   </tr>
                 ))}
               </tbody>
@@ -244,13 +244,13 @@ export default function PointsTab() {
       {/* Actions */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-400" />
           <input
             type="text"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             placeholder="이름, 사번, 부서 검색..."
-            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100 outline-none"
+            className="w-full rounded-xl border border-warm-200 bg-white py-2 pl-9 pr-4 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100 outline-none"
           />
         </div>
         <button onClick={() => fetchPoints()} className="btn-ghost text-xs" disabled={loading}>
@@ -274,15 +274,15 @@ export default function PointsTab() {
       {/* Points table */}
       <div className="card overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-12 text-slate-400">
+          <div className="flex items-center justify-center py-12 text-warm-400">
             <Loader2 size={20} className="animate-spin mr-2" />
             로딩 중...
           </div>
         ) : (
           <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
             <table className="w-full text-xs">
-              <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 z-10">
-                <tr className="text-left text-[11px] font-semibold text-slate-500">
+              <thead className="sticky top-0 bg-warm-50 border-b border-warm-200 z-10">
+                <tr className="text-left text-[11px] font-semibold text-warm-500">
                   <th className="py-2.5 px-3 w-12">#</th>
                   <th className="py-2.5 px-3">사번</th>
                   <th className="py-2.5 px-3">이름</th>
@@ -296,25 +296,25 @@ export default function PointsTab() {
                   <tr
                     key={r.user_id}
                     className={clsx(
-                      'hover:bg-slate-50 transition',
+                      'hover:bg-warm-50 transition',
                       i < 3 && r.total_points > 0 && 'bg-amber-50/50'
                     )}
                   >
                     <td className="py-2 px-3">
                       {i === 0 && r.total_points > 0 ? '\uD83E\uDD47' : i === 1 && r.total_points > 0 ? '\uD83E\uDD48' : i === 2 && r.total_points > 0 ? '\uD83E\uDD49' : i + 1}
                     </td>
-                    <td className="py-2 px-3 font-mono text-slate-500">{r.employee_id ?? '-'}</td>
-                    <td className="py-2 px-3 font-semibold text-slate-800">{r.full_name ?? '-'}</td>
-                    <td className="py-2 px-3 text-slate-500">{r.department ?? '-'}</td>
+                    <td className="py-2 px-3 font-mono text-warm-500">{r.employee_id ?? '-'}</td>
+                    <td className="py-2 px-3 font-semibold text-brand-800">{r.full_name ?? '-'}</td>
+                    <td className="py-2 px-3 text-warm-500">{r.department ?? '-'}</td>
                     <td className="py-2 px-3 text-right">
-                      <span className={clsx('font-black', r.total_points > 0 ? 'text-amber-600' : 'text-slate-300')}>
+                      <span className={clsx('font-bold', r.total_points > 0 ? 'text-amber-600' : 'text-warm-300')}>
                         {r.total_points.toLocaleString()}P
                       </span>
                     </td>
                     <td className="py-2 px-3">
                       <button
                         onClick={() => fetchUserHistory(r)}
-                        className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-200 transition"
+                        className="rounded-md bg-warm-100 px-2 py-1 text-[10px] font-semibold text-warm-600 hover:bg-warm-200 transition"
                       >
                         보기
                       </button>
@@ -323,7 +323,7 @@ export default function PointsTab() {
                 ))}
                 {filteredRows.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-400">
+                    <td colSpan={6} className="py-8 text-center text-warm-400">
                       {searchTerm ? '검색 결과가 없습니다.' : '데이터가 없습니다.'}
                     </td>
                   </tr>
@@ -337,44 +337,44 @@ export default function PointsTab() {
       {/* User history popup */}
       {selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setSelectedUser(null)}>
-          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 bg-amber-50 px-5 py-4">
+          <div className="w-full max-w-lg rounded-lg bg-white shadow-2xl border border-warm-200 overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-warm-200 bg-amber-50 px-5 py-4">
               <div>
-                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <Award size={16} className="text-amber-500" />
+                <h3 className="text-sm font-bold text-brand-900 flex items-center gap-2">
+                  <Award size={16} className="text-accent-600" />
                   {selectedUser.full_name ?? '사용자'} 포인트 이력
                 </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">
+                <p className="text-[11px] text-warm-500 mt-0.5">
                   {selectedUser.employee_id} · {selectedUser.department ?? '-'} · 총 {selectedUser.total_points}P
                 </p>
               </div>
-              <button onClick={() => setSelectedUser(null)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 transition text-lg font-bold">
+              <button onClick={() => setSelectedUser(null)} className="rounded-lg p-1.5 text-warm-400 hover:bg-warm-200 transition text-lg font-bold">
                 &times;
               </button>
             </div>
             <div className="max-h-[400px] overflow-y-auto p-4">
               {historyLoading ? (
-                <div className="flex items-center justify-center py-8 text-slate-400">
+                <div className="flex items-center justify-center py-8 text-warm-400">
                   <Loader2 size={18} className="animate-spin mr-2" />
                 </div>
               ) : history.length > 0 ? (
                 <div className="space-y-1.5">
                   {history.map(h => (
-                    <div key={h.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
+                    <div key={h.id} className="flex items-center justify-between rounded-lg bg-warm-50 px-3 py-2">
                       <div>
-                        <p className="text-xs font-semibold text-slate-700">{h.reason}</p>
-                        <p className="text-[10px] text-slate-400">
+                        <p className="text-xs font-semibold text-brand-700">{h.reason}</p>
+                        <p className="text-[10px] text-warm-400">
                           {new Date(h.created_at).toLocaleString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
-                      <span className={clsx('text-sm font-black', h.points >= 0 ? 'text-emerald-600' : 'text-red-500')}>
+                      <span className={clsx('text-sm font-bold', h.points >= 0 ? 'text-emerald-600' : 'text-red-500')}>
                         {h.points >= 0 ? '+' : ''}{h.points}P
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-center py-8 text-sm text-slate-400">포인트 이력이 없습니다.</p>
+                <p className="text-center py-8 text-sm text-warm-400">포인트 이력이 없습니다.</p>
               )}
             </div>
           </div>

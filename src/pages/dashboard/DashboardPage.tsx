@@ -112,7 +112,7 @@ function StatCard({
             className={clsx(
               'w-10 h-10 rounded-xl flex items-center justify-center mb-3',
               color === 'brand'
-                ? 'bg-brand-50 text-brand-600'
+                ? 'bg-warm-50 text-brand-700'
                 : color === 'amber'
                   ? 'bg-amber-50 text-amber-600'
                   : color === 'green'
@@ -122,12 +122,12 @@ function StatCard({
           >
             <Icon size={20} />
           </div>
-          <p className="text-xs text-gray-500 mb-0.5">{label}</p>
-          <p className="text-2xl font-black text-gray-900" style={{ animation: 'countUp 0.4s ease-out' }}>
+          <p className="text-xs text-warm-500 mb-0.5">{label}</p>
+          <p className="text-2xl font-bold text-brand-900" style={{ animation: 'countUp 0.4s ease-out' }}>
             {animated.toLocaleString()}
-            <span className="text-sm text-gray-400 font-normal ml-1">{unit}</span>
+            <span className="text-sm text-warm-400 font-normal ml-1">{unit}</span>
           </p>
-          <p className="text-xs text-gray-300 group-hover:text-brand-400 transition-colors mt-2 flex items-center gap-0.5">
+          <p className="text-xs text-warm-300 group-hover:text-brand-400 transition-colors mt-2 flex items-center gap-0.5">
             바로가기
             <ArrowRight size={10} />
           </p>
@@ -390,7 +390,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5 pb-mobile-tab lg:pb-0">
-      <div className="rounded-2xl bg-gradient-to-r from-brand-600 via-brand-700 to-indigo-700 p-4 sm:p-6 text-white relative overflow-hidden">
+      <div className="rounded-lg bg-gradient-to-r from-brand-800 via-brand-700 to-indigo-700 p-4 sm:p-6 text-white relative overflow-hidden">
         <div className="absolute right-0 top-0 bottom-0 w-64 opacity-10">
           <LayoutDashboard size={180} className="absolute -right-8 -top-4" />
         </div>
@@ -411,7 +411,7 @@ export default function DashboardPage() {
               <p className="text-brand-200 text-sm font-medium">
                 {greeting()}, {roleLabel[profile?.role ?? ''] ?? ''}
               </p>
-              <h2 className="text-2xl font-black text-white mt-0.5">
+              <h2 className="text-2xl font-bold text-white mt-0.5">
                 {profile?.full_name ?? '사용자'}님
               </h2>
               <p className="text-brand-100/80 text-sm mt-2">
@@ -441,54 +441,54 @@ export default function DashboardPage() {
         {/* 공지사항 + 매뉴얼 통합 리스트 */}
         <div className="lg:col-span-2 card p-4">
           <div className="flex items-center gap-2 mb-3">
-            <Info size={15} className="text-amber-500" />
-            <p className="font-bold text-gray-900 text-sm">공지사항 / 매뉴얼</p>
+            <Info size={15} className="text-accent-600" />
+            <p className="font-bold text-brand-900 text-sm">공지사항 / 매뉴얼</p>
           </div>
           <div className="space-y-1.5 max-h-[220px] overflow-y-auto">
             {dbNotices.map(n => (
-              <Link key={n.id} to={`/notice/${n.id}`} className="flex items-start gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-slate-50 transition group">
+              <Link key={n.id} to={`/notice/${n.id}`} className="flex items-start gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-warm-50 transition group">
                 <span className={clsx('shrink-0 mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold',
                   n.type === 'notice' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
                 )}>
                   {n.type === 'notice' ? n.badge : '매뉴얼'}
                 </span>
-                <p className="flex-1 text-slate-700 truncate group-hover:text-brand-700 transition">{n.title}</p>
-                <span className="shrink-0 text-[10px] text-slate-400">{new Date(n.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</span>
+                <p className="flex-1 text-brand-700 truncate group-hover:text-brand-700 transition">{n.title}</p>
+                <span className="shrink-0 text-[10px] text-warm-400">{new Date(n.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</span>
               </Link>
             ))}
-            {dbNotices.length === 0 && <p className="text-xs text-slate-400 py-4 text-center">등록된 공지사항이 없습니다</p>}
+            {dbNotices.length === 0 && <p className="text-xs text-warm-400 py-4 text-center">등록된 공지사항이 없습니다</p>}
           </div>
         </div>
 
         {/* 실시간 리더보드 */}
         <div className="card p-4">
           <div className="flex items-center gap-2 mb-3">
-            <Trophy size={15} className="text-amber-500" />
-            <p className="font-bold text-gray-900 text-sm">실시간 랭킹</p>
+            <Trophy size={15} className="text-accent-600" />
+            <p className="font-bold text-brand-900 text-sm">실시간 랭킹</p>
           </div>
           {/* 포인트 TOP 5 */}
-          <p className="text-[10px] font-bold text-slate-400 mb-1.5">POINT TOP 5</p>
+          <p className="text-[10px] font-bold text-warm-400 mb-1.5">POINT TOP 5</p>
           <div className="space-y-1 mb-3">
             {pointsRanking.map((r, i) => (
-              <div key={r.user_id} className="flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5">
+              <div key={r.user_id} className="flex items-center gap-2 rounded-lg bg-warm-50 px-2.5 py-1.5">
                 <span className="text-sm">{i === 0 ? '\uD83E\uDD47' : i === 1 ? '\uD83E\uDD48' : i === 2 ? '\uD83E\uDD49' : `${i+1}`}</span>
-                <span className="flex-1 text-xs font-semibold text-slate-800 truncate">{r.full_name ?? '사용자'}</span>
-                <span className="text-xs font-black text-amber-500">{r.total_points}P</span>
+                <span className="flex-1 text-xs font-semibold text-brand-800 truncate">{r.full_name ?? '사용자'}</span>
+                <span className="text-xs font-bold text-accent-600">{r.total_points}P</span>
               </div>
             ))}
-            {pointsRanking.length === 0 && <p className="text-[10px] text-slate-400 text-center py-2">데이터 없음</p>}
+            {pointsRanking.length === 0 && <p className="text-[10px] text-warm-400 text-center py-2">데이터 없음</p>}
           </div>
           {/* 퀴즈 만점자 */}
-          <p className="text-[10px] font-bold text-slate-400 mb-1.5">QUIZ PERFECT</p>
+          <p className="text-[10px] font-bold text-warm-400 mb-1.5">QUIZ PERFECT</p>
           <div className="space-y-1">
             {quizPerfect.map(r => (
               <div key={r.id} className="flex items-center gap-2 rounded-lg bg-amber-50 px-2.5 py-1.5">
-                <Star size={12} className="text-amber-500 shrink-0" />
-                <span className="flex-1 text-xs font-semibold text-slate-800 truncate">{r.full_name ?? '사용자'}</span>
-                <span className="text-[10px] text-slate-400">{new Date(r.created_at).toLocaleDateString('ko-KR', { month:'short', day:'numeric' })}</span>
+                <Star size={12} className="text-accent-600 shrink-0" />
+                <span className="flex-1 text-xs font-semibold text-brand-800 truncate">{r.full_name ?? '사용자'}</span>
+                <span className="text-[10px] text-warm-400">{new Date(r.created_at).toLocaleDateString('ko-KR', { month:'short', day:'numeric' })}</span>
               </div>
             ))}
-            {quizPerfect.length === 0 && <p className="text-[10px] text-slate-400 text-center py-2">아직 만점자가 없습니다</p>}
+            {quizPerfect.length === 0 && <p className="text-[10px] text-warm-400 text-center py-2">아직 만점자가 없습니다</p>}
           </div>
         </div>
       </div>
@@ -529,19 +529,19 @@ export default function DashboardPage() {
             <>
               <div className="flex items-center gap-2 mb-3">
                 <TrendingUp size={16} className="text-brand-500" />
-                <p className="text-sm font-semibold text-gray-600">승인율</p>
+                <p className="text-sm font-semibold text-warm-600">승인율</p>
               </div>
-              <p className="text-4xl font-black text-gray-900" style={{ animation: 'countUp 0.5s ease-out' }}>
+              <p className="text-4xl font-bold text-brand-900" style={{ animation: 'countUp 0.5s ease-out' }}>
                 {animatedRate}
-                <span className="text-xl text-gray-400 ml-0.5">%</span>
+                <span className="text-xl text-warm-400 ml-0.5">%</span>
               </p>
-              <div className="mt-3 bg-gray-100 rounded-full h-2.5">
+              <div className="mt-3 bg-warm-100 rounded-full h-2.5">
                 <div
                   className="bg-gradient-to-r from-brand-500 to-emerald-500 h-2.5 rounded-full transition-all duration-1000"
                   style={{ width: `${approvalRate}%` }}
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-2">승인 {stats.approved}건 · 반려 {stats.rejected}건</p>
+              <p className="text-xs text-warm-400 mt-2">승인 {stats.approved}건 · 반려 {stats.rejected}건</p>
             </>
           )}
         </div>
@@ -558,11 +558,11 @@ export default function DashboardPage() {
                 <>
                   <div className="flex items-center gap-2 mb-3">
                     <Users size={16} className="text-brand-500" />
-                    <p className="text-sm font-semibold text-gray-600">등록 사용자</p>
+                    <p className="text-sm font-semibold text-warm-600">등록 사용자</p>
                   </div>
-                  <p className="text-4xl font-black text-gray-900" style={{ animation: 'countUp 0.5s ease-out' }}>
+                  <p className="text-4xl font-bold text-brand-900" style={{ animation: 'countUp 0.5s ease-out' }}>
                     {animatedUsers}
-                    <span className="text-xl text-gray-400 ml-1">명</span>
+                    <span className="text-xl text-warm-400 ml-1">명</span>
                   </p>
                   <Link to="/admin" className="text-xs text-brand-500 hover:underline mt-3 flex items-center gap-0.5">
                     사용자 관리
@@ -581,14 +581,14 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <div className="flex items-center gap-2 mb-3">
-                    <AlertTriangle size={16} className="text-amber-500" />
-                    <p className="text-sm font-semibold text-gray-600">처리 필요</p>
+                    <AlertTriangle size={16} className="text-accent-600" />
+                    <p className="text-sm font-semibold text-warm-600">처리 필요</p>
                   </div>
-                  <p className="text-4xl font-black text-gray-900">
+                  <p className="text-4xl font-bold text-brand-900">
                     {stats.pendingApproval}
-                    <span className="text-xl text-gray-400 ml-1">건</span>
+                    <span className="text-xl text-warm-400 ml-1">건</span>
                   </p>
-                  <p className="text-xs text-gray-400 mt-3">결재 대기 중인 증빙</p>
+                  <p className="text-xs text-warm-400 mt-3">결재 대기 중인 증빙</p>
                 </>
               )}
             </div>
@@ -600,7 +600,7 @@ export default function DashboardPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Activity size={15} className="text-brand-500" />
-            <p className="font-bold text-gray-900 text-sm">월별 증빙 현황 (최근 6개월)</p>
+            <p className="font-bold text-brand-900 text-sm">월별 증빙 현황 (최근 6개월)</p>
           </div>
           {loading ? (
             <div className="space-y-2 pt-4">
@@ -613,7 +613,7 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : monthly.every(item => item.submitted === 0 && item.approved === 0 && item.rejected === 0) ? (
-            <div className="flex items-center justify-center h-48 text-gray-300 text-sm">데이터 없음</div>
+            <div className="flex items-center justify-center h-48 text-warm-300 text-sm">데이터 없음</div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={monthly} barSize={12} barGap={3}>
@@ -631,7 +631,7 @@ export default function DashboardPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <FileCheck2 size={15} className="text-brand-500" />
-            <p className="font-bold text-gray-900 text-sm">증빙 상태 분포</p>
+            <p className="font-bold text-brand-900 text-sm">증빙 상태 분포</p>
           </div>
           {loading ? (
             <div className="flex items-center justify-center h-48 gap-8">
@@ -643,8 +643,8 @@ export default function DashboardPage() {
               </div>
             </div>
           ) : stats.total === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-gray-300 text-sm gap-2">
-              <FileCheck2 size={32} className="text-gray-200" />
+            <div className="flex flex-col items-center justify-center h-48 text-warm-300 text-sm gap-2">
+              <FileCheck2 size={32} className="text-warm-200" />
               아직 데이터가 없습니다
             </div>
           ) : (
@@ -671,10 +671,10 @@ export default function DashboardPage() {
             <div className="card p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Users size={15} className="text-brand-500" />
-                <p className="font-bold text-gray-900 text-sm">부서별 증빙 현황</p>
+                <p className="font-bold text-brand-900 text-sm">부서별 증빙 현황</p>
               </div>
               {deptStats.every(d => d.total === 0) ? (
-                <div className="flex items-center justify-center h-48 text-gray-300 text-sm">데이터 없음</div>
+                <div className="flex items-center justify-center h-48 text-warm-300 text-sm">데이터 없음</div>
               ) : (
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={deptStats} layout="vertical" barSize={14}>
@@ -695,10 +695,10 @@ export default function DashboardPage() {
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp size={15} className="text-brand-500" />
-              <p className="font-bold text-gray-900 text-sm">일별 활동 추이 (최근 14일)</p>
+              <p className="font-bold text-brand-900 text-sm">일별 활동 추이 (최근 14일)</p>
             </div>
             {dailyActivity.every(d => d.count === 0) ? (
-              <div className="flex items-center justify-center h-48 text-gray-300 text-sm">데이터 없음</div>
+              <div className="flex items-center justify-center h-48 text-warm-300 text-sm">데이터 없음</div>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={dailyActivity}>
@@ -719,7 +719,7 @@ export default function DashboardPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Activity size={15} className="text-brand-500" />
-            <p className="font-bold text-gray-900 text-sm">전체 진행률</p>
+            <p className="font-bold text-brand-900 text-sm">전체 진행률</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[
@@ -733,8 +733,8 @@ export default function DashboardPage() {
                     <RadialBar background dataKey="value" cornerRadius={10} />
                   </RadialBarChart>
                 </ResponsiveContainer>
-                <p className="text-2xl font-black text-gray-900 -mt-6">{g.value}%</p>
-                <p className="text-xs text-gray-500 mt-1">{g.label}</p>
+                <p className="text-2xl font-bold text-brand-900 -mt-6">{g.value}%</p>
+                <p className="text-xs text-warm-500 mt-1">{g.label}</p>
               </div>
             ))}
           </div>
@@ -745,7 +745,7 @@ export default function DashboardPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Activity size={15} className="text-brand-500" />
-            <p className="font-bold text-gray-900 text-sm">통제활동별 현황 (상위 5개)</p>
+            <p className="font-bold text-brand-900 text-sm">통제활동별 현황 (상위 5개)</p>
           </div>
           <div className="space-y-3">
             {actStats.map((item, index) => {
@@ -753,13 +753,13 @@ export default function DashboardPage() {
               return (
                 <div key={index}>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-700 font-medium truncate max-w-xs">{item.title}</span>
-                    <span className="text-gray-400 shrink-0 ml-2">
+                    <span className="text-brand-700 font-medium truncate max-w-xs">{item.title}</span>
+                    <span className="text-warm-400 shrink-0 ml-2">
                       {item.approved}/{item.total}건 ({rate}%)
                     </span>
                   </div>
-                  <div className="bg-gray-100 rounded-full h-1.5">
-                    <div className="bg-brand-500 h-1.5 rounded-full transition-all duration-700" style={{ width: `${rate}%` }} />
+                  <div className="bg-warm-100 rounded-full h-1.5">
+                    <div className="bg-warm-500 h-1.5 rounded-full transition-all duration-700" style={{ width: `${rate}%` }} />
                   </div>
                 </div>
               )
@@ -774,40 +774,40 @@ export default function DashboardPage() {
           <Link to="/learning" className="card p-5 hover:shadow-md transition-all group">
             <div className="flex items-center gap-2 mb-3">
               <BookOpen size={15} className="text-blue-500" />
-              <p className="font-bold text-gray-900 text-sm">강좌학습현황</p>
-              <ArrowRight size={12} className="ml-auto text-gray-300 group-hover:text-brand-500 transition" />
+              <p className="font-bold text-brand-900 text-sm">강좌학습현황</p>
+              <ArrowRight size={12} className="ml-auto text-warm-300 group-hover:text-brand-500 transition" />
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="rounded-xl bg-blue-50 p-3">
                 <p className="text-xs text-blue-500">총 강좌</p>
-                <p className="text-lg font-black text-blue-700">{learningStats.total}</p>
+                <p className="text-lg font-bold text-blue-700">{learningStats.total}</p>
               </div>
               <div className="rounded-xl bg-emerald-50 p-3">
                 <p className="text-xs text-emerald-500">수강중</p>
-                <p className="text-lg font-black text-emerald-700">{learningStats.inProgress}</p>
+                <p className="text-lg font-bold text-emerald-700">{learningStats.inProgress}</p>
               </div>
-              <div className="rounded-xl bg-slate-100 p-3">
-                <p className="text-xs text-slate-500">이수완료</p>
-                <p className="text-lg font-black text-slate-700">{learningStats.completed}</p>
+              <div className="rounded-xl bg-warm-100 p-3">
+                <p className="text-xs text-warm-500">이수완료</p>
+                <p className="text-lg font-bold text-brand-700">{learningStats.completed}</p>
               </div>
             </div>
-            <p className="text-[11px] text-gray-400 mt-3">강좌관리 페이지에서 상세 진도율을 확인하세요</p>
+            <p className="text-[11px] text-warm-400 mt-3">강좌관리 페이지에서 상세 진도율을 확인하세요</p>
           </Link>
 
           <Link to="/bingo" className="card p-5 hover:shadow-md transition-all group">
             <div className="flex items-center gap-2 mb-3">
               <Gamepad2 size={15} className="text-purple-500" />
-              <p className="font-bold text-gray-900 text-sm">빙고퀴즈 참여현황</p>
-              <ArrowRight size={12} className="ml-auto text-gray-300 group-hover:text-brand-500 transition" />
+              <p className="font-bold text-brand-900 text-sm">빙고퀴즈 참여현황</p>
+              <ArrowRight size={12} className="ml-auto text-warm-300 group-hover:text-brand-500 transition" />
             </div>
             <div className="grid grid-cols-2 gap-3 text-center">
               <div className="rounded-xl bg-purple-50 p-3">
                 <p className="text-xs text-purple-500">빙고퀴즈</p>
-                <p className="text-lg font-black text-purple-700">5x5</p>
+                <p className="text-lg font-bold text-purple-700">5x5</p>
               </div>
               <div className="rounded-xl bg-amber-50 p-3">
-                <p className="text-xs text-amber-500">목표</p>
-                <p className="text-lg font-black text-amber-700">3줄</p>
+                <p className="text-xs text-accent-600">목표</p>
+                <p className="text-lg font-bold text-amber-700">3줄</p>
               </div>
             </div>
             <div className="mt-3 rounded-xl bg-gradient-to-r from-amber-50 to-red-50 border border-amber-100 px-3 py-2 text-center">
@@ -834,7 +834,7 @@ export default function DashboardPage() {
                 className={clsx(
                   'w-8 h-8 rounded-lg flex items-center justify-center mb-2',
                   item.color === 'brand'
-                    ? 'bg-brand-50 text-brand-600'
+                    ? 'bg-warm-50 text-brand-700'
                     : item.color === 'blue'
                       ? 'bg-blue-50 text-blue-600'
                       : item.color === 'green'
@@ -844,8 +844,8 @@ export default function DashboardPage() {
               >
                 <item.icon size={15} />
               </div>
-              <p className="text-sm font-bold text-gray-900">{item.label}</p>
-              <p className="text-xs text-gray-400">{item.desc}</p>
+              <p className="text-sm font-bold text-brand-900">{item.label}</p>
+              <p className="text-xs text-warm-400">{item.desc}</p>
             </Link>
           ))}
         </div>

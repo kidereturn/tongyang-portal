@@ -96,8 +96,8 @@ export default function VideosTab() {
   return (
     <div className="space-y-6">
       <div className="card p-5 space-y-4">
-        <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-          <PlayCircle size={16} className="text-brand-600" />새 동영상 추가
+        <h3 className="text-sm font-bold text-brand-900 flex items-center gap-2">
+          <PlayCircle size={16} className="text-brand-700" />새 동영상 추가
         </h3>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
@@ -118,35 +118,35 @@ export default function VideosTab() {
           {saving ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
           동영상 추가
         </button>
-        <p className="text-[11px] text-gray-400">
+        <p className="text-[11px] text-warm-400">
           자막 설정: YouTube Studio → 해당 동영상 → 자막 → 자동 생성 또는 수동 업로드
         </p>
       </div>
 
       <div className="card overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100">
-          <h3 className="text-sm font-bold text-gray-900">등록된 동영상 ({videos.length}개) — 최신순</h3>
+        <div className="px-5 py-3 border-b border-warm-100">
+          <h3 className="text-sm font-bold text-brand-900">등록된 동영상 ({videos.length}개) — 최신순</h3>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-sm text-gray-400">불러오는 중...</div>
+          <div className="p-8 text-center text-sm text-warm-400">불러오는 중...</div>
         ) : videos.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-400">등록된 동영상이 없습니다.</div>
+          <div className="p-8 text-center text-sm text-warm-400">등록된 동영상이 없습니다.</div>
         ) : (
           <div className="divide-y divide-gray-100">
             {videos.map(v => (
-              <div key={v.id} className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50">
+              <div key={v.id} className="flex items-center gap-4 px-5 py-3 hover:bg-warm-50">
                 <a href={v.youtube_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
                   <img
                     src={v.thumbnail_url ?? ''}
                     alt={v.title}
-                    className="h-16 w-28 rounded-lg object-cover bg-gray-200"
+                    className="h-16 w-28 rounded-lg object-cover bg-warm-200"
                     onError={e => { (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${v.youtube_id}/hqdefault.jpg` }}
                   />
                 </a>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-gray-900 truncate">{v.title}</p>
-                  {v.description && <p className="text-xs text-gray-500 truncate">{v.description}</p>}
-                  <p className="text-[11px] text-gray-400 mt-0.5">
+                  <p className="text-sm font-bold text-brand-900 truncate">{v.title}</p>
+                  {v.description && <p className="text-xs text-warm-500 truncate">{v.description}</p>}
+                  <p className="text-[11px] text-warm-400 mt-0.5">
                     {new Date(v.created_at).toLocaleDateString('ko-KR')}
                     {!v.is_active && <span className="ml-2 text-red-500 font-semibold">비활성</span>}
                   </p>
@@ -154,7 +154,7 @@ export default function VideosTab() {
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => toggleActive(v.id, v.is_active)}
-                    className={clsx('text-xs px-3 py-1.5 rounded-lg border font-semibold', v.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-gray-50 text-gray-500')}
+                    className={clsx('text-xs px-3 py-1.5 rounded-lg border font-semibold', v.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-warm-200 bg-warm-50 text-warm-500')}
                   >
                     {v.is_active ? '활성' : '비활성'}
                   </button>

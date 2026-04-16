@@ -349,20 +349,20 @@ export default function ChatbotDocsTab() {
       {/* 요약 카드 */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="card p-3 text-center">
-          <p className="text-2xl font-black text-brand-600">{docs.length}</p>
-          <p className="text-xs text-gray-500">전체 문서</p>
+          <p className="text-2xl font-bold text-brand-700">{docs.length}</p>
+          <p className="text-xs text-warm-500">전체 문서</p>
         </div>
         <div className="card p-3 text-center">
-          <p className="text-2xl font-black text-emerald-600">{activeCnt}</p>
-          <p className="text-xs text-gray-500">활성 문서</p>
+          <p className="text-2xl font-bold text-emerald-600">{activeCnt}</p>
+          <p className="text-xs text-warm-500">활성 문서</p>
         </div>
         <div className="card p-3 text-center">
-          <p className="text-2xl font-black text-purple-600">{categories.length}</p>
-          <p className="text-xs text-gray-500">카테고리</p>
+          <p className="text-2xl font-bold text-purple-600">{categories.length}</p>
+          <p className="text-xs text-warm-500">카테고리</p>
         </div>
         <div className="card p-3 text-center">
-          <p className="text-2xl font-black text-amber-600">{(totalChars / 1000).toFixed(1)}K</p>
-          <p className="text-xs text-gray-500">총 글자수</p>
+          <p className="text-2xl font-bold text-amber-600">{(totalChars / 1000).toFixed(1)}K</p>
+          <p className="text-xs text-warm-500">총 글자수</p>
         </div>
       </div>
 
@@ -392,7 +392,7 @@ export default function ChatbotDocsTab() {
             <p className="text-sm font-bold text-emerald-900">
               일괄 업로드 결과: {batchResults.filter(r => r.ok).length}/{batchResults.length}건 성공
             </p>
-            <button onClick={() => setBatchResults([])} className="text-xs text-gray-500 hover:text-gray-700">닫기</button>
+            <button onClick={() => setBatchResults([])} className="text-xs text-warm-500 hover:text-brand-700">닫기</button>
           </div>
           <div className="space-y-1 max-h-40 overflow-y-auto">
             {batchResults.map((r, i) => (
@@ -409,7 +409,7 @@ export default function ChatbotDocsTab() {
       {/* 검색/필터/추가 */}
       <div className="flex flex-wrap gap-2 items-center">
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-400" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -504,18 +504,18 @@ export default function ChatbotDocsTab() {
                     <button onClick={() => toggleActive(doc)} title={doc.is_active ? '비활성화' : '활성화'}>
                       {doc.is_active
                         ? <Eye size={14} className="text-emerald-500" />
-                        : <EyeOff size={14} className="text-gray-400" />
+                        : <EyeOff size={14} className="text-warm-400" />
                       }
                     </button>
                   </td>
                   <td>
-                    <span className="inline-block rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand-700">
+                    <span className="inline-block rounded-full bg-warm-50 px-2 py-0.5 text-[10px] font-semibold text-brand-700">
                       {doc.category}
                     </span>
                   </td>
-                  <td className="font-medium text-gray-900">{doc.title}</td>
-                  <td className="text-gray-500">{doc.content.length.toLocaleString()}</td>
-                  <td className="text-gray-400">
+                  <td className="font-medium text-brand-900">{doc.title}</td>
+                  <td className="text-warm-500">{doc.content.length.toLocaleString()}</td>
+                  <td className="text-warm-400">
                     {doc.updated_at ? new Date(doc.updated_at).toLocaleDateString('ko-KR') : '-'}
                   </td>
                   <td>
@@ -531,7 +531,7 @@ export default function ChatbotDocsTab() {
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-400">문서가 없습니다</td></tr>
+                <tr><td colSpan={6} className="text-center py-8 text-warm-400">문서가 없습니다</td></tr>
               )}
             </tbody>
           </table>
@@ -541,20 +541,20 @@ export default function ChatbotDocsTab() {
       {/* 편집 모달 */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b px-5 py-3">
-              <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                <BookOpen size={16} className="text-brand-600" />
+              <h3 className="font-bold text-brand-900 flex items-center gap-2">
+                <BookOpen size={16} className="text-brand-700" />
                 {isNew ? '새 문서 추가' : '문서 수정'}
               </h3>
-              <button onClick={() => setEditing(null)} className="p-1 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setEditing(null)} className="p-1 hover:bg-warm-100 rounded-lg">
                 <X size={18} />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">카테고리</label>
+                  <label className="block text-xs font-semibold text-brand-700 mb-1">카테고리</label>
                   <select
                     value={editing.category}
                     onChange={e => setEditing({ ...editing, category: e.target.value })}
@@ -564,20 +564,20 @@ export default function ChatbotDocsTab() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">상태</label>
+                  <label className="block text-xs font-semibold text-brand-700 mb-1">상태</label>
                   <label className="flex items-center gap-2 mt-1.5">
                     <input
                       type="checkbox"
                       checked={editing.is_active}
                       onChange={e => setEditing({ ...editing, is_active: e.target.checked })}
-                      className="rounded text-brand-600"
+                      className="rounded text-brand-700"
                     />
                     <span className="text-sm">{editing.is_active ? '활성' : '비활성'}</span>
                   </label>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">제목</label>
+                <label className="block text-xs font-semibold text-brand-700 mb-1">제목</label>
                 <input
                   value={editing.title}
                   onChange={e => setEditing({ ...editing, title: e.target.value })}
@@ -587,8 +587,8 @@ export default function ChatbotDocsTab() {
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-gray-700">
-                    내용 <span className="text-gray-400 font-normal">({editing.content.length.toLocaleString()}자)</span>
+                  <label className="text-xs font-semibold text-brand-700">
+                    내용 <span className="text-warm-400 font-normal">({editing.content.length.toLocaleString()}자)</span>
                   </label>
                   <label className={clsx(
                     'inline-flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 cursor-pointer font-semibold',

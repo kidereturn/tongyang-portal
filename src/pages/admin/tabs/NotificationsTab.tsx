@@ -80,23 +80,23 @@ export default function NotificationsTab() {
   return (
     <div className="space-y-5">
       <div className="card p-5">
-        <h3 className="mb-4 text-sm font-bold text-gray-900">알림 메시지 작성</h3>
+        <h3 className="mb-4 text-sm font-bold text-brand-900">알림 메시지 작성</h3>
         <div className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-600">제목 *</label>
+            <label className="mb-1 block text-xs font-semibold text-warm-600">제목 *</label>
             <input value={title} onChange={e => setTitle(e.target.value)} className="form-input" placeholder="알림 제목을 입력하세요" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-600">내용</label>
+            <label className="mb-1 block text-xs font-semibold text-warm-600">내용</label>
             <textarea value={body} onChange={e => setBody(e.target.value)} className="form-input min-h-[80px]" placeholder="알림 내용 (선택)" />
           </div>
         </div>
       </div>
 
       <div className="card p-5">
-        <h3 className="mb-3 text-sm font-bold text-gray-900">수신자 선택</h3>
+        <h3 className="mb-3 text-sm font-bold text-brand-900">수신자 선택</h3>
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="flex gap-1 rounded-lg bg-gray-100 p-1">
+          <div className="flex gap-1 rounded-lg bg-warm-100 p-1">
             {[
               { value: 'all', label: '전체' },
               { value: 'admin', label: '관리자' },
@@ -108,7 +108,7 @@ export default function NotificationsTab() {
                 onClick={() => setRoleFilter(opt.value)}
                 className={clsx(
                   'rounded-md px-3 py-1.5 text-xs font-semibold transition',
-                  roleFilter === opt.value ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  roleFilter === opt.value ? 'bg-white text-brand-900 shadow-sm' : 'text-warm-500 hover:text-brand-700'
                 )}
               >
                 {opt.label}
@@ -116,33 +116,33 @@ export default function NotificationsTab() {
             ))}
           </div>
           <div className="relative flex-1">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-warm-400" />
             <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="form-input pl-8 text-xs" placeholder="이름 또는 사번 검색" />
           </div>
           <button
             onClick={() => toggleAll(selectedIds.size < filtered.length)}
-            className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+            className="rounded-lg border border-warm-200 px-3 py-1.5 text-xs font-semibold text-warm-600 hover:bg-warm-50"
           >
             {selectedIds.size >= filtered.length && filtered.length > 0 ? '전체 해제' : '전체 선택'}
           </button>
         </div>
 
-        <p className="mb-2 text-xs text-gray-500">
+        <p className="mb-2 text-xs text-warm-500">
           {filtered.length}명 중 <strong className="text-brand-700">{selectedIds.size}명</strong> 선택됨
         </p>
 
-        <div className="max-h-64 overflow-y-auto rounded-lg border border-gray-100">
+        <div className="max-h-64 overflow-y-auto rounded-lg border border-warm-100">
           {filtered.map(p => (
             <label
               key={p.id}
               className={clsx(
-                'flex cursor-pointer items-center gap-3 border-b border-gray-50 px-3 py-2 transition hover:bg-gray-50',
-                selectedIds.has(p.id) && 'bg-brand-50/40'
+                'flex cursor-pointer items-center gap-3 border-b border-warm-50 px-3 py-2 transition hover:bg-warm-50',
+                selectedIds.has(p.id) && 'bg-warm-50/40'
               )}
             >
-              <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => toggleOne(p.id)} className="h-4 w-4 rounded border-gray-300 text-brand-600" />
-              <span className="text-sm text-gray-900">{p.full_name ?? '-'}</span>
-              <span className="text-xs text-gray-400">{p.employee_id ?? ''}</span>
+              <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => toggleOne(p.id)} className="h-4 w-4 rounded border-warm-300 text-brand-700" />
+              <span className="text-sm text-brand-900">{p.full_name ?? '-'}</span>
+              <span className="text-xs text-warm-400">{p.employee_id ?? ''}</span>
               <span className={clsx('badge ml-auto text-[10px]', ROLE_BADGES[p.role] ?? 'badge-gray')}>
                 {ROLE_LABELS[p.role] ?? p.role}
               </span>

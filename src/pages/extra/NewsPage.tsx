@@ -132,18 +132,18 @@ export default function NewsPage() {
       <div className="rounded-[28px] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-6 py-8 text-white shadow-2xl">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-semibold tracking-[0.24em] text-slate-400">LIVE FEED</p>
-            <h1 className="mt-2 flex items-center gap-2 text-3xl font-black">
+            <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">LIVE FEED</p>
+            <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
               <Newspaper size={28} className="text-brand-300" />
               뉴스 · 공시 · 재무
             </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-warm-300">
               DART 공시, 실시간 주가, 재무제표, 네이버 금융 뉴스를 통합 조회합니다.
             </p>
           </div>
           <button
             onClick={() => loadFeed()}
-            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             새로 고침
@@ -156,16 +156,16 @@ export default function NewsPage() {
         {/* ───── LEFT: DART 공시 ───── */}
         <section className="space-y-4">
           <div className="flex items-center gap-2">
-            <TrendingUp size={18} className="text-brand-600" />
-            <h2 className="text-lg font-black text-slate-900">DART 공시</h2>
+            <TrendingUp size={18} className="text-brand-700" />
+            <h2 className="text-lg font-bold text-brand-900">DART 공시</h2>
             {data?.corpName && <span className="badge-blue text-xs">{data.corpName}</span>}
           </div>
 
           {/* 검색 필터 */}
-          <form onSubmit={handleDartSearch} className="rounded-2xl border border-sky-200 bg-white p-4 shadow-sm">
+          <form onSubmit={handleDartSearch} className="rounded-lg border border-sky-200 bg-white p-4 shadow-sm">
             {/* 계열사 빠른 선택 */}
             <div className="mb-3">
-              <label className="mb-1.5 block text-[11px] font-semibold text-slate-500">계열사 바로가기</label>
+              <label className="mb-1.5 block text-[11px] font-semibold text-warm-500">계열사 바로가기</label>
               <div className="flex flex-wrap gap-1.5">
                 {AFFILIATES.map(aff => (
                   <button
@@ -187,9 +187,9 @@ export default function NewsPage() {
 
             <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto_auto]">
               <div>
-                <label className="mb-1 block text-[11px] font-semibold text-slate-500">회사명</label>
+                <label className="mb-1 block text-[11px] font-semibold text-warm-500">회사명</label>
                 <div className="relative">
-                  <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-warm-400" />
                   <input
                     type="text"
                     value={corpName}
@@ -207,11 +207,11 @@ export default function NewsPage() {
                 </div>
               </div>
               <div>
-                <label className="mb-1 block text-[11px] font-semibold text-slate-500">시작일</label>
+                <label className="mb-1 block text-[11px] font-semibold text-warm-500">시작일</label>
                 <input type="date" value={bgnDe} onChange={e => setBgnDe(e.target.value)} className="form-input text-sm" />
               </div>
               <div>
-                <label className="mb-1 block text-[11px] font-semibold text-slate-500">종료일</label>
+                <label className="mb-1 block text-[11px] font-semibold text-warm-500">종료일</label>
                 <input type="date" value={endDe} onChange={e => setEndDe(e.target.value)} className="form-input text-sm" />
               </div>
               <div className="flex items-end">
@@ -227,7 +227,7 @@ export default function NewsPage() {
           {data?.stockInfo && <StockInfoCard info={data.stockInfo} />}
 
           {/* 공시 목록 */}
-          <div className="overflow-hidden rounded-2xl bg-sky-50 border border-sky-200 shadow-lg">
+          <div className="overflow-hidden rounded-lg bg-sky-50 border border-sky-200 shadow-md">
             <div className="border-b border-sky-200 bg-sky-100 px-5 py-3">
               <p className="text-sm font-bold text-sky-900">
                 {data?.corpName ?? '동양'} 공시 ({data?.dartItems.length ?? 0}건)
@@ -251,8 +251,8 @@ export default function NewsPage() {
                   >
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-sky-700">{item.corp_name}</p>
-                      <p className="mt-0.5 text-sm font-medium leading-5 text-slate-900 truncate">{item.report_nm}</p>
-                      <p className="mt-0.5 text-[11px] text-slate-500">
+                      <p className="mt-0.5 text-sm font-medium leading-5 text-brand-900 truncate">{item.report_nm}</p>
+                      <p className="mt-0.5 text-[11px] text-warm-500">
                         {formatDartDate(item.rcept_dt)}
                         {item.rm ? ` · ${item.rm}` : ''}
                       </p>
@@ -261,7 +261,7 @@ export default function NewsPage() {
                   </a>
                 ))}
                 {data && data.dartItems.length === 0 && (
-                  <div className="px-5 py-8 text-center text-sm text-slate-400">조회 결과가 없습니다.</div>
+                  <div className="px-5 py-8 text-center text-sm text-warm-400">조회 결과가 없습니다.</div>
                 )}
               </div>
             )}
@@ -280,15 +280,15 @@ export default function NewsPage() {
 
           {/* 재무제표 요약 */}
           {(data?.financials ?? []).length > 0 && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-black text-slate-900">
+            <div className="rounded-lg border border-warm-200 bg-white p-4 shadow-sm">
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-brand-900">
                 <BarChart3 size={16} className="text-sky-600" />
                 {data?.corpName} 주요 재무지표
               </h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b-2 border-sky-100 text-left text-[11px] font-semibold text-slate-500">
+                    <tr className="border-b-2 border-sky-100 text-left text-[11px] font-semibold text-warm-500">
                       <th className="py-2 pr-4">항목</th>
                       <th className="py-2 pr-4 text-right">당기</th>
                       <th className="py-2 pr-4 text-right">전기</th>
@@ -302,15 +302,15 @@ export default function NewsPage() {
                         return !Number.isNaN(n) && n < 0
                       }
                       return (
-                        <tr key={i} className="border-b border-slate-50 hover:bg-sky-50/50 transition">
-                          <td className="py-2.5 pr-4 font-semibold text-slate-800 text-xs">{r.account_nm}</td>
-                          <td className={clsx('py-2.5 pr-4 text-right font-bold text-xs', isNegative(r.thstrm_amount) ? 'text-red-600' : 'text-slate-900')}>
+                        <tr key={i} className="border-b border-warm-50 hover:bg-sky-50/50 transition">
+                          <td className="py-2.5 pr-4 font-semibold text-brand-800 text-xs">{r.account_nm}</td>
+                          <td className={clsx('py-2.5 pr-4 text-right font-bold text-xs', isNegative(r.thstrm_amount) ? 'text-red-600' : 'text-brand-900')}>
                             {formatAmount(r.thstrm_amount)}
                           </td>
-                          <td className={clsx('py-2.5 pr-4 text-right text-xs', isNegative(r.frmtrm_amount) ? 'text-red-500' : 'text-slate-500')}>
+                          <td className={clsx('py-2.5 pr-4 text-right text-xs', isNegative(r.frmtrm_amount) ? 'text-red-500' : 'text-warm-500')}>
                             {formatAmount(r.frmtrm_amount)}
                           </td>
-                          <td className={clsx('py-2.5 text-right text-xs', isNegative(r.bfefrmtrm_amount) ? 'text-red-400' : 'text-slate-400')}>
+                          <td className={clsx('py-2.5 text-right text-xs', isNegative(r.bfefrmtrm_amount) ? 'text-red-400' : 'text-warm-400')}>
                             {formatAmount(r.bfefrmtrm_amount)}
                           </td>
                         </tr>
@@ -319,7 +319,7 @@ export default function NewsPage() {
                   </tbody>
                 </table>
               </div>
-              <p className="mt-2 text-[10px] text-slate-400">
+              <p className="mt-2 text-[10px] text-warm-400">
                 출처: DART 전자공시 (연결재무제표 우선, 개별재무제표 폴백 / 단위: 백만원)
               </p>
             </div>
@@ -356,16 +356,16 @@ function StockInfoCard({ info }: { info: StockInfo }) {
   const pct = range > 0 ? Math.max(0, Math.min(100, ((cur - low) / range) * 100)) : 50
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4 shadow-sm">
+    <div className="rounded-lg border border-warm-200 bg-gradient-to-br from-white to-slate-50 p-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+        <h3 className="text-sm font-bold text-brand-900 flex items-center gap-2">
           <TrendingUp size={16} className="text-sky-600" />
           {info.name || '주가 정보'}
         </h3>
         <div className="text-right">
-          <p className="text-xl font-black text-slate-900">{info.price || '-'}<span className="text-xs text-slate-400 ml-1">원</span></p>
+          <p className="text-xl font-bold text-brand-900">{info.price || '-'}<span className="text-xs text-warm-400 ml-1">원</span></p>
           {info.change && (
-            <p className={clsx('text-xs font-bold', isNeg ? 'text-blue-600' : isPos ? 'text-red-600' : 'text-slate-500')}>
+            <p className={clsx('text-xs font-bold', isNeg ? 'text-blue-600' : isPos ? 'text-red-600' : 'text-warm-500')}>
               {info.change} ({info.changeRate})
             </p>
           )}
@@ -374,8 +374,8 @@ function StockInfoCard({ info }: { info: StockInfo }) {
 
       {/* 52-week mini price chart */}
       {info.high52w && info.low52w && (
-        <div className="mb-3 rounded-xl bg-white border border-slate-100 p-3">
-          <p className="text-[10px] font-semibold text-slate-400 mb-2">52주 가격범위</p>
+        <div className="mb-3 rounded-xl bg-white border border-warm-100 p-3">
+          <p className="text-[10px] font-semibold text-warm-400 mb-2">52주 가격범위</p>
           <div className="relative h-6">
             {/* Background bar */}
             <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 rounded-full bg-gradient-to-r from-blue-100 via-slate-100 to-red-100" />
@@ -386,13 +386,13 @@ function StockInfoCard({ info }: { info: StockInfo }) {
             >
               <div className={clsx(
                 'w-4 h-4 rounded-full border-2 shadow-md',
-                isPos ? 'bg-red-500 border-red-300' : isNeg ? 'bg-blue-500 border-blue-300' : 'bg-slate-500 border-slate-300'
+                isPos ? 'bg-red-500 border-red-300' : isNeg ? 'bg-blue-500 border-blue-300' : 'bg-warm-500 border-warm-300'
               )} />
             </div>
           </div>
           <div className="flex justify-between mt-1">
             <span className="text-[10px] text-blue-500 font-semibold">{info.low52w}</span>
-            <span className="text-[10px] text-slate-400 font-semibold">현재 {Math.round(pct)}%</span>
+            <span className="text-[10px] text-warm-400 font-semibold">현재 {Math.round(pct)}%</span>
             <span className="text-[10px] text-red-500 font-semibold">{info.high52w}</span>
           </div>
         </div>
@@ -410,9 +410,9 @@ function StockInfoCard({ info }: { info: StockInfo }) {
         ]
           .filter(x => x.value)
           .map((x, i) => (
-            <div key={i} className="rounded-lg bg-white border border-slate-100 px-3 py-2">
-              <p className="text-[10px] font-semibold text-slate-400">{x.label}</p>
-              <p className="text-xs font-bold text-slate-800 mt-0.5">{x.value}</p>
+            <div key={i} className="rounded-lg bg-white border border-warm-100 px-3 py-2">
+              <p className="text-[10px] font-semibold text-warm-400">{x.label}</p>
+              <p className="text-xs font-bold text-brand-800 mt-0.5">{x.value}</p>
             </div>
           ))}
       </div>
@@ -471,31 +471,31 @@ function CompanySearchPopup({
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden"
+        className="w-full max-w-2xl rounded-lg bg-white shadow-2xl border border-warm-200 overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 bg-sky-50 px-5 py-4">
-          <h3 className="flex items-center gap-2 text-base font-black text-sky-900">
+        <div className="flex items-center justify-between border-b border-warm-200 bg-sky-50 px-5 py-4">
+          <h3 className="flex items-center gap-2 text-base font-bold text-sky-900">
             <Building2 size={20} />
             회사명 찾기 (DART)
           </h3>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition">
+          <button onClick={onClose} className="rounded-lg p-1.5 text-warm-400 hover:bg-warm-200 hover:text-warm-600 transition">
             <X size={18} />
           </button>
         </div>
 
         {/* Search */}
-        <form onSubmit={handleSearchSubmit} className="flex gap-2 p-4 border-b border-slate-100">
+        <form onSubmit={handleSearchSubmit} className="flex gap-2 p-4 border-b border-warm-100">
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-400" />
             <input
               ref={inputRef}
               type="text"
               value={query}
               onChange={e => handleInputChange(e.target.value)}
               placeholder="회사명을 입력하세요 (예: 삼성전자, 한일합섬)"
-              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none"
+              className="w-full rounded-xl border border-warm-200 bg-white py-2.5 pl-10 pr-4 text-sm focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none"
             />
           </div>
           <button
@@ -516,8 +516,8 @@ function CompanySearchPopup({
             </div>
           ) : results.length > 0 ? (
             <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-slate-50 border-b border-slate-200">
-                <tr className="text-left text-[11px] font-semibold text-slate-500">
+              <thead className="sticky top-0 bg-warm-50 border-b border-warm-200">
+                <tr className="text-left text-[11px] font-semibold text-warm-500">
                   <th className="px-4 py-2.5">회사명</th>
                   <th className="px-4 py-2.5">대표자</th>
                   <th className="px-4 py-2.5">종목코드</th>
@@ -532,15 +532,15 @@ function CompanySearchPopup({
                     onClick={() => onSelect(r)}
                     className="cursor-pointer hover:bg-sky-50 transition"
                   >
-                    <td className="px-4 py-2.5 font-bold text-slate-900">{r.corp_name}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{r.ceo_nm || '-'}</td>
-                    <td className="px-4 py-2.5 text-slate-600 font-mono text-xs">{r.stock_code || '-'}</td>
-                    <td className="px-4 py-2.5 text-slate-400 font-mono text-[11px]">{r.corp_code}</td>
+                    <td className="px-4 py-2.5 font-bold text-brand-900">{r.corp_name}</td>
+                    <td className="px-4 py-2.5 text-warm-600">{r.ceo_nm || '-'}</td>
+                    <td className="px-4 py-2.5 text-warm-600 font-mono text-xs">{r.stock_code || '-'}</td>
+                    <td className="px-4 py-2.5 text-warm-400 font-mono text-[11px]">{r.corp_code}</td>
                     <td className="px-4 py-2.5">
                       {r.listed ? (
                         <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">상장</span>
                       ) : (
-                        <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">비상장</span>
+                        <span className="inline-block rounded-full bg-warm-100 px-2 py-0.5 text-[10px] font-bold text-warm-500">비상장</span>
                       )}
                     </td>
                   </tr>
@@ -548,18 +548,18 @@ function CompanySearchPopup({
               </tbody>
             </table>
           ) : searched ? (
-            <div className="py-12 text-center text-sm text-slate-400">
+            <div className="py-12 text-center text-sm text-warm-400">
               검색 결과가 없습니다.
             </div>
           ) : (
-            <div className="py-12 text-center text-sm text-slate-400">
+            <div className="py-12 text-center text-sm text-warm-400">
               회사명을 입력하면 DART에 등록된 약 90,000개 법인에서 검색합니다.
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="border-t border-slate-200 bg-slate-50 px-5 py-3 text-[11px] text-slate-400">
+        <div className="border-t border-warm-200 bg-warm-50 px-5 py-3 text-[11px] text-warm-400">
           출처: DART 전자공시시스템 법인 코드 데이터
         </div>
       </div>
@@ -625,21 +625,21 @@ function NewsTabs({
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-black text-slate-900">News &amp; Coverage</h2>
+        <h2 className="text-lg font-bold text-brand-900">News &amp; Coverage</h2>
         {refreshedAt && (
-          <p className="text-[11px] text-slate-400">{new Date(refreshedAt).toLocaleString('ko-KR')}</p>
+          <p className="text-[11px] text-warm-400">{new Date(refreshedAt).toLocaleString('ko-KR')}</p>
         )}
       </div>
 
       {/* Tab buttons */}
-      <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+      <div className="flex gap-1 rounded-xl bg-warm-100 p-1">
         {NEWS_TABS.map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={clsx(
               'flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition',
-              tab === t.key ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700',
+              tab === t.key ? 'bg-white text-brand-700 shadow-sm' : 'text-warm-500 hover:text-brand-700',
             )}
           >
             {t.label}
@@ -649,7 +649,7 @@ function NewsTabs({
 
       {/* Content */}
       {error && tab === 'finance' ? (
-        <div className="rounded-2xl border border-red-100 bg-red-50 p-5 text-sm text-red-700">{error}</div>
+        <div className="rounded-lg border border-red-100 bg-red-50 p-5 text-sm text-red-700">{error}</div>
       ) : isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -667,18 +667,18 @@ function NewsTabs({
               href={item.url}
               target="_blank"
               rel="noreferrer"
-              className="group flex items-start gap-3 rounded-xl border border-slate-100 bg-white px-4 py-2 transition hover:border-brand-100 hover:shadow-md"
+              className="group flex items-start gap-3 rounded-xl border border-warm-100 bg-white px-4 py-2 transition hover:border-brand-100 hover:shadow-md"
             >
               <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-bold leading-5 text-slate-900 transition group-hover:text-brand-700 line-clamp-1">
+                <h3 className="text-sm font-bold leading-5 text-brand-900 transition group-hover:text-brand-700 line-clamp-1">
                   {item.title}
                 </h3>
               </div>
-              <ExternalLink size={13} className="mt-0.5 shrink-0 text-slate-300 transition group-hover:text-brand-600" />
+              <ExternalLink size={13} className="mt-0.5 shrink-0 text-warm-300 transition group-hover:text-brand-700" />
             </a>
           ))}
           {currentItems.length === 0 && (
-            <div className="text-center py-8 text-sm text-slate-400">뉴스가 없습니다.</div>
+            <div className="text-center py-8 text-sm text-warm-400">뉴스가 없습니다.</div>
           )}
         </div>
       )}

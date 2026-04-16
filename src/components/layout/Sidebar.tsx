@@ -37,25 +37,25 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     <aside className={clsx(
       // 모바일: fixed overlay, 데스크톱: static
       'fixed lg:static inset-y-0 left-0 z-30',
-      'w-64 lg:w-60 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0',
+      'w-64 lg:w-60 bg-brand-800 border-r border-slate-800 flex flex-col shrink-0',
       'transition-transform duration-200 ease-in-out',
       isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
     )}>
       {/* 로고 + 모바일 닫기 */}
       <div className="h-16 flex items-center px-5 border-b border-slate-800">
         <div className="flex items-center gap-3 flex-1">
-          <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-brand-800 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">동</span>
           </div>
           <div>
             <p className="text-white font-bold text-sm leading-tight">동양 포털</p>
-            <p className="text-slate-500 text-xs">내부회계 통합</p>
+            <p className="text-warm-500 text-xs">내부회계 통합</p>
           </div>
         </div>
         {/* 모바일 닫기 버튼 */}
         <button
           onClick={onClose}
-          className="lg:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+          className="lg:hidden p-1.5 text-warm-400 hover:text-white rounded-lg hover:bg-brand-900"
         >
           <X size={18} />
         </button>
@@ -71,8 +71,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               clsx(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
                 isActive
-                  ? 'bg-brand-600 text-white shadow-lg shadow-brand-900/30'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-brand-800 text-white shadow-md shadow-brand-900/30'
+                  : 'text-warm-400 hover:text-white hover:bg-brand-900'
               )
             }
           >
@@ -85,7 +85,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         {isAdmin && (
           <>
             <div className="pt-4 pb-1 px-3">
-              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">관리자</p>
+              <p className="text-xs font-semibold text-warm-600 uppercase tracking-wider">관리자</p>
             </div>
             {adminItems.map(({ to, icon: Icon, label }) => (
               <NavLink
@@ -94,7 +94,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 className={({ isActive }) =>
                   clsx(
                     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
-                    isActive ? 'bg-brand-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    isActive ? 'bg-brand-800 text-white' : 'text-warm-400 hover:text-white hover:bg-brand-900'
                   )
                 }
               >
@@ -108,7 +108,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* 프로필 + 로그아웃 */}
       <div className="p-3 border-t border-slate-800">
-        <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-800 mb-2">
+        <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-brand-700 mb-2">
           <div className="w-8 h-8 bg-brand-700 rounded-full flex items-center justify-center shrink-0">
             <span className="text-brand-200 text-xs font-bold">
               {profile?.full_name?.charAt(0) ?? '?'}
@@ -116,12 +116,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-medium truncate">{profile?.full_name ?? '로딩 중...'}</p>
-            <p className="text-slate-400 text-xs truncate">{profile?.department ?? profile?.role ?? ''}</p>
+            <p className="text-warm-400 text-xs truncate">{profile?.department ?? profile?.role ?? ''}</p>
           </div>
         </div>
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-all"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-warm-400 hover:text-red-400 hover:bg-brand-900 transition-all"
         >
           <LogOut size={16} /><span>로그아웃</span>
         </button>

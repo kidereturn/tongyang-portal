@@ -62,16 +62,16 @@ export default function AdminPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="flex items-center gap-2 text-xl font-black text-gray-900">
+        <h1 className="flex items-center gap-2 text-xl font-bold text-brand-900">
           <Shield size={22} className="text-purple-600" />
           관리자
         </h1>
-        <p className="mt-0.5 text-sm text-gray-500">
+        <p className="mt-0.5 text-sm text-warm-500">
           사용자 초기 세팅, RCM, 모집단 업로드를 여기서 관리합니다.
         </p>
       </div>
 
-      <div className="rounded-2xl border border-orange-100 bg-orange-50/70 p-4">
+      <div className="rounded-lg border border-orange-100 bg-orange-50/70 p-4">
         <p className="text-sm font-semibold text-orange-900">현재 권장 순서</p>
         <p className="mt-1 text-sm text-orange-800">
           1. 사용자 초기 업로드 2. RCM 업로드 3. 모집단 업로드 순서로 진행하면 됩니다.
@@ -79,14 +79,14 @@ export default function AdminPage() {
         </p>
       </div>
 
-      <div className="flex gap-1 overflow-x-auto rounded-xl bg-gray-100 p-1.5">
+      <div className="flex gap-1 overflow-x-auto rounded-xl bg-warm-100 p-1.5">
         {TABS.map(item => (
           <button
             key={item.key}
             onClick={() => setTab(item.key)}
             className={clsx(
               'flex items-center gap-1 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all',
-              tab === item.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              tab === item.key ? 'bg-white text-brand-900 shadow-sm' : 'text-warm-500 hover:text-brand-700'
             )}
           >
             <item.icon size={13} />

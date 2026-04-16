@@ -61,11 +61,11 @@ export default function MobileTabBar() {
       {/* 더보기 풀스크린 패널 */}
       {moreOpen && (
         <div className="fixed inset-0 z-[60] bg-white animate-in slide-in-from-bottom">
-          <div className="flex h-14 items-center justify-between border-b border-slate-100 px-4">
-            <p className="text-lg font-black text-slate-900">전체 메뉴</p>
+          <div className="flex h-14 items-center justify-between border-b border-warm-100 px-4">
+            <p className="text-lg font-bold text-brand-900">전체 메뉴</p>
             <button
               onClick={() => setMoreOpen(false)}
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-warm-500 hover:bg-warm-100"
             >
               <X size={22} />
             </button>
@@ -87,7 +87,7 @@ export default function MobileTabBar() {
             </div>
 
             {/* 주요 메뉴 */}
-            <p className="mb-2 px-1 text-xs font-bold uppercase tracking-wider text-slate-400">주요 기능</p>
+            <p className="mb-2 px-1 text-xs font-bold uppercase tracking-wider text-warm-400">주요 기능</p>
             <div className="grid grid-cols-4 gap-2 mb-5">
               {MAIN_TABS.filter(t => !t.roles || t.roles.includes(role as never)).map(item => (
                 <NavLink
@@ -95,8 +95,8 @@ export default function MobileTabBar() {
                   to={item.to}
                   onClick={() => setMoreOpen(false)}
                   className={({ isActive }) => clsx(
-                    'flex flex-col items-center gap-1.5 rounded-2xl p-3 text-center transition',
-                    isActive ? 'bg-brand-50 text-brand-700' : 'bg-slate-50 text-slate-600 active:bg-slate-100'
+                    'flex flex-col items-center gap-1.5 rounded-lg p-3 text-center transition',
+                    isActive ? 'bg-warm-50 text-brand-700' : 'bg-warm-50 text-warm-600 active:bg-warm-100'
                   )}
                 >
                   <item.icon size={22} />
@@ -106,7 +106,7 @@ export default function MobileTabBar() {
             </div>
 
             {/* 추가 메뉴 */}
-            <p className="mb-2 px-1 text-xs font-bold uppercase tracking-wider text-slate-400">추가 메뉴</p>
+            <p className="mb-2 px-1 text-xs font-bold uppercase tracking-wider text-warm-400">추가 메뉴</p>
             <div className="grid grid-cols-4 gap-2 mb-5">
               {MORE_ITEMS.filter(t => !(t as any).roles || ((t as any).roles as string[]).includes(role as never)).map(item => (
                 <NavLink
@@ -114,8 +114,8 @@ export default function MobileTabBar() {
                   to={item.to}
                   onClick={() => setMoreOpen(false)}
                   className={({ isActive }) => clsx(
-                    'flex flex-col items-center gap-1.5 rounded-2xl p-3 text-center transition',
-                    isActive ? 'bg-brand-50 text-brand-700' : 'bg-slate-50 text-slate-600 active:bg-slate-100'
+                    'flex flex-col items-center gap-1.5 rounded-lg p-3 text-center transition',
+                    isActive ? 'bg-warm-50 text-brand-700' : 'bg-warm-50 text-warm-600 active:bg-warm-100'
                   )}
                 >
                   <item.icon size={22} />
@@ -127,13 +127,13 @@ export default function MobileTabBar() {
             {/* 관리자 메뉴 */}
             {isAdmin && (
               <>
-                <p className="mb-2 px-1 text-xs font-bold uppercase tracking-wider text-slate-400">관리자</p>
+                <p className="mb-2 px-1 text-xs font-bold uppercase tracking-wider text-warm-400">관리자</p>
                 <NavLink
                   to="/admin"
                   onClick={() => setMoreOpen(false)}
                   className={({ isActive }) => clsx(
-                    'mb-4 flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold transition',
-                    isActive ? 'bg-purple-50 text-purple-700' : 'bg-slate-50 text-slate-700 active:bg-slate-100'
+                    'mb-4 flex items-center gap-3 rounded-lg px-4 py-3.5 text-sm font-semibold transition',
+                    isActive ? 'bg-purple-50 text-purple-700' : 'bg-warm-50 text-brand-700 active:bg-warm-100'
                   )}
                 >
                   <Shield size={20} />
@@ -145,7 +145,7 @@ export default function MobileTabBar() {
             {/* 로그아웃 */}
             <button
               onClick={handleSignOut}
-              className="flex w-full items-center gap-3 rounded-2xl bg-red-50 px-4 py-3.5 text-sm font-semibold text-red-600 transition active:bg-red-100"
+              className="flex w-full items-center gap-3 rounded-lg bg-red-50 px-4 py-3.5 text-sm font-semibold text-red-600 transition active:bg-red-100"
             >
               <LogOut size={20} />
               <span>로그아웃</span>
@@ -163,7 +163,7 @@ export default function MobileTabBar() {
               to={item.to}
               className={({ isActive }) => clsx(
                 'flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition',
-                isActive ? 'text-brand-600' : 'text-slate-400 active:text-slate-600'
+                isActive ? 'text-brand-700' : 'text-warm-400 active:text-warm-600'
               )}
             >
               {({ isActive }) => (
@@ -182,7 +182,7 @@ export default function MobileTabBar() {
           {/* 더보기 탭 */}
           <button
             onClick={() => setMoreOpen(true)}
-            className="flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-slate-400 active:text-slate-600"
+            className="flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-warm-400 active:text-warm-600"
           >
             <div className="flex h-7 w-7 items-center justify-center rounded-xl">
               <Menu size={20} />

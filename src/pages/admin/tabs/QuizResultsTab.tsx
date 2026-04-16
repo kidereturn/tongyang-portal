@@ -215,35 +215,35 @@ export default function QuizResultsTab() {
     <div className="space-y-5">
       {/* Stats cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="rounded-lg border border-warm-200 bg-white p-4 shadow-sm">
           <User size={20} className="text-brand-500" />
-          <p className="mt-2 text-2xl font-black text-slate-900">{totalLearners}</p>
-          <p className="text-xs text-slate-500">수강자 수</p>
+          <p className="mt-2 text-2xl font-bold text-brand-900">{totalLearners}</p>
+          <p className="text-xs text-warm-500">수강자 수</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="rounded-lg border border-warm-200 bg-white p-4 shadow-sm">
           <Trophy size={20} className="text-emerald-500" />
-          <p className="mt-2 text-2xl font-black text-slate-900">{completedCount}</p>
-          <p className="text-xs text-slate-500">수료 건수</p>
+          <p className="mt-2 text-2xl font-bold text-brand-900">{completedCount}</p>
+          <p className="text-xs text-warm-500">수료 건수</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <Award size={20} className="text-amber-500" />
-          <p className="mt-2 text-2xl font-black text-slate-900">{quizResults.length}</p>
-          <p className="text-xs text-slate-500">퀴즈 응시</p>
+        <div className="rounded-lg border border-warm-200 bg-white p-4 shadow-sm">
+          <Award size={20} className="text-accent-600" />
+          <p className="mt-2 text-2xl font-bold text-brand-900">{quizResults.length}</p>
+          <p className="text-xs text-warm-500">퀴즈 응시</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="rounded-lg border border-warm-200 bg-white p-4 shadow-sm">
           <Clock size={20} className="text-indigo-500" />
-          <p className="mt-2 text-2xl font-black text-slate-900">{avgQuizScore}%</p>
-          <p className="text-xs text-slate-500">평균 퀴즈 점수</p>
+          <p className="mt-2 text-2xl font-bold text-brand-900">{avgQuizScore}%</p>
+          <p className="text-xs text-warm-500">평균 퀴즈 점수</p>
         </div>
       </div>
 
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex rounded-xl border border-slate-200 bg-white p-1">
+        <div className="flex rounded-xl border border-warm-200 bg-white p-1">
           <button
             onClick={() => setView('learning')}
             className={clsx('rounded-lg px-4 py-2 text-sm font-semibold transition',
-              view === 'learning' ? 'bg-brand-600 text-white shadow' : 'text-slate-600 hover:bg-slate-50'
+              view === 'learning' ? 'bg-brand-800 text-white shadow' : 'text-warm-600 hover:bg-warm-50'
             )}
           >
             강좌 수강현황
@@ -251,7 +251,7 @@ export default function QuizResultsTab() {
           <button
             onClick={() => setView('quiz')}
             className={clsx('rounded-lg px-4 py-2 text-sm font-semibold transition',
-              view === 'quiz' ? 'bg-brand-600 text-white shadow' : 'text-slate-600 hover:bg-slate-50'
+              view === 'quiz' ? 'bg-brand-800 text-white shadow' : 'text-warm-600 hover:bg-warm-50'
             )}
           >
             퀴즈 결과
@@ -262,7 +262,7 @@ export default function QuizResultsTab() {
           <select
             value={selectedCourse}
             onChange={e => setSelectedCourse(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium text-slate-700 min-w-[160px]"
+            className="rounded-xl border border-warm-200 bg-white px-3 py-2.5 text-xs font-medium text-brand-700 min-w-[160px]"
           >
             <option value="all">전체 강좌</option>
             {courseList.map(c => (
@@ -272,13 +272,13 @@ export default function QuizResultsTab() {
         )}
 
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-400" />
           <input
             type="text"
             placeholder="이름, 사번, 부서 검색..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-xs focus:border-brand-300 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-warm-200 bg-white py-2.5 pl-10 pr-4 text-xs focus:border-brand-300 focus:ring-2 focus:ring-brand-100"
           />
         </div>
 
@@ -288,10 +288,10 @@ export default function QuizResultsTab() {
       </div>
 
       {loading ? (
-        <div className="py-16 text-center text-sm text-slate-400">데이터를 불러오는 중...</div>
+        <div className="py-16 text-center text-sm text-warm-400">데이터를 불러오는 중...</div>
       ) : view === 'learning' ? (
         /* Learning Progress Table */
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-lg border border-warm-200 bg-white shadow-sm">
           <table className="data-table text-xs w-full">
             <thead>
               <tr>
@@ -308,7 +308,7 @@ export default function QuizResultsTab() {
             </thead>
             <tbody>
               {filteredLearning.length === 0 ? (
-                <tr><td colSpan={9} className="py-12 text-center text-slate-400">데이터 없음</td></tr>
+                <tr><td colSpan={9} className="py-12 text-center text-warm-400">데이터 없음</td></tr>
               ) : (
                 filteredLearning.map(r => (
                   <tr key={`${r.user_id}-${r.course_id}`}>
@@ -321,7 +321,7 @@ export default function QuizResultsTab() {
                     <td className="text-center">
                       <span className={clsx('font-bold',
                         r.progress_percent >= 95 ? 'text-emerald-600' :
-                        r.progress_percent >= 50 ? 'text-blue-600' : 'text-slate-500'
+                        r.progress_percent >= 50 ? 'text-blue-600' : 'text-warm-500'
                       )}>
                         {r.progress_percent}%
                       </span>
@@ -329,12 +329,12 @@ export default function QuizResultsTab() {
                     <td className="text-center">
                       <span className={clsx('inline-block rounded-full px-2.5 py-1 text-xs font-bold',
                         r.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
-                        r.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
+                        r.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : 'bg-warm-100 text-warm-500'
                       )}>
                         {r.status === 'completed' ? '수료' : r.status === 'in_progress' ? '진행중' : '미시작'}
                       </span>
                     </td>
-                    <td className="text-xs text-slate-500">{r.updated_at ? formatDate(r.updated_at) : '-'}</td>
+                    <td className="text-xs text-warm-500">{r.updated_at ? formatDate(r.updated_at) : '-'}</td>
                   </tr>
                 ))
               )}
@@ -343,7 +343,7 @@ export default function QuizResultsTab() {
         </div>
       ) : (
         /* Quiz Results Table */
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-lg border border-warm-200 bg-white shadow-sm">
           <table className="data-table text-xs w-full">
             <thead>
               <tr>
@@ -359,7 +359,7 @@ export default function QuizResultsTab() {
             </thead>
             <tbody>
               {filteredQuiz.length === 0 ? (
-                <tr><td colSpan={8} className="py-12 text-center text-slate-400">퀴즈 응시 데이터 없음</td></tr>
+                <tr><td colSpan={8} className="py-12 text-center text-warm-400">퀴즈 응시 데이터 없음</td></tr>
               ) : (
                 filteredQuiz.map(r => {
                   const pct = Math.round((r.score / r.total_questions) * 100)
@@ -378,7 +378,7 @@ export default function QuizResultsTab() {
                         </span>
                       </td>
                       <td className="text-center">{formatTime(r.time_seconds)}</td>
-                      <td className="text-xs text-slate-500">{formatDate(r.created_at)}</td>
+                      <td className="text-xs text-warm-500">{formatDate(r.created_at)}</td>
                     </tr>
                   )
                 })

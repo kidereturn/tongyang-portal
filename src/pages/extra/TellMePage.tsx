@@ -17,13 +17,13 @@ type Post = {
 }
 
 const CATEGORIES = [
-  { key: 'all', label: '전체', color: 'bg-slate-100 text-slate-600' },
+  { key: 'all', label: '전체', color: 'bg-warm-100 text-warm-600' },
   { key: '응원메시지', label: '응원메시지', color: 'bg-emerald-100 text-emerald-700' },
   { key: '불편사항', label: '불편사항', color: 'bg-red-100 text-red-700' },
   { key: '개선건의', label: '개선건의', color: 'bg-blue-100 text-blue-700' },
   { key: '이것도 해주세요', label: '이것도 해주세요', color: 'bg-purple-100 text-purple-700' },
   { key: '쓴소리', label: '쓴소리', color: 'bg-amber-100 text-amber-700' },
-  { key: '기타', label: '기타', color: 'bg-slate-100 text-slate-600' },
+  { key: '기타', label: '기타', color: 'bg-warm-100 text-warm-600' },
 ]
 
 export default function TellMePage() {
@@ -96,18 +96,18 @@ export default function TellMePage() {
   }
 
   const filtered = filter === 'all' ? posts : posts.filter(p => p.category === filter)
-  const catColor = (cat: string) => CATEGORIES.find(c => c.key === cat)?.color ?? 'bg-slate-100 text-slate-600'
+  const catColor = (cat: string) => CATEGORIES.find(c => c.key === cat)?.color ?? 'bg-warm-100 text-warm-600'
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="rounded-[28px] bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 px-6 py-8 text-white shadow-2xl">
         <p className="text-xs font-semibold tracking-[0.24em] text-purple-300">TELL ME!!</p>
-        <h1 className="mt-2 flex items-center gap-2 text-3xl font-black">
+        <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
           <MessageCircle size={28} className="text-purple-300" />
           Tell me!!
         </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-warm-300">
           자유롭게 의견을 남겨주세요. 익명 게시도 가능합니다. 모든 사용자가 게시글을 볼 수 있습니다.
         </p>
       </div>
@@ -128,8 +128,8 @@ export default function TellMePage() {
               className={clsx(
                 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border',
                 filter === cat.key
-                  ? 'bg-brand-600 text-white border-brand-600'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  ? 'bg-brand-800 text-white border-brand-600'
+                  : 'bg-white text-warm-600 border-warm-200 hover:bg-warm-50'
               )}
             >
               {cat.label}
@@ -150,15 +150,15 @@ export default function TellMePage() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="card flex flex-col items-center justify-center py-16 text-gray-400">
-          <MessageCircle size={40} className="mb-3 text-gray-200" />
-          <p className="font-medium text-gray-500">게시글이 없습니다</p>
+        <div className="card flex flex-col items-center justify-center py-16 text-warm-400">
+          <MessageCircle size={40} className="mb-3 text-warm-200" />
+          <p className="font-medium text-warm-500">게시글이 없습니다</p>
           <p className="text-sm mt-1">첫 번째 글을 작성해보세요!</p>
         </div>
       ) : (
         <div className="space-y-3">
           {filtered.map(post => (
-            <div key={post.id} className="card p-5 hover:shadow-lg transition-shadow">
+            <div key={post.id} className="card p-5 hover:shadow-md transition-shadow">
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-600 shrink-0">
                   <User size={18} />
@@ -168,10 +168,10 @@ export default function TellMePage() {
                     <span className={clsx('px-2 py-0.5 rounded-full text-[11px] font-semibold', catColor(post.category))}>
                       {post.category}
                     </span>
-                    <span className="text-sm font-bold text-slate-900">{post.title}</span>
+                    <span className="text-sm font-bold text-brand-900">{post.title}</span>
                   </div>
-                  <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{post.content}</p>
-                  <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
+                  <p className="text-sm text-warm-600 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-warm-400">
                     <span>
                       {post.is_anonymous ? '익명' : (post.author_name ?? '알 수 없음')}
                       {!post.is_anonymous && post.author_department ? ` · ${post.author_department}` : ''}
@@ -188,13 +188,13 @@ export default function TellMePage() {
       {/* Write form modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowForm(false)}>
-          <div className="w-full max-w-lg mx-4 rounded-2xl bg-white shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 bg-purple-50 px-5 py-4">
-              <h3 className="flex items-center gap-2 text-base font-black text-purple-900">
+          <div className="w-full max-w-lg mx-4 rounded-lg bg-white shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-warm-200 bg-purple-50 px-5 py-4">
+              <h3 className="flex items-center gap-2 text-base font-bold text-purple-900">
                 <MessageCircle size={20} />
                 Tell me!! 글쓰기
               </h3>
-              <button onClick={() => setShowForm(false)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 transition">
+              <button onClick={() => setShowForm(false)} className="rounded-lg p-1.5 text-warm-400 hover:bg-warm-200 transition">
                 <X size={18} />
               </button>
             </div>
@@ -213,7 +213,7 @@ export default function TellMePage() {
                         'px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all',
                         formCategory === cat.key
                           ? 'bg-purple-600 text-white border-purple-600'
-                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                          : 'bg-white text-warm-600 border-warm-200 hover:bg-warm-50'
                       )}
                     >
                       {cat.label}
@@ -254,9 +254,9 @@ export default function TellMePage() {
                   type="checkbox"
                   checked={formAnonymous}
                   onChange={e => setFormAnonymous(e.target.checked)}
-                  className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                  className="rounded border-warm-300 text-purple-600 focus:ring-purple-500"
                 />
-                <span className="text-sm text-slate-700">익명으로 게시</span>
+                <span className="text-sm text-brand-700">익명으로 게시</span>
               </label>
 
               {/* Submit */}

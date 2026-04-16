@@ -36,7 +36,7 @@ export default function Footer() {
             <ChevronDown size={13} className={`transition-transform duration-200 ${familyOpen ? 'rotate-180' : ''}`} />
           </button>
           {familyOpen && (
-            <div className="absolute bottom-full right-0 mb-1 w-48 rounded-lg border border-white/10 bg-brand-800 py-1 shadow-xl z-50">
+            <div className="absolute bottom-full right-0 mb-1 w-48 rounded-lg border border-white/10 bg-brand-800 py-1 shadow-md z-50">
               {FAMILY_SITES.map(site => (
                 <a
                   key={site.href}

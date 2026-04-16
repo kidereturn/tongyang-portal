@@ -103,7 +103,7 @@ function LoadingScreen() {
 
         {/* Company name with golden ribbon effect */}
         <div className="text-center">
-          <p className="ribbon-shine text-xl font-black tracking-wider">(주)동양</p>
+          <p className="ribbon-shine text-xl font-bold tracking-wider">(주)동양</p>
           <p className="mt-1 text-[11px] font-semibold tracking-[0.3em] text-amber-600/60">
             TONGYANG CORPORATION
           </p>
@@ -111,7 +111,7 @@ function LoadingScreen() {
 
         {/* Loading indicator */}
         <div className="flex items-center gap-2">
-          <Loader2 size={16} className="text-amber-500/70 animate-spin" />
+          <Loader2 size={16} className="text-accent-600/70 animate-spin" />
           <p className="text-amber-600/50 text-xs font-medium tracking-wider">LOADING</p>
         </div>
       </div>

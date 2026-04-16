@@ -146,8 +146,8 @@ export default function RcmUploadTab({ onDone }: { onDone: () => void }) {
   return (
     <div className="space-y-5">
       <div className="card p-6">
-        <h3 className="mb-1 text-base font-bold text-gray-900">RCM 업로드</h3>
-        <p className="mb-4 text-sm text-gray-500">
+        <h3 className="mb-1 text-base font-bold text-brand-900">RCM 업로드</h3>
+        <p className="mb-4 text-sm text-warm-500">
           RCM은 사용자 생성을 하지 않고, 통제활동과 담당자·승인자 매핑만 반영합니다. 사번은 사용자 템플릿에 먼저
           등록되어 있어야 합니다.
         </p>
@@ -164,11 +164,11 @@ export default function RcmUploadTab({ onDone }: { onDone: () => void }) {
 
         {uploading && (
           <div className="mt-4 space-y-2">
-            <div className="flex items-center justify-between text-xs text-gray-600">
+            <div className="flex items-center justify-between text-xs text-warm-600">
               <span>{progress.phase}</span>
               <span>{progress.current.toLocaleString()} / {progress.total.toLocaleString()} ({pct}%)</span>
             </div>
-            <div className="h-2.5 w-full rounded-full bg-gray-100 overflow-hidden">
+            <div className="h-2.5 w-full rounded-full bg-warm-100 overflow-hidden">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 transition-all duration-300"
                 style={{ width: `${pct}%` }}

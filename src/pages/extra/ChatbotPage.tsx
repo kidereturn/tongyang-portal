@@ -126,10 +126,10 @@ export default function ChatbotPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-black text-gray-900 flex items-center gap-2">
-            <Bot size={22} className="text-brand-600" />AI 챗봇
+          <h1 className="text-xl font-bold text-brand-900 flex items-center gap-2">
+            <Bot size={22} className="text-brand-700" />AI 챗봇
           </h1>
-          <p className="text-gray-500 text-sm mt-0.5">내부회계관리 문서 기반 AI 어시스턴트</p>
+          <p className="text-warm-500 text-sm mt-0.5">내부회계관리 문서 기반 AI 어시스턴트</p>
         </div>
         <div className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs bg-emerald-50 border border-emerald-100 text-emerald-700">
           <Sparkles size={12} />
@@ -141,13 +141,13 @@ export default function ChatbotPage() {
         {/* 채팅 영역 */}
         <div className="lg:col-span-3 card flex flex-col h-[calc(100vh-200px)] sm:h-[500px] lg:h-[580px]">
           {/* 채팅 헤더 */}
-          <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+          <div className="px-5 py-3 border-b border-warm-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br from-brand-500 to-purple-600">
                 <Bot size={15} className="text-white" />
               </div>
               <div>
-                <p className="text-sm font-bold text-gray-900">내부회계 AI 어시스턴트</p>
+                <p className="text-sm font-bold text-brand-900">내부회계 AI 어시스턴트</p>
                 <p className="text-xs text-emerald-500">
                   {modelInfo ? `${modelInfo} · 문서 ${docsCount}건 참조` : '문서 기반 답변'}
                 </p>
@@ -168,21 +168,21 @@ export default function ChatbotPage() {
                   </div>
                 )}
                 <div className={`max-w-[80%] ${msg.role === 'user' ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
-                  <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                  <div className={`px-4 py-2.5 rounded-lg text-sm leading-relaxed ${
                     msg.role === 'user'
-                      ? 'bg-brand-600 text-white rounded-tr-sm whitespace-pre-wrap'
-                      : 'bg-gray-50 text-gray-800 border border-gray-100 rounded-tl-sm'
+                      ? 'bg-brand-800 text-white rounded-tr-sm whitespace-pre-wrap'
+                      : 'bg-warm-50 text-brand-800 border border-warm-100 rounded-tl-sm'
                   }`}>
                     {msg.role === 'assistant' ? (
                       <div
-                        className="whitespace-pre-wrap [&_strong]:font-bold [&_strong]:text-gray-900"
+                        className="whitespace-pre-wrap [&_strong]:font-bold [&_strong]:text-brand-900"
                         dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
                       />
                     ) : (
                       msg.content
                     )}
                   </div>
-                  <span className="text-[10px] text-gray-400 px-1">{msg.time}</span>
+                  <span className="text-[10px] text-warm-400 px-1">{msg.time}</span>
                 </div>
               </div>
             ))}
@@ -192,12 +192,12 @@ export default function ChatbotPage() {
                 <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-gradient-to-br from-brand-500 to-purple-600">
                   <Bot size={12} className="text-white" />
                 </div>
-                <div className="bg-gray-50 border border-gray-100 rounded-2xl rounded-tl-sm px-4 py-3 flex gap-1 items-center">
+                <div className="bg-warm-50 border border-warm-100 rounded-lg rounded-tl-sm px-4 py-3 flex gap-1 items-center">
                   {[0, 1, 2].map(j => (
-                    <div key={j} className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                    <div key={j} className="w-1.5 h-1.5 bg-warm-400 rounded-full animate-bounce"
                       style={{ animationDelay: `${j * 0.15}s` }} />
                   ))}
-                  <span className="text-xs text-gray-400 ml-2">문서를 분석하고 답변을 작성 중...</span>
+                  <span className="text-xs text-warm-400 ml-2">문서를 분석하고 답변을 작성 중...</span>
                 </div>
               </div>
             )}
@@ -213,7 +213,7 @@ export default function ChatbotPage() {
           </div>
 
           {/* 입력 영역 */}
-          <div className="px-4 py-3 border-t border-gray-100">
+          <div className="px-4 py-3 border-t border-warm-100">
             <div className="flex gap-2">
               <input
                 ref={inputRef}
@@ -239,8 +239,8 @@ export default function ChatbotPage() {
         {/* 사이드바 */}
         <div className="space-y-4">
           <div className="card p-4">
-            <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5 mb-3">
-              <MessageSquare size={14} className="text-brand-600" />추천 질문
+            <p className="text-sm font-bold text-brand-900 flex items-center gap-1.5 mb-3">
+              <MessageSquare size={14} className="text-brand-700" />추천 질문
             </p>
             <div className="space-y-2">
               {SUGGESTIONS.map((s, i) => (
@@ -248,7 +248,7 @@ export default function ChatbotPage() {
                   key={i}
                   onClick={() => sendMessage(s)}
                   disabled={thinking}
-                  className="w-full text-left text-xs px-3 py-2.5 bg-gray-50 hover:bg-brand-50 hover:text-brand-700 border border-gray-100 hover:border-brand-100 rounded-lg transition-all disabled:opacity-50"
+                  className="w-full text-left text-xs px-3 py-2.5 bg-warm-50 hover:bg-warm-50 hover:text-brand-700 border border-warm-100 hover:border-brand-100 rounded-lg transition-all disabled:opacity-50"
                 >
                   {s}
                 </button>
@@ -258,13 +258,13 @@ export default function ChatbotPage() {
 
           <div className="card p-4 bg-gradient-to-br from-brand-50 to-purple-50 border-brand-100">
             <div className="flex items-center gap-2 mb-2">
-              <BookOpen size={14} className="text-brand-600" />
-              <p className="text-sm font-bold text-gray-900">문서 기반 AI</p>
+              <BookOpen size={14} className="text-brand-700" />
+              <p className="text-sm font-bold text-brand-900">문서 기반 AI</p>
             </div>
-            <div className="space-y-1.5 text-xs text-gray-600">
+            <div className="space-y-1.5 text-xs text-warm-600">
               <div className="flex justify-between">
                 <span>AI 모델</span>
-                <span className="font-medium text-gray-900">{modelInfo || 'Gemini 2.5 Flash'}</span>
+                <span className="font-medium text-brand-900">{modelInfo || 'Gemini 2.5 Flash'}</span>
               </div>
               <div className="flex justify-between">
                 <span>참조 문서</span>
@@ -272,14 +272,14 @@ export default function ChatbotPage() {
               </div>
               <div className="flex justify-between">
                 <span>답변 방식</span>
-                <span className="font-medium text-gray-900">문서 소스만</span>
+                <span className="font-medium text-brand-900">문서 소스만</span>
               </div>
               <div className="flex justify-between">
                 <span>이번 세션</span>
-                <span className="font-medium text-gray-900">{messages.filter(m => m.role === 'user').length}회 질문</span>
+                <span className="font-medium text-brand-900">{messages.filter(m => m.role === 'user').length}회 질문</span>
               </div>
               <div className="mt-2 pt-2 border-t border-brand-100/50">
-                <p className="text-[10px] text-brand-600 leading-relaxed">
+                <p className="text-[10px] text-brand-700 leading-relaxed">
                   내부회계관리제도 관련 문서를 기반으로 답변합니다.
                   문서에 없는 내용은 답변하지 않습니다.
                 </p>

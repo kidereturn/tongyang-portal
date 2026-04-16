@@ -13,11 +13,11 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   const { profile } = useAuth()
 
   return (
-    <header className="h-14 md:h-16 bg-slate-900 border-b border-slate-800 flex items-center px-4 md:px-6 gap-3 shrink-0">
+    <header className="h-14 md:h-16 bg-brand-800 border-b border-slate-800 flex items-center px-4 md:px-6 gap-3 shrink-0">
       {/* 모바일 햄버거 */}
       <button
         onClick={onMenuToggle}
-        className="lg:hidden p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
+        className="lg:hidden p-2 text-warm-400 hover:text-white hover:bg-brand-900 rounded-lg transition-all"
       >
         <Menu size={20} />
       </button>
@@ -28,7 +28,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
       <div className="flex-1" />
 
       {/* 날짜 (중간 이상) */}
-      <div className="text-xs text-slate-500 hidden md:block">
+      <div className="text-xs text-warm-500 hidden md:block">
         {new Date().toLocaleDateString('ko-KR', {
           year: 'numeric', month: 'long', day: 'numeric', weekday: 'short',
         })}
@@ -42,7 +42,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
       )}
 
       {/* 알림 */}
-      <button className="relative w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+      <button className="relative w-9 h-9 flex items-center justify-center rounded-lg text-warm-400 hover:text-white hover:bg-brand-900 transition-all">
         <Bell size={18} />
         <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
       </button>

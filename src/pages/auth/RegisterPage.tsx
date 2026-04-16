@@ -47,19 +47,19 @@ export default function RegisterPage() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-brand-900 flex items-center justify-center p-4">
         <div className="w-full max-w-md text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-900/40 rounded-full border border-green-700 mb-6">
             <CheckCircle2 size={32} className="text-green-400" />
           </div>
           <h2 className="text-xl font-bold text-white mb-2">가입 신청 완료</h2>
-          <p className="text-slate-400 text-sm mb-6">
+          <p className="text-warm-400 text-sm mb-6">
             관리자 승인 후 로그인이 가능합니다.<br />
             승인 완료 시 이메일로 안내드립니다.
           </p>
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium px-6 py-3 rounded-lg transition-all"
+            className="inline-flex items-center gap-2 bg-brand-800 hover:bg-warm-500 text-white text-sm font-medium px-6 py-3 rounded-lg transition-all"
           >
             로그인 페이지로
           </Link>
@@ -69,21 +69,21 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-brand-900 flex items-center justify-center p-4">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-brand-600/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-brand-800/10 rounded-full blur-3xl" />
       </div>
 
       <div className="w-full max-w-md relative">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-brand-600 rounded-2xl mb-4">
-            <span className="text-white font-black text-2xl">동</span>
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-brand-800 rounded-lg mb-4">
+            <span className="text-white font-bold text-2xl">동</span>
           </div>
           <h1 className="text-2xl font-bold text-white">가입 신청</h1>
-          <p className="text-slate-400 text-sm mt-1">관리자 승인 후 계정이 활성화됩니다</p>
+          <p className="text-warm-400 text-sm mt-1">관리자 승인 후 계정이 활성화됩니다</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-brand-800 border border-slate-800 rounded-lg p-8 shadow-2xl">
           {error && (
             <div className="flex items-center gap-2 bg-red-950/50 border border-red-800 text-red-300 text-sm rounded-lg px-4 py-3 mb-5">
               <AlertCircle size={16} className="shrink-0" />
@@ -94,53 +94,53 @@ export default function RegisterPage() {
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">이름 *</label>
+                <label className="block text-sm font-medium text-warm-300 mb-1.5">이름 *</label>
                 <input
                   type="text" value={form.fullName} onChange={update('fullName')}
                   placeholder="홍길동" required
-                  className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-lg px-3 py-2.5 placeholder-slate-500 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+                  className="w-full bg-brand-700 border border-slate-700 text-white text-sm rounded-lg px-3 py-2.5 placeholder-slate-500 outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-700/20 transition-all"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">부서</label>
+                <label className="block text-sm font-medium text-warm-300 mb-1.5">부서</label>
                 <input
                   type="text" value={form.department} onChange={update('department')}
                   placeholder="내부회계팀"
-                  className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-lg px-3 py-2.5 placeholder-slate-500 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+                  className="w-full bg-brand-700 border border-slate-700 text-white text-sm rounded-lg px-3 py-2.5 placeholder-slate-500 outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-700/20 transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">이메일 *</label>
+              <label className="block text-sm font-medium text-warm-300 mb-1.5">이메일 *</label>
               <input
                 type="email" value={form.email} onChange={update('email')}
                 placeholder="example@tongyang.co.kr" required
-                className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-lg px-4 py-3 placeholder-slate-500 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+                className="w-full bg-brand-700 border border-slate-700 text-white text-sm rounded-lg px-4 py-3 placeholder-slate-500 outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-700/20 transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">비밀번호 * (8자 이상)</label>
+              <label className="block text-sm font-medium text-warm-300 mb-1.5">비밀번호 * (8자 이상)</label>
               <input
                 type="password" value={form.password} onChange={update('password')}
                 placeholder="••••••••" required
-                className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-lg px-4 py-3 placeholder-slate-500 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+                className="w-full bg-brand-700 border border-slate-700 text-white text-sm rounded-lg px-4 py-3 placeholder-slate-500 outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-700/20 transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">비밀번호 확인 *</label>
+              <label className="block text-sm font-medium text-warm-300 mb-1.5">비밀번호 확인 *</label>
               <input
                 type="password" value={form.passwordConfirm} onChange={update('passwordConfirm')}
                 placeholder="••••••••" required
-                className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-lg px-4 py-3 placeholder-slate-500 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+                className="w-full bg-brand-700 border border-slate-700 text-white text-sm rounded-lg px-4 py-3 placeholder-slate-500 outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-700/20 transition-all"
               />
             </div>
 
             <button
               type="submit" disabled={loading}
-              className="w-full bg-brand-600 hover:bg-brand-500 disabled:bg-brand-800 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-lg px-4 py-3 flex items-center justify-center gap-2 transition-all mt-2"
+              className="w-full bg-brand-800 hover:bg-warm-500 disabled:bg-brand-800 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-lg px-4 py-3 flex items-center justify-center gap-2 transition-all mt-2"
             >
               {loading
                 ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -149,7 +149,7 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-slate-500 mt-6">
+          <p className="text-center text-sm text-warm-500 mt-6">
             이미 계정이 있으신가요?{' '}
             <Link to="/login" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
               로그인

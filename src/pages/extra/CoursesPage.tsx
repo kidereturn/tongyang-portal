@@ -350,12 +350,12 @@ export default function CoursesPage() {
     return (
       <div className="space-y-6">
         <div className="rounded-[28px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-6 py-8 text-white shadow-2xl">
-          <p className="text-xs font-semibold tracking-[0.24em] text-slate-400">COURSE PLAYER</p>
-          <h1 className="mt-2 flex items-center gap-2 text-3xl font-black">
+          <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">COURSE PLAYER</p>
+          <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
             <BookOpen size={28} className="text-brand-300" />내 강좌
           </h1>
         </div>
-        <div className="text-center text-sm text-gray-400 py-20">
+        <div className="text-center text-sm text-warm-400 py-20">
           {loadError ?? '강좌를 불러오는 중...'}
         </div>
       </div>
@@ -366,12 +366,12 @@ export default function CoursesPage() {
     return (
       <div className="space-y-6">
         <div className="rounded-[28px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-6 py-8 text-white shadow-2xl">
-          <p className="text-xs font-semibold tracking-[0.24em] text-slate-400">COURSE PLAYER</p>
-          <h1 className="mt-2 flex items-center gap-2 text-3xl font-black">
+          <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">COURSE PLAYER</p>
+          <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
             <BookOpen size={28} className="text-brand-300" />내 강좌
           </h1>
         </div>
-        <div className="text-center text-sm text-gray-400 py-20">등록된 강좌가 없습니다. 관리자가 동영상을 추가하면 여기에 표시됩니다.</div>
+        <div className="text-center text-sm text-warm-400 py-20">등록된 강좌가 없습니다. 관리자가 동영상을 추가하면 여기에 표시됩니다.</div>
       </div>
     )
   }
@@ -379,22 +379,22 @@ export default function CoursesPage() {
   return (
     <div className="space-y-6">
       <div className="rounded-[28px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-6 py-8 text-white shadow-2xl">
-        <p className="text-xs font-semibold tracking-[0.24em] text-slate-400">COURSE PLAYER</p>
-        <h1 className="mt-2 flex items-center gap-2 text-3xl font-black">
+        <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">COURSE PLAYER</p>
+        <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
           <BookOpen size={28} className="text-brand-300" />내 강좌
         </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-warm-300">
           강의 동영상을 재생하고 학습 진도를 관리합니다. 배속은 2배속까지, 건너뛰기는 제한됩니다.
         </p>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         {/* Player */}
-        <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl">
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="text-xl font-black text-slate-900">{selectedVideo?.title}</h2>
+        <section className="overflow-hidden rounded-[28px] border border-warm-200 bg-white shadow-md">
+          <div className="border-b border-warm-100 px-5 py-4">
+            <h2 className="text-xl font-bold text-brand-900">{selectedVideo?.title}</h2>
             {selectedVideo?.description && (
-              <p className="mt-2 text-sm leading-6 text-slate-500">{selectedVideo.description}</p>
+              <p className="mt-2 text-sm leading-6 text-warm-500">{selectedVideo.description}</p>
             )}
           </div>
 
@@ -403,7 +403,7 @@ export default function CoursesPage() {
             {playerError && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white">
                 <p className="text-lg font-bold text-red-400">{playerError}</p>
-                <p className="mt-2 text-sm text-slate-400">다른 강좌를 선택하거나 관리자에게 문의하세요</p>
+                <p className="mt-2 text-sm text-warm-400">다른 강좌를 선택하거나 관리자에게 문의하세요</p>
               </div>
             )}
           </div>
@@ -425,8 +425,8 @@ export default function CoursesPage() {
                     className={clsx(
                       'rounded-full border px-3 py-1.5 text-xs font-semibold transition',
                       playbackRate === rate
-                        ? 'border-brand-300 bg-brand-50 text-brand-700'
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-brand-100'
+                        ? 'border-brand-300 bg-warm-50 text-brand-700'
+                        : 'border-warm-200 bg-white text-warm-600 hover:border-brand-100'
                     )}
                   >
                     {rate}x
@@ -437,12 +437,12 @@ export default function CoursesPage() {
 
             <div>
               <div className="mb-2 flex items-center justify-between text-sm">
-                <span className="font-semibold text-slate-700">
+                <span className="font-semibold text-brand-700">
                   {watchedLabel} / {duration > 0 ? durationLabel : '로딩 중'}
                 </span>
-                <span className="font-black text-brand-700">{progress}%</span>
+                <span className="font-bold text-brand-700">{progress}%</span>
               </div>
-              <div className="h-2 rounded-full bg-slate-100">
+              <div className="h-2 rounded-full bg-warm-100">
                 <div className="h-2 rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 transition-all" style={{ width: `${progress}%` }} />
               </div>
             </div>
@@ -451,9 +451,9 @@ export default function CoursesPage() {
 
         {/* Video list */}
         <section className="space-y-4">
-          <div className="rounded-[28px] border border-slate-200 bg-white shadow-xl overflow-hidden">
-            <div className="border-b border-slate-100 px-5 py-3">
-              <p className="text-sm font-bold text-slate-900">강좌 목록 ({videos.length}개) — 최신순</p>
+          <div className="rounded-[28px] border border-warm-200 bg-white shadow-md overflow-hidden">
+            <div className="border-b border-warm-100 px-5 py-3">
+              <p className="text-sm font-bold text-brand-900">강좌 목록 ({videos.length}개) — 최신순</p>
             </div>
             <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
               {videos.map(v => (
@@ -461,24 +461,24 @@ export default function CoursesPage() {
                   key={v.id}
                   onClick={() => selectVideo(v)}
                   className={clsx(
-                    'flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-slate-50',
-                    selectedVideo?.id === v.id && 'bg-brand-50 border-l-4 border-brand-500'
+                    'flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-warm-50',
+                    selectedVideo?.id === v.id && 'bg-warm-50 border-l-4 border-brand-500'
                   )}
                 >
                   <img
                     src={v.thumbnail_url ?? `https://img.youtube.com/vi/${v.youtube_id}/hqdefault.jpg`}
                     alt={v.title}
-                    className="h-12 w-20 shrink-0 rounded-lg object-cover bg-gray-200"
+                    className="h-12 w-20 shrink-0 rounded-lg object-cover bg-warm-200"
                     onError={e => { (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${v.youtube_id}/hqdefault.jpg` }}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className={clsx('text-sm font-bold truncate', selectedVideo?.id === v.id ? 'text-brand-700' : 'text-slate-900')}>
+                    <p className={clsx('text-sm font-bold truncate', selectedVideo?.id === v.id ? 'text-brand-700' : 'text-brand-900')}>
                       {v.title}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-warm-400">
                         {new Date(v.created_at).toLocaleDateString('ko-KR')}
-                        {selectedVideo?.id === v.id && <span className="ml-2 text-brand-600 font-semibold">▶ 재생 중</span>}
+                        {selectedVideo?.id === v.id && <span className="ml-2 text-brand-700 font-semibold">▶ 재생 중</span>}
                       </p>
                       {(videoProgress[v.id] ?? 0) > 0 && (
                         <span className={clsx('text-[10px] font-bold px-1.5 py-0.5 rounded-full',
@@ -494,18 +494,18 @@ export default function CoursesPage() {
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-xl">
-            <p className="text-sm font-bold text-slate-900">안내</p>
+          <div className="rounded-[28px] border border-warm-200 bg-white p-5 shadow-md">
+            <p className="text-sm font-bold text-brand-900">안내</p>
             <div className="mt-3 space-y-2">
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <p className="text-xs text-slate-400">재생 제한</p>
-                <p className="mt-1 text-sm leading-6 text-slate-700">
+              <div className="rounded-lg bg-warm-50 px-4 py-3">
+                <p className="text-xs text-warm-400">재생 제한</p>
+                <p className="mt-1 text-sm leading-6 text-brand-700">
                   배속은 최대 2배속까지 허용, 임의 건너뛰기 방지
                 </p>
               </div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <p className="text-xs text-slate-400">자막</p>
-                <p className="mt-1 text-sm leading-6 text-slate-700">
+              <div className="rounded-lg bg-warm-50 px-4 py-3">
+                <p className="text-xs text-warm-400">자막</p>
+                <p className="mt-1 text-sm leading-6 text-brand-700">
                   YouTube에서 자막이 설정된 영상은 자동으로 표시됩니다
                 </p>
               </div>

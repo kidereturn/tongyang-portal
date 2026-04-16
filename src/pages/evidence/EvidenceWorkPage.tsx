@@ -231,7 +231,7 @@ export default function EvidenceWorkPage() {
     <div className="space-y-6">
       {/* 헤더 */}
       <div className="flex items-start gap-3">
-        <button onClick={() => navigate('/evidence')} className="mt-0.5 p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
+        <button onClick={() => navigate('/evidence')} className="mt-0.5 p-1.5 text-warm-400 hover:text-white hover:bg-brand-900 rounded-lg transition-all">
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1 min-w-0">
@@ -244,8 +244,8 @@ export default function EvidenceWorkPage() {
             {isRejected && <span className="flex items-center gap-1 text-xs text-red-400 bg-red-950/50 border border-red-800 px-2 py-0.5 rounded-full"><XCircle size={11} />반려</span>}
           </div>
           <h1 className="text-xl font-bold text-white mt-1">{activity.title}</h1>
-          <p className="text-slate-400 text-xs mt-0.5">{activity.department ?? ''} {activity.cycle ? `· ${activity.cycle}` : ''}</p>
-          {activity.description && <p className="text-slate-500 text-xs mt-1">{activity.description}</p>}
+          <p className="text-warm-400 text-xs mt-0.5">{activity.department ?? ''} {activity.cycle ? `· ${activity.cycle}` : ''}</p>
+          {activity.description && <p className="text-warm-500 text-xs mt-1">{activity.description}</p>}
         </div>
 
         {/* 결재상신 버튼 (담당자) */}
@@ -254,24 +254,24 @@ export default function EvidenceWorkPage() {
             <button
               onClick={() => setShowDropdown(v => !v)}
               disabled={submitting}
-              className="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-all"
+              className="flex items-center gap-2 bg-brand-800 hover:bg-warm-500 disabled:opacity-40 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-all"
             >
               {submitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
               결재상신
               <ChevronDown size={14} />
             </button>
             {showDropdown && (
-              <div className="absolute right-0 top-12 w-56 bg-slate-900 border border-slate-700 rounded-xl shadow-xl z-10 p-3 space-y-2">
-                <p className="text-slate-400 text-xs mb-2">결재 상신하시겠습니까?</p>
-                <p className="text-slate-300 text-xs">업로드된 파일 <span className="text-brand-400 font-medium">{uploadedCount}건</span></p>
+              <div className="absolute right-0 top-12 w-56 bg-brand-800 border border-slate-700 rounded-xl shadow-md z-10 p-3 space-y-2">
+                <p className="text-warm-400 text-xs mb-2">결재 상신하시겠습니까?</p>
+                <p className="text-warm-300 text-xs">업로드된 파일 <span className="text-brand-400 font-medium">{uploadedCount}건</span></p>
                 <div className="flex gap-2 pt-2">
                   <button onClick={() => handleSubmit('')}
-                    className="flex-1 bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium py-2 rounded-lg transition-all"
+                    className="flex-1 bg-brand-800 hover:bg-warm-500 text-white text-xs font-medium py-2 rounded-lg transition-all"
                   >
                     상신
                   </button>
                   <button onClick={() => setShowDropdown(false)}
-                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium py-2 rounded-lg transition-all"
+                    className="flex-1 bg-brand-700 hover:bg-slate-700 text-warm-300 text-xs font-medium py-2 rounded-lg transition-all"
                   >
                     취소
                   </button>
@@ -314,31 +314,31 @@ export default function EvidenceWorkPage() {
 
       {/* 모집단 없음 */}
       {popItems.length === 0 && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-10 text-center">
-          <FileText size={32} className="text-slate-700 mx-auto mb-3" />
-          <p className="text-slate-400 text-sm">모집단 데이터가 없습니다</p>
-          <p className="text-slate-600 text-xs mt-1">관리자 → 모집단 업로드 탭에서 모집단.xlsx를 업로드하세요</p>
+        <div className="bg-brand-800 border border-slate-800 rounded-xl p-10 text-center">
+          <FileText size={32} className="text-brand-700 mx-auto mb-3" />
+          <p className="text-warm-400 text-sm">모집단 데이터가 없습니다</p>
+          <p className="text-warm-600 text-xs mt-1">관리자 → 모집단 업로드 탭에서 모집단.xlsx를 업로드하세요</p>
         </div>
       )}
 
       {/* 모집단 테이블 */}
       {popItems.length > 0 && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div className="bg-brand-800 border border-slate-800 rounded-xl overflow-hidden">
           <div className="px-5 py-3 border-b border-slate-800 flex items-center justify-between">
             <p className="text-white text-sm font-medium">증빙 업로드 현황</p>
-            <span className="text-slate-400 text-xs">{uploadedCount} / {popItems.length}건 완료</span>
+            <span className="text-warm-400 text-xs">{uploadedCount} / {popItems.length}건 완료</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-800">
-                  <th className="text-left text-xs text-slate-500 font-medium px-4 py-3">거래일</th>
-                  <th className="text-left text-xs text-slate-500 font-medium px-4 py-3">Transaction ID</th>
-                  <th className="text-left text-xs text-slate-500 font-medium px-4 py-3 hidden md:table-cell">거래설명</th>
-                  <th className="text-left text-xs text-slate-500 font-medium px-4 py-3">파일명</th>
-                  <th className="text-center text-xs text-slate-500 font-medium px-4 py-3">상태</th>
+                  <th className="text-left text-xs text-warm-500 font-medium px-4 py-3">거래일</th>
+                  <th className="text-left text-xs text-warm-500 font-medium px-4 py-3">Transaction ID</th>
+                  <th className="text-left text-xs text-warm-500 font-medium px-4 py-3 hidden md:table-cell">거래설명</th>
+                  <th className="text-left text-xs text-warm-500 font-medium px-4 py-3">파일명</th>
+                  <th className="text-center text-xs text-warm-500 font-medium px-4 py-3">상태</th>
                   {isOwner && !isApproved && !isPending && (
-                    <th className="text-center text-xs text-slate-500 font-medium px-4 py-3">업로드</th>
+                    <th className="text-center text-xs text-warm-500 font-medium px-4 py-3">업로드</th>
                   )}
                 </tr>
               </thead>
@@ -347,12 +347,12 @@ export default function EvidenceWorkPage() {
                   const up = uploads.get(item.id)
                   const done = up?.status === 'uploaded'
                   return (
-                    <tr key={item.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
-                      <td className="px-4 py-3 text-slate-300 text-xs whitespace-nowrap">
+                    <tr key={item.id} className="border-b border-slate-800/50 hover:bg-brand-900/20 transition-colors">
+                      <td className="px-4 py-3 text-warm-300 text-xs whitespace-nowrap">
                         {item.transaction_date ?? '-'}
                       </td>
-                      <td className="px-4 py-3 text-slate-300 text-xs font-mono">{item.transaction_id ?? '-'}</td>
-                      <td className="px-4 py-3 text-slate-400 text-xs max-w-[200px] truncate hidden md:table-cell">
+                      <td className="px-4 py-3 text-warm-300 text-xs font-mono">{item.transaction_id ?? '-'}</td>
+                      <td className="px-4 py-3 text-warm-400 text-xs max-w-[200px] truncate hidden md:table-cell">
                         {item.description ?? '-'}
                       </td>
                       <td className="px-4 py-3">
@@ -365,14 +365,14 @@ export default function EvidenceWorkPage() {
                             <span className="truncate max-w-[120px]">{up.file_name}</span>
                           </button>
                         ) : (
-                          <span className="text-slate-600 text-xs">-</span>
+                          <span className="text-warm-600 text-xs">-</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {done ? (
                           <span className="inline-flex items-center gap-1 text-xs text-green-400"><CheckCircle2 size={12} />완료</span>
                         ) : (
-                          <span className="text-xs text-slate-600">미업로드</span>
+                          <span className="text-xs text-warm-600">미업로드</span>
                         )}
                       </td>
                       {isOwner && !isApproved && !isPending && (
@@ -382,7 +382,7 @@ export default function EvidenceWorkPage() {
                             className={clsx(
                               'flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all mx-auto',
                               done
-                                ? 'text-slate-400 border-slate-700 hover:border-brand-700 hover:text-brand-400'
+                                ? 'text-warm-400 border-slate-700 hover:border-brand-700 hover:text-brand-400'
                                 : 'text-brand-400 border-brand-800 bg-brand-950/30 hover:bg-brand-950/60'
                             )}
                           >
@@ -402,7 +402,7 @@ export default function EvidenceWorkPage() {
 
       {/* 결재 이력 */}
       {request && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <div className="bg-brand-800 border border-slate-800 rounded-xl p-5">
           <p className="text-white text-sm font-medium mb-3">결재 이력</p>
           <div className="flex items-center gap-3">
             <div className={clsx('w-8 h-8 rounded-full flex items-center justify-center',
@@ -416,7 +416,7 @@ export default function EvidenceWorkPage() {
               <p className="text-white text-sm">
                 {request.status === 'approved' ? '승인 완료' : request.status === 'rejected' ? '반려됨' : '통제책임자 검토 중'}
               </p>
-              <p className="text-slate-500 text-xs">
+              <p className="text-warm-500 text-xs">
                 상신일: {new Date(request.submitted_at).toLocaleDateString('ko-KR')}
                 {request.controller_comment && ` · 의견: ${request.controller_comment}`}
               </p>
@@ -428,23 +428,23 @@ export default function EvidenceWorkPage() {
       {/* 업로드 모달 */}
       {modalItem && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl">
+          <div className="bg-brand-800 border border-slate-700 rounded-lg w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
               <div>
                 <p className="text-white font-medium text-sm">증빙 파일 업로드</p>
-                <p className="text-slate-500 text-xs mt-0.5">{modalItem.transaction_id} · {modalItem.transaction_date}</p>
+                <p className="text-warm-500 text-xs mt-0.5">{modalItem.transaction_id} · {modalItem.transaction_date}</p>
               </div>
-              <button onClick={() => setModalItem(null)} className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg">
+              <button onClick={() => setModalItem(null)} className="p-1.5 text-warm-400 hover:text-white hover:bg-brand-900 rounded-lg">
                 <X size={18} />
               </button>
             </div>
 
             <div className="p-6 space-y-4">
               {/* 거래 정보 */}
-              <div className="bg-slate-800/50 rounded-lg px-4 py-3 text-xs text-slate-400 space-y-1">
-                <p><span className="text-slate-500">Transaction ID:</span> {modalItem.transaction_id ?? '-'}</p>
-                <p><span className="text-slate-500">거래일:</span> {modalItem.transaction_date ?? '-'}</p>
-                <p className="truncate"><span className="text-slate-500">설명:</span> {modalItem.description ?? '-'}</p>
+              <div className="bg-brand-700/50 rounded-lg px-4 py-3 text-xs text-warm-400 space-y-1">
+                <p><span className="text-warm-500">Transaction ID:</span> {modalItem.transaction_id ?? '-'}</p>
+                <p><span className="text-warm-500">거래일:</span> {modalItem.transaction_date ?? '-'}</p>
+                <p className="truncate"><span className="text-warm-500">설명:</span> {modalItem.description ?? '-'}</p>
               </div>
 
               {/* 드롭존 */}
@@ -462,14 +462,14 @@ export default function EvidenceWorkPage() {
                   <div className="flex items-center gap-2 justify-center">
                     <FileText size={18} className="text-brand-400" />
                     <span className="text-white text-sm truncate max-w-[200px]">{uploadFile.name}</span>
-                    <button onClick={e => { e.stopPropagation(); setUploadFile(null) }} className="text-slate-500 hover:text-red-400">
+                    <button onClick={e => { e.stopPropagation(); setUploadFile(null) }} className="text-warm-500 hover:text-red-400">
                       <X size={14} />
                     </button>
                   </div>
                 ) : (
                   <>
-                    <Upload size={24} className="text-slate-600 mx-auto mb-2" />
-                    <p className="text-slate-400 text-sm">파일을 끌어다 놓거나 클릭하여 선택</p>
+                    <Upload size={24} className="text-warm-600 mx-auto mb-2" />
+                    <p className="text-warm-400 text-sm">파일을 끌어다 놓거나 클릭하여 선택</p>
                   </>
                 )}
                 <input ref={fileRef} type="file" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) setUploadFile(f) }} />
@@ -477,7 +477,7 @@ export default function EvidenceWorkPage() {
 
               {/* 기존 파일 표시 */}
               {uploads.get(modalItem.id)?.status === 'uploaded' && (
-                <p className="text-xs text-slate-500 text-center">
+                <p className="text-xs text-warm-500 text-center">
                   현재: {uploads.get(modalItem.id)?.file_name} (덮어쓰기됩니다)
                 </p>
               )}
@@ -487,13 +487,13 @@ export default function EvidenceWorkPage() {
               <button
                 onClick={handleUpload}
                 disabled={!uploadFile || uploading}
-                className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-lg transition-all"
+                className="flex-1 flex items-center justify-center gap-2 bg-brand-800 hover:bg-warm-500 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-lg transition-all"
               >
                 {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
                 {uploading ? '업로드 중...' : '저장'}
               </button>
               <button onClick={() => setModalItem(null)}
-                className="px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-lg transition-all"
+                className="px-4 bg-brand-700 hover:bg-slate-700 text-warm-300 text-sm font-medium rounded-lg transition-all"
               >
                 취소
               </button>

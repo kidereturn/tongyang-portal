@@ -11,11 +11,11 @@ type ApprovalInfo = {
 }
 
 const STATUS_OPTIONS = [
-  { key: 'all',      label: '전체',     icon: FileCheck2, color: 'text-gray-600' },
+  { key: 'all',      label: '전체',     icon: FileCheck2, color: 'text-warm-600' },
   { key: 'approved', label: '승인완료', icon: CheckCircle2, color: 'text-emerald-600' },
   { key: 'submitted', label: '승인대기', icon: Clock, color: 'text-amber-600' },
   { key: 'rejected', label: '반려',     icon: AlertCircle, color: 'text-red-600' },
-  { key: 'none',     label: '미상신',   icon: FileCheck2, color: 'text-gray-400' },
+  { key: 'none',     label: '미상신',   icon: FileCheck2, color: 'text-warm-400' },
 ] as const
 
 export default function FilesTab() {
@@ -202,7 +202,7 @@ export default function FilesTab() {
       {/* Search + filter + bulk download */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-400" />
           <input
             type="text"
             value={search}
@@ -217,8 +217,8 @@ export default function FilesTab() {
           className={clsx(
             'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all',
             downloading || filtered.length === 0
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-brand-600 text-white hover:bg-brand-700 shadow-sm'
+              ? 'bg-warm-100 text-warm-400 cursor-not-allowed'
+              : 'bg-brand-800 text-white hover:bg-brand-900 shadow-sm'
           )}
         >
           {downloading ? (
@@ -232,7 +232,7 @@ export default function FilesTab() {
 
       {/* Status filter pills */}
       <div className="flex items-center gap-1.5 flex-wrap">
-        <Filter size={14} className="text-gray-400 mr-1" />
+        <Filter size={14} className="text-warm-400 mr-1" />
         {STATUS_OPTIONS.map(s => (
           <button
             key={s.key}
@@ -240,8 +240,8 @@ export default function FilesTab() {
             className={clsx(
               'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all',
               statusFilter === s.key
-                ? 'bg-brand-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-brand-800 text-white'
+                : 'bg-warm-100 text-warm-600 hover:bg-warm-200'
             )}
           >
             <s.icon size={12} />
@@ -251,13 +251,13 @@ export default function FilesTab() {
       </div>
 
       <div className="card overflow-hidden">
-        <div className="border-b border-gray-50 px-4 py-3 flex items-center justify-between">
-          <span className="text-xs text-gray-500">
-            총 <b className="text-gray-700">{filtered.length}</b>개 파일
+        <div className="border-b border-warm-50 px-4 py-3 flex items-center justify-between">
+          <span className="text-xs text-warm-500">
+            총 <b className="text-brand-700">{filtered.length}</b>개 파일
             {statusFilter !== 'all' && ` (${STATUS_OPTIONS.find(s => s.key === statusFilter)?.label} 필터)`}
           </span>
           {downloading && (
-            <span className="text-xs text-brand-600 font-semibold animate-pulse">{downloadProgress}</span>
+            <span className="text-xs text-brand-700 font-semibold animate-pulse">{downloadProgress}</span>
           )}
         </div>
         <div className="overflow-x-auto">
@@ -278,21 +278,21 @@ export default function FilesTab() {
                 return (
                   <tr key={file.id}>
                     <td className="max-w-[320px]">
-                      <div className="truncate text-xs text-gray-700" title={buildDownloadName(file)}>
+                      <div className="truncate text-xs text-brand-700" title={buildDownloadName(file)}>
                         {file.original_file_name ?? file.file_name}
                       </div>
                       {getFileUniqueKey(file) && (
-                        <div className="text-[10px] text-gray-400 truncate" title={buildDownloadName(file)}>
+                        <div className="text-[10px] text-warm-400 truncate" title={buildDownloadName(file)}>
                           → {buildDownloadName(file)}
                         </div>
                       )}
                     </td>
                     <td>
-                      <code className="font-mono text-xs text-gray-500 bg-gray-50 px-1 py-0.5 rounded">
+                      <code className="font-mono text-xs text-warm-500 bg-warm-50 px-1 py-0.5 rounded">
                         {getFileUniqueKey(file) || '-'}
                       </code>
                     </td>
-                    <td className="text-xs text-gray-600">{file.owner?.full_name ?? '-'}</td>
+                    <td className="text-xs text-warm-600">{file.owner?.full_name ?? '-'}</td>
                     <td className="text-center">
                       {approvalStatus === 'approved' ? (
                         <span className="badge-green">승인완료</span>
@@ -301,16 +301,16 @@ export default function FilesTab() {
                       ) : approvalStatus === 'submitted' ? (
                         <span className="badge-yellow">승인대기</span>
                       ) : (
-                        <span className="text-xs text-gray-300">미상신</span>
+                        <span className="text-xs text-warm-300">미상신</span>
                       )}
                     </td>
-                    <td className="text-xs text-gray-400">
+                    <td className="text-xs text-warm-400">
                       {file.uploaded_at ? new Date(file.uploaded_at).toLocaleDateString('ko-KR') : '-'}
                     </td>
                     <td className="text-center">
                       <button
                         onClick={() => downloadFile(file.file_path, buildDownloadName(file))}
-                        className="inline-flex items-center gap-1 rounded-lg bg-brand-50 px-2 py-1 text-xs text-brand-700 transition-all hover:bg-brand-100"
+                        className="inline-flex items-center gap-1 rounded-lg bg-warm-50 px-2 py-1 text-xs text-brand-700 transition-all hover:bg-brand-100"
                       >
                         <Download size={11} />
                         다운로드
@@ -321,7 +321,7 @@ export default function FilesTab() {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-sm text-gray-400">
+                  <td colSpan={6} className="text-center py-12 text-sm text-warm-400">
                     해당 조건의 파일이 없습니다.
                   </td>
                 </tr>

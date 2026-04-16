@@ -152,7 +152,7 @@ export function PreviewTable({ rows }: { rows: Record<string, string>[] }) {
 
   return (
     <div className="card p-5">
-      <p className="mb-3 text-sm font-semibold text-gray-700">파일 미리보기</p>
+      <p className="mb-3 text-sm font-semibold text-brand-700">파일 미리보기</p>
       <div className="overflow-x-auto">
         <table className="data-table text-xs">
           <thead>
@@ -198,19 +198,19 @@ export function ResultCard({
         ) : (
           <CheckCircle2 size={18} className="text-emerald-600" />
         )}
-        <p className="font-bold text-gray-900">{title}</p>
+        <p className="font-bold text-brand-900">{title}</p>
       </div>
 
       <div className="mb-3 grid grid-cols-3 gap-3">
         {stats.map(item => (
           <div key={item.label} className="text-center">
-            <p className={clsx('text-2xl font-black', item.color)}>{item.value.toLocaleString()}</p>
-            <p className="text-xs text-gray-500">{item.label}</p>
+            <p className={clsx('text-2xl font-bold', item.color)}>{item.value.toLocaleString()}</p>
+            <p className="text-xs text-warm-500">{item.label}</p>
           </div>
         ))}
       </div>
 
-      {note && <p className="mb-3 rounded-lg bg-white/70 px-3 py-2 text-xs text-gray-600">{note}</p>}
+      {note && <p className="mb-3 rounded-lg bg-white/70 px-3 py-2 text-xs text-warm-600">{note}</p>}
 
       {!!errors.length && (
         <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg bg-red-50 p-3">

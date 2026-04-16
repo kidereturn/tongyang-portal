@@ -46,25 +46,25 @@ export default class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="flex min-h-[60vh] items-center justify-center p-6">
           <div className="max-w-md w-full text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-500">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-amber-50 text-accent-600">
               <AlertTriangle size={28} />
             </div>
-            <h2 className="text-lg font-black text-gray-900 mb-2">
+            <h2 className="text-lg font-bold text-brand-900 mb-2">
               {this.state.isChunkError ? '새 버전이 배포되었습니다' : '페이지 로드 중 오류가 발생했습니다'}
             </h2>
-            <p className="text-sm text-gray-500 mb-6">
+            <p className="text-sm text-warm-500 mb-6">
               {this.state.isChunkError
                 ? '새로고침하면 최신 버전으로 자동 업데이트됩니다.'
                 : '일시적인 오류입니다. 다시 시도해 주세요.'}
             </p>
             {!this.state.isChunkError && this.state.error && (
-              <pre className="mb-4 rounded-xl bg-gray-50 border border-gray-100 p-3 text-left text-xs text-gray-500 overflow-auto max-h-32">
+              <pre className="mb-4 rounded-xl bg-warm-50 border border-warm-100 p-3 text-left text-xs text-warm-500 overflow-auto max-h-32">
                 {this.state.error.message}
               </pre>
             )}
             <button
               onClick={this.handleRetry}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 transition-all shadow-sm"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-800 text-white text-sm font-semibold rounded-xl hover:bg-brand-900 transition-all shadow-sm"
             >
               <RefreshCw size={15} />
               {this.state.isChunkError ? '새로고침' : '다시 시도'}

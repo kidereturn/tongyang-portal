@@ -228,8 +228,8 @@ export default function WebtoonTab() {
   return (
     <div className="space-y-5">
       <div className="card p-6">
-        <h3 className="mb-1 text-base font-bold text-gray-900">웹툰 에피소드 업로드</h3>
-        <p className="mb-4 text-sm text-gray-500">
+        <h3 className="mb-1 text-base font-bold text-brand-900">웹툰 에피소드 업로드</h3>
+        <p className="mb-4 text-sm text-warm-500">
           이미지를 업로드하면 자동으로 다음 화 번호가 부여됩니다. 큰 이미지(2MB+)는 자동 분할 압축됩니다.
         </p>
         <div className="flex flex-col sm:flex-row gap-3">
@@ -265,15 +265,15 @@ export default function WebtoonTab() {
       />
 
       <div className="card overflow-hidden">
-        <div className="border-b border-gray-100 px-5 py-3">
-          <p className="text-sm font-bold text-gray-900">등록된 에피소드 ({episodes.length}개)</p>
+        <div className="border-b border-warm-100 px-5 py-3">
+          <p className="text-sm font-bold text-brand-900">등록된 에피소드 ({episodes.length}개)</p>
         </div>
         {loading ? (
           <div className="p-5 space-y-3">
             {[1,2,3].map(i => <div key={i} className="skeleton h-16 w-full rounded-xl" />)}
           </div>
         ) : episodes.length === 0 ? (
-          <div className="px-5 py-12 text-center text-sm text-gray-400">등록된 웹툰이 없습니다</div>
+          <div className="px-5 py-12 text-center text-sm text-warm-400">등록된 웹툰이 없습니다</div>
         ) : (
           <div className="divide-y divide-gray-100">
             {episodes.map(ep => (
@@ -281,10 +281,10 @@ export default function WebtoonTab() {
                 <img
                   src={getPublicUrl(ep.image_path.split(',')[0])}
                   alt={ep.title}
-                  className="h-16 w-12 rounded-lg object-cover bg-gray-100 shrink-0"
+                  className="h-16 w-12 rounded-lg object-cover bg-warm-100 shrink-0"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-gray-900">
+                  <p className="text-sm font-bold text-brand-900">
                     {ep.episode_number}화 — {ep.title}
                     {partCount(ep.image_path) > 1 && (
                       <span className="ml-2 text-xs text-blue-500 font-normal">
@@ -292,7 +292,7 @@ export default function WebtoonTab() {
                       </span>
                     )}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-warm-400">
                     {new Date(ep.created_at).toLocaleDateString('ko-KR')}
                     {ep.updated_at && ep.updated_at !== ep.created_at && (
                       <span className="ml-2 text-blue-500">
@@ -304,14 +304,14 @@ export default function WebtoonTab() {
                 <button
                   onClick={() => { setReplacingId(ep.id); replaceRef.current?.click() }}
                   disabled={replacingId === ep.id}
-                  className="rounded-lg p-2 text-gray-400 hover:bg-blue-50 hover:text-blue-500 transition"
+                  className="rounded-lg p-2 text-warm-400 hover:bg-blue-50 hover:text-blue-500 transition"
                   title="이미지 교체"
                 >
                   {replacingId === ep.id ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />}
                 </button>
                 <button
                   onClick={() => handleDelete(ep)}
-                  className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500 transition"
+                  className="rounded-lg p-2 text-warm-400 hover:bg-red-50 hover:text-red-500 transition"
                   title="삭제"
                 >
                   <Trash2 size={15} />

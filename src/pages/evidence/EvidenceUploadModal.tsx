@@ -467,24 +467,24 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
   return (
     <div className="modal-overlay" onClick={event => { if (event.target === event.currentTarget) onClose() }}>
       <div className="modal-box w-[98vw] sm:w-[96vw] max-w-[1560px] max-h-[94vh]">
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-start justify-between z-10">
+        <div className="sticky top-0 bg-white border-b border-warm-100 px-6 py-4 flex items-start justify-between z-10">
           <div>
-            <h2 className="text-lg font-black text-gray-900">
+            <h2 className="text-lg font-bold text-brand-900">
               {viewOnly ? '증빙 확인' : '증빙 Upload'}
             </h2>
             <div className="flex flex-wrap gap-2 mt-1.5">
-              <code className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{activity.control_code}</code>
-              <span className="text-sm text-gray-600">{activity.department}</span>
+              <code className="text-xs bg-warm-100 text-warm-600 px-2 py-0.5 rounded">{activity.control_code}</code>
+              <span className="text-sm text-warm-600">{activity.department}</span>
               {activity.controller_name && (
-                <span className="text-xs text-gray-400">승인자: {activity.controller_name}</span>
+                <span className="text-xs text-warm-400">승인자: {activity.controller_name}</span>
               )}
             </div>
-            <p className="text-sm text-gray-500 mt-1">{activity.title}</p>
+            <p className="text-sm text-warm-500 mt-1">{activity.title}</p>
           </div>
 
           <button
             onClick={() => onClose()}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all ml-4"
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-warm-100 text-warm-400 hover:text-warm-600 transition-all ml-4"
           >
             <X size={18} />
           </button>
@@ -517,21 +517,21 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
               <Loader2 size={24} className="animate-spin text-brand-500" />
             </div>
           ) : items.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
-              <AlertCircle size={32} className="mx-auto mb-2 text-gray-200" />
+            <div className="text-center py-12 text-warm-400">
+              <AlertCircle size={32} className="mx-auto mb-2 text-warm-200" />
               <p>연결된 모집단 데이터가 없습니다.</p>
               <p className="text-xs mt-1">관리자에게 문의해주세요. (고유키: {activity.unique_key ?? '없음'})</p>
             </div>
           ) : (
             <div className="space-y-4">
-              <p className="text-sm font-semibold text-gray-700">
-                모집단 항목 <span className="text-brand-600">{items.length.toLocaleString('ko-KR')}건</span>
+              <p className="text-sm font-semibold text-brand-700">
+                모집단 항목 <span className="text-brand-700">{items.length.toLocaleString('ko-KR')}건</span>
                 {!viewOnly && (
-                  <span className="text-xs text-gray-400 font-normal ml-2">각 항목별로 증빙 파일을 업로드해주세요</span>
+                  <span className="text-xs text-warm-400 font-normal ml-2">각 항목별로 증빙 파일을 업로드해주세요</span>
                 )}
               </p>
 
-              <div className="overflow-auto border border-slate-200 rounded-2xl max-h-[60vh] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+              <div className="overflow-auto border border-warm-200 rounded-lg max-h-[60vh] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
                 <table className="data-table min-w-[1380px]">
                   <thead>
                     <tr>
@@ -552,36 +552,36 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                         <tr
                           key={item.id}
                           className={clsx(
-                            'align-top border-b border-slate-100',
-                            index % 2 === 0 ? 'bg-white' : 'bg-slate-50/70'
+                            'align-top border-b border-warm-100',
+                            index % 2 === 0 ? 'bg-white' : 'bg-warm-50/70'
                           )}
                         >
-                          <td className="text-center text-xs text-gray-400 pt-4">{index + 1}</td>
+                          <td className="text-center text-xs text-warm-400 pt-4">{index + 1}</td>
                           <td className="pt-3">
-                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs font-mono text-gray-700 break-all whitespace-normal">
+                            <div className="rounded-xl border border-warm-200 bg-white px-3 py-3 text-xs font-mono text-brand-700 break-all whitespace-normal">
                               {item.transaction_id ?? '-'}
                             </div>
                           </td>
                           <td className="pt-3">
-                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs text-gray-700 whitespace-nowrap">
+                            <div className="rounded-xl border border-warm-200 bg-white px-3 py-3 text-xs text-brand-700 whitespace-nowrap">
                               {item.transaction_date ?? '-'}
                             </div>
                           </td>
                           <td className="pt-3">
-                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs text-gray-700 whitespace-normal break-words leading-5">
+                            <div className="rounded-xl border border-warm-200 bg-white px-3 py-3 text-xs text-brand-700 whitespace-normal break-words leading-5">
                               {item.description ?? '-'}
                             </div>
                           </td>
                           <td className="pt-3">
-                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 min-h-[74px]">
+                            <div className="rounded-xl border border-warm-200 bg-white px-3 py-3 min-h-[74px]">
                               {additionalRows.length === 0 ? (
-                                <span className="text-xs text-gray-400">-</span>
+                                <span className="text-xs text-warm-400">-</span>
                               ) : (
                                 <div className="space-y-2">
                                   {additionalRows.map(row => (
-                                    <div key={row.label} className="rounded-lg bg-slate-50 border border-slate-100 px-2.5 py-2">
-                                      <p className="text-[11px] font-semibold text-slate-500">{row.label}</p>
-                                      <p className="text-xs font-medium text-slate-800 break-words">{row.value}</p>
+                                    <div key={row.label} className="rounded-lg bg-warm-50 border border-warm-100 px-2.5 py-2">
+                                      <p className="text-[11px] font-semibold text-warm-500">{row.label}</p>
+                                      <p className="text-xs font-medium text-brand-800 break-words">{row.value}</p>
                                     </div>
                                   ))}
                                 </div>
@@ -589,9 +589,9 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                             </div>
                           </td>
                           <td className="pt-3">
-                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 min-h-[74px]">
+                            <div className="rounded-xl border border-warm-200 bg-white px-3 py-3 min-h-[74px]">
                               {item.uploads.length === 0 ? (
-                                <span className="text-xs text-gray-400">파일 없음</span>
+                                <span className="text-xs text-warm-400">파일 없음</span>
                               ) : (
                                 <div className="space-y-2">
                                   {item.uploads.map((upload, uploadIndex) => (
@@ -600,22 +600,22 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                                       className={clsx(
                                         'flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs border',
                                         upload.isNew
-                                          ? 'bg-brand-50 border-brand-100'
-                                          : 'bg-slate-50 border-slate-100'
+                                          ? 'bg-warm-50 border-brand-100'
+                                          : 'bg-warm-50 border-warm-100'
                                       )}
                                     >
-                                      <FileText size={12} className={upload.isNew ? 'text-brand-500' : 'text-slate-400'} />
+                                      <FileText size={12} className={upload.isNew ? 'text-brand-500' : 'text-warm-400'} />
                                       <div className="min-w-0 flex-1">
-                                        <p className="text-gray-700 break-all whitespace-normal">{upload.file_name}</p>
+                                        <p className="text-brand-700 break-all whitespace-normal">{upload.file_name}</p>
                                         {upload.file_size ? (
-                                          <p className="text-[11px] text-gray-400 mt-0.5">{formatFileSize(upload.file_size)}</p>
+                                          <p className="text-[11px] text-warm-400 mt-0.5">{formatFileSize(upload.file_size)}</p>
                                         ) : null}
                                       </div>
 
                                       {upload.isNew && !viewOnly ? (
                                         <button
                                           onClick={() => removeFile(item.id, upload.file_name)}
-                                          className="text-gray-400 hover:text-red-500 transition-colors"
+                                          className="text-warm-400 hover:text-red-500 transition-colors"
                                         >
                                           <Trash2 size={12} />
                                         </button>
@@ -642,7 +642,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                               />
                               <button
                                 onClick={() => fileInputRefs.current[item.id]?.click()}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 transition-all"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-warm-200 text-warm-600 rounded-lg text-xs font-medium hover:border-brand-300 hover:text-brand-700 hover:bg-warm-50 transition-all"
                               >
                                 <Upload size={11} />
                                 업로드
@@ -659,7 +659,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
           )}
         </div>
 
-        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex items-center justify-between">
+        <div className="sticky bottom-0 bg-white border-t border-warm-100 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button onClick={() => onClose()} className="btn-ghost">
               <X size={15} />
@@ -728,7 +728,7 @@ function FileDownloadBtn({ path, name }: { path: string; name: string }) {
   }
 
   return (
-    <button onClick={handleDownload} className="text-gray-400 hover:text-brand-600 transition-colors" title="다운로드">
+    <button onClick={handleDownload} className="text-warm-400 hover:text-brand-700 transition-colors" title="다운로드">
       <Download size={12} />
     </button>
   )

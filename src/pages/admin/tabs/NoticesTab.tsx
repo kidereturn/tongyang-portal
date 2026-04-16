@@ -94,17 +94,17 @@ export default function NoticesTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-bold text-slate-700">공지사항 / 매뉴얼 관리 ({notices.length}건)</p>
+        <p className="text-sm font-bold text-brand-700">공지사항 / 매뉴얼 관리 ({notices.length}건)</p>
         <button onClick={openNew} className="btn-primary text-xs py-2">
           <Plus size={14} />새 글 작성
         </button>
       </div>
 
       {showForm && (
-        <div className="rounded-2xl border border-brand-200 bg-brand-50/30 p-5 space-y-3">
+        <div className="rounded-lg border border-brand-200 bg-warm-50/30 p-5 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-bold text-slate-900">{isNew ? '새 글 작성' : '수정'}</p>
-            <button onClick={closeForm} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+            <p className="text-sm font-bold text-brand-900">{isNew ? '새 글 작성' : '수정'}</p>
+            <button onClick={closeForm} className="text-warm-400 hover:text-warm-600"><X size={18} /></button>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <select value={fType} onChange={e => setFType(e.target.value as 'notice'|'manual')} className="input text-xs">
@@ -127,24 +127,24 @@ export default function NoticesTab() {
       )}
 
       {loading ? (
-        <div className="py-12 text-center text-sm text-slate-400">로딩 중...</div>
+        <div className="py-12 text-center text-sm text-warm-400">로딩 중...</div>
       ) : (
         <div className="space-y-2">
           {notices.map(n => (
-            <div key={n.id} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <div key={n.id} className="flex items-center gap-3 rounded-xl border border-warm-200 bg-white px-4 py-3">
               <span className={clsx('shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold',
                 n.type === 'notice' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
               )}>
                 {n.type === 'notice' ? '공지' : '매뉴얼'}
               </span>
-              {n.is_pinned && <span className="text-[10px] font-bold text-amber-500">PIN</span>}
+              {n.is_pinned && <span className="text-[10px] font-bold text-accent-600">PIN</span>}
               <span className={clsx('rounded px-1.5 py-0.5 text-[10px] font-bold',
                 `bg-${n.badge_color}-100 text-${n.badge_color}-700`
               )}>{n.badge}</span>
-              <p className="flex-1 truncate text-sm font-medium text-slate-800">{n.title}</p>
-              <span className="text-[10px] text-slate-400">{new Date(n.created_at).toLocaleDateString('ko-KR')}</span>
-              <button onClick={() => openEdit(n)} className="text-slate-400 hover:text-brand-600"><Edit3 size={14} /></button>
-              <button onClick={() => handleDelete(n.id)} className="text-slate-400 hover:text-red-600"><Trash2 size={14} /></button>
+              <p className="flex-1 truncate text-sm font-medium text-brand-800">{n.title}</p>
+              <span className="text-[10px] text-warm-400">{new Date(n.created_at).toLocaleDateString('ko-KR')}</span>
+              <button onClick={() => openEdit(n)} className="text-warm-400 hover:text-brand-700"><Edit3 size={14} /></button>
+              <button onClick={() => handleDelete(n.id)} className="text-warm-400 hover:text-red-600"><Trash2 size={14} /></button>
             </div>
           ))}
         </div>

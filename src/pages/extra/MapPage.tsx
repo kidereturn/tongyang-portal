@@ -176,7 +176,7 @@ export default function MapPage() {
       return kakaoReady ? (
         <div ref={kakaoMapRef} className="h-full w-full" />
       ) : (
-        <div className="flex h-full items-center justify-center bg-slate-50 text-sm text-slate-500">
+        <div className="flex h-full items-center justify-center bg-warm-50 text-sm text-warm-500">
           Kakao 지도를 불러오는 중입니다…
         </div>
       )
@@ -187,10 +187,10 @@ export default function MapPage() {
           <div className="flex h-full flex-col items-center justify-center gap-3 bg-red-50 px-6 text-center">
             <p className="text-sm font-semibold text-red-600">네이버 지도 로드 실패</p>
             <p className="text-xs text-red-500">{naverError}</p>
-            <div className="mt-2 rounded-xl bg-white border border-red-100 px-4 py-3 text-left text-xs text-slate-600 max-w-sm">
+            <div className="mt-2 rounded-xl bg-white border border-red-100 px-4 py-3 text-left text-xs text-warm-600 max-w-sm">
               <p className="font-bold mb-1">해결 방법:</p>
               <ol className="list-decimal list-inside space-y-1">
-                <li><a href="https://console.ncloud.com/naver-service/application" target="_blank" rel="noreferrer" className="text-brand-600 underline">NCP 콘솔</a>에 로그인</li>
+                <li><a href="https://console.ncloud.com/naver-service/application" target="_blank" rel="noreferrer" className="text-brand-700 underline">NCP 콘솔</a>에 로그인</li>
                 <li>Application → Web Dynamic Map 서비스 도메인에<br /><strong>tongyang-portal.vercel.app</strong> 추가</li>
                 <li>저장 후 5분 대기 → 새로고침</li>
               </ol>
@@ -204,7 +204,7 @@ export default function MapPage() {
       return naverReady ? (
         <div ref={naverMapRef} className="h-full w-full" />
       ) : (
-        <div className="flex h-full flex-col items-center justify-center gap-3 bg-slate-50 px-6 text-center text-sm text-slate-500">
+        <div className="flex h-full flex-col items-center justify-center gap-3 bg-warm-50 px-6 text-center text-sm text-warm-500">
           <p>Naver 지도를 불러오는 중입니다…</p>
         </div>
       )
@@ -225,12 +225,12 @@ export default function MapPage() {
       <div className="rounded-[28px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-6 py-8 text-white shadow-2xl">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-semibold tracking-[0.24em] text-slate-400">MAP CENTER</p>
-            <h1 className="mt-2 flex items-center gap-2 text-3xl font-black">
+            <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">MAP CENTER</p>
+            <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
               <Map size={28} className="text-brand-300" />
               사업장 지도
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-warm-300">
               업로드하신 <strong className="text-white">사업장 주소.xlsx</strong> 기준 28개 사업장을 한 화면에서 비교합니다.
               목록을 누르면 선택한 사업장으로 즉시 확대 이동합니다.
             </p>
@@ -242,14 +242,14 @@ export default function MapPage() {
                 key={item.id}
                 onClick={() => setProvider(item.id)}
                 className={clsx(
-                  'rounded-2xl border px-4 py-3 text-left transition',
+                  'rounded-lg border px-4 py-3 text-left transition',
                   provider === item.id
-                    ? 'border-brand-300 bg-brand-500/20 text-white'
-                    : 'border-white/10 bg-white/5 text-slate-300 hover:border-white/20 hover:bg-white/10'
+                    ? 'border-brand-300 bg-warm-500/20 text-white'
+                    : 'border-white/10 bg-white/5 text-warm-300 hover:border-white/20 hover:bg-white/10'
                 )}
               >
                 <p className="text-sm font-bold">{item.label}</p>
-                <p className="mt-1 text-xs text-slate-400">{item.description}</p>
+                <p className="mt-1 text-xs text-warm-400">{item.description}</p>
               </button>
             ))}
           </div>
@@ -258,20 +258,20 @@ export default function MapPage() {
 
       {/* 본문 */}
       <div className="grid gap-6 xl:grid-cols-[1.5fr_0.9fr]">
-        <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl">
-          <div className="border-b border-slate-100 px-5 py-4">
-            <p className="text-sm font-bold text-slate-900">
+        <section className="overflow-hidden rounded-[28px] border border-warm-200 bg-white shadow-md">
+          <div className="border-b border-warm-100 px-5 py-4">
+            <p className="text-sm font-bold text-brand-900">
               현재 선택: <span className="text-brand-700">{selectedLocation?.name}</span>
             </p>
-            <p className="mt-1 text-sm text-slate-500">{selectedLocation?.address}</p>
+            <p className="mt-1 text-sm text-warm-500">{selectedLocation?.address}</p>
           </div>
-          <div className="h-[560px] bg-slate-100">{renderMap()}</div>
+          <div className="h-[560px] bg-warm-100">{renderMap()}</div>
         </section>
 
         <section className="space-y-4">
-          <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-xl">
+          <div className="rounded-[28px] border border-warm-200 bg-white p-5 shadow-md">
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-400" />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -279,7 +279,7 @@ export default function MapPage() {
                 placeholder="사업장명 또는 주소 검색"
               />
             </div>
-            <p className="mt-3 text-xs text-slate-400">
+            <p className="mt-3 text-xs text-warm-400">
               총 {SITE_LOCATIONS.length}개 사업장 중 {filteredLocations.length}개 표시
             </p>
           </div>
@@ -290,33 +290,33 @@ export default function MapPage() {
                 key={loc.id}
                 onClick={() => setSelectedId(loc.id)}
                 className={clsx(
-                  'w-full rounded-[24px] border bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg',
+                  'w-full rounded-[24px] border bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md',
                   selectedLocation?.id === loc.id
-                    ? 'border-brand-200 bg-brand-50/60'
-                    : 'border-slate-200 hover:border-brand-100'
+                    ? 'border-brand-200 bg-warm-50/60'
+                    : 'border-warm-200 hover:border-brand-100'
                 )}
               >
                 <div className="flex items-start gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-white">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-800 text-white">
                     <Building2 size={18} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-black text-slate-900">{loc.name}</p>
-                        <p className="mt-1 text-xs text-slate-400">우편번호 {loc.postalCode}</p>
+                        <p className="text-sm font-bold text-brand-900">{loc.name}</p>
+                        <p className="mt-1 text-xs text-warm-400">우편번호 {loc.postalCode}</p>
                       </div>
                       {selectedLocation?.id === loc.id && (
-                        <span className="rounded-full bg-brand-600 px-2.5 py-1 text-[11px] font-semibold text-white">
+                        <span className="rounded-full bg-brand-800 px-2.5 py-1 text-[11px] font-semibold text-white">
                           선택됨
                         </span>
                       )}
                     </div>
-                    <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-slate-600">
+                    <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-warm-600">
                       <MapPin size={14} className="mt-1 shrink-0 text-brand-500" />
                       <span>{loc.address}</span>
                     </p>
-                    <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+                    <div className="mt-3 flex items-center gap-2 text-xs text-warm-500">
                       <Navigation size={12} />
                       위도 {loc.lat.toFixed(4)} / 경도 {loc.lng.toFixed(4)}
                     </div>

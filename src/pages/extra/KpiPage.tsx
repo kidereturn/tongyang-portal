@@ -23,10 +23,10 @@ export default function KpiPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-black text-gray-900 flex items-center gap-2">
-          <TrendingUp size={22} className="text-brand-600" />KPI 결과
+        <h1 className="text-xl font-bold text-brand-900 flex items-center gap-2">
+          <TrendingUp size={22} className="text-brand-700" />KPI 결과
         </h1>
-        <p className="text-gray-500 text-sm mt-0.5">내부회계관리제도 운영 KPI 현황</p>
+        <p className="text-warm-500 text-sm mt-0.5">내부회계관리제도 운영 KPI 현황</p>
       </div>
 
       {/* KPI 요약 */}
@@ -39,14 +39,14 @@ export default function KpiPage() {
         ].map(s => (
           <div key={s.label} className="card p-4">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${
-              s.color === 'brand' ? 'bg-brand-50 text-brand-600' :
+              s.color === 'brand' ? 'bg-warm-50 text-brand-700' :
               s.color === 'blue' ? 'bg-blue-50 text-blue-600' :
               s.color === 'yellow' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
             }`}>
               <s.icon size={16} />
             </div>
-            <p className="text-xs text-gray-500">{s.label}</p>
-            <p className="text-xl font-black text-gray-900">{s.value}<span className="text-xs text-gray-400 ml-0.5">{s.change}</span></p>
+            <p className="text-xs text-warm-500">{s.label}</p>
+            <p className="text-xl font-bold text-brand-900">{s.value}<span className="text-xs text-warm-400 ml-0.5">{s.change}</span></p>
           </div>
         ))}
       </div>
@@ -55,7 +55,7 @@ export default function KpiPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* 월별 KPI 추이 */}
         <div className="card p-5">
-          <p className="font-bold text-gray-900 mb-4">월별 KPI 달성률 추이</p>
+          <p className="font-bold text-brand-900 mb-4">월별 KPI 달성률 추이</p>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={CHART_DATA} barSize={14}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
@@ -72,25 +72,25 @@ export default function KpiPage() {
 
         {/* 부서별 순위 */}
         <div className="card p-5">
-          <p className="font-bold text-gray-900 mb-4">부서별 점수 순위</p>
+          <p className="font-bold text-brand-900 mb-4">부서별 점수 순위</p>
           <div className="space-y-3">
             {KPI_DATA.map((d, i) => (
               <div key={d.dept} className="flex items-center gap-3">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                   i === 0 ? 'bg-amber-100 text-amber-700' :
-                  i === 1 ? 'bg-gray-100 text-gray-600' :
-                  i === 2 ? 'bg-orange-100 text-orange-700' : 'bg-gray-50 text-gray-500'
+                  i === 1 ? 'bg-warm-100 text-warm-600' :
+                  i === 2 ? 'bg-orange-100 text-orange-700' : 'bg-warm-50 text-warm-500'
                 }`}>
                   {i + 1}
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between mb-1 text-xs">
-                    <span className="font-semibold text-gray-800">{d.dept}</span>
-                    <span className="text-gray-500">{d.completed}/{d.activities}건 ({d.score}점)</span>
+                    <span className="font-semibold text-brand-800">{d.dept}</span>
+                    <span className="text-warm-500">{d.completed}/{d.activities}건 ({d.score}점)</span>
                   </div>
-                  <div className="bg-gray-100 rounded-full h-1.5">
+                  <div className="bg-warm-100 rounded-full h-1.5">
                     <div
-                      className={`h-1.5 rounded-full ${i === 0 ? 'bg-amber-400' : i < 3 ? 'bg-brand-500' : 'bg-gray-400'}`}
+                      className={`h-1.5 rounded-full ${i === 0 ? 'bg-amber-400' : i < 3 ? 'bg-warm-500' : 'bg-warm-400'}`}
                       style={{ width: `${d.score}%` }}
                     />
                   </div>
@@ -103,8 +103,8 @@ export default function KpiPage() {
 
       {/* 상세 테이블 */}
       <div className="card overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-50">
-          <p className="font-bold text-gray-900">통제활동별 KPI 상세</p>
+        <div className="px-5 py-4 border-b border-warm-50">
+          <p className="font-bold text-brand-900">통제활동별 KPI 상세</p>
         </div>
         <div className="overflow-x-auto">
           <table className="data-table">
@@ -117,8 +117,8 @@ export default function KpiPage() {
               {KPI_DATA.map((d, i) => (
                 <tr key={d.dept}>
                   <td className="text-center">
-                    <span className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-xs font-black ${
-                      i === 0 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'
+                    <span className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-xs font-bold ${
+                      i === 0 ? 'bg-amber-100 text-amber-700' : 'bg-warm-100 text-warm-500'
                     }`}>{i + 1}</span>
                   </td>
                   <td className="font-semibold text-sm">{d.dept}</td>
@@ -131,13 +131,13 @@ export default function KpiPage() {
                   <td className="text-center">{d.completed}</td>
                   <td>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-gray-100 rounded-full h-1.5 max-w-[80px]">
-                        <div className="bg-brand-500 h-1.5 rounded-full" style={{ width: `${Math.round(d.completed/d.activities*100)}%` }} />
+                      <div className="flex-1 bg-warm-100 rounded-full h-1.5 max-w-[80px]">
+                        <div className="bg-warm-500 h-1.5 rounded-full" style={{ width: `${Math.round(d.completed/d.activities*100)}%` }} />
                       </div>
-                      <span className="text-xs text-gray-600">{Math.round(d.completed/d.activities*100)}%</span>
+                      <span className="text-xs text-warm-600">{Math.round(d.completed/d.activities*100)}%</span>
                     </div>
                   </td>
-                  <td className="text-xs text-gray-400">
+                  <td className="text-xs text-warm-400">
                     {i === 0 ? '🏆 최우수' : i < 3 ? '우수' : ''}
                   </td>
                 </tr>

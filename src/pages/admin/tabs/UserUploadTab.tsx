@@ -167,9 +167,9 @@ export default function UserUploadTab({ onDone }: { onDone: () => void }) {
   return (
     <div className="space-y-5">
       <div className="card p-6">
-        <h3 className="mb-1 text-base font-bold text-gray-900">사용자 업로드</h3>
-        <p className="mb-4 text-sm text-gray-500">
-          형식: <code className="rounded bg-gray-100 px-1 text-xs">사번 | 이름 | 권한(담당자/승인자/관리자) | e-mail | CP | 관련부서</code>
+        <h3 className="mb-1 text-base font-bold text-brand-900">사용자 업로드</h3>
+        <p className="mb-4 text-sm text-warm-500">
+          형식: <code className="rounded bg-warm-100 px-1 text-xs">사번 | 이름 | 권한(담당자/승인자/관리자) | e-mail | CP | 관련부서</code>
           <br />중복 사번은 자동으로 첫 번째만 사용합니다. 로그인 ID = 사번, 초기 비밀번호 = 사번.
         </p>
 

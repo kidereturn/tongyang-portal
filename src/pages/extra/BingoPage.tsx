@@ -343,10 +343,10 @@ export default function BingoPage() {
       `}</style>
 
       {/* Header — compact */}
-      <div className="rounded-2xl bg-gradient-to-r from-brand-700 via-indigo-700 to-slate-900 px-5 py-5 text-white shadow-xl">
+      <div className="rounded-lg bg-gradient-to-r from-brand-900 via-indigo-700 to-slate-900 px-5 py-5 text-white shadow-md">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex-1 min-w-0">
-            <h1 className="flex items-center gap-2 text-xl font-black">
+            <h1 className="flex items-center gap-2 text-xl font-bold">
               <Gamepad2 size={22} className="text-brand-200" />
               빙고퀴즈 5x5
             </h1>
@@ -354,9 +354,9 @@ export default function BingoPage() {
               25칸 빙고판 · 문제당 <b className="text-yellow-300">10초</b> · 하루 <b className="text-yellow-300">{MAX_DAILY_PLAYS}회</b> 도전 · 주관식은 랜덤 위치!
             </p>
           </div>
-          <div className="gift-flash inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-red-500 border border-amber-400/30 px-4 py-2 shadow-lg">
+          <div className="gift-flash inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-red-500 border border-amber-400/30 px-4 py-2 shadow-md">
             <Gift size={18} className="text-white" />
-            <span className="text-sm font-black text-white drop-shadow-md">3줄 완성 기프티콘 증정!</span>
+            <span className="text-sm font-bold text-white drop-shadow-md">3줄 완성 기프티콘 증정!</span>
             <span className="text-lg">🎁</span>
           </div>
         </div>
@@ -364,24 +364,24 @@ export default function BingoPage() {
 
       {/* Bingo status */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
-          <Sparkles size={16} className="text-amber-500" />
-          <span className="text-sm font-bold text-slate-900">빙고 {bingoCount}줄</span>
-          <span className="text-xs text-slate-400">/ 3줄 목표</span>
+        <div className="flex items-center gap-2 rounded-lg border border-warm-200 bg-white px-4 py-2 shadow-sm">
+          <Sparkles size={16} className="text-accent-600" />
+          <span className="text-sm font-bold text-brand-900">빙고 {bingoCount}줄</span>
+          <span className="text-xs text-warm-400">/ 3줄 목표</span>
         </div>
-        <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
-          <span className="text-sm text-slate-600">정답 <b className="text-emerald-600">{correctSet.size}</b></span>
-          <span className="text-sm text-slate-400">/ 25</span>
+        <div className="flex items-center gap-2 rounded-lg border border-warm-200 bg-white px-4 py-2 shadow-sm">
+          <span className="text-sm text-warm-600">정답 <b className="text-emerald-600">{correctSet.size}</b></span>
+          <span className="text-sm text-warm-400">/ 25</span>
         </div>
         <div className={clsx(
-          'flex items-center gap-1.5 rounded-2xl border px-4 py-2 shadow-sm',
+          'flex items-center gap-1.5 rounded-lg border px-4 py-2 shadow-sm',
           canPlay ? 'border-amber-200 bg-amber-50' : 'border-red-200 bg-red-50'
         )}>
-          <span className="text-xs font-semibold text-slate-600">오늘 도전</span>
-          <span className={clsx('text-sm font-black', canPlay ? 'text-amber-600' : 'text-red-500')}>
+          <span className="text-xs font-semibold text-warm-600">오늘 도전</span>
+          <span className={clsx('text-sm font-bold', canPlay ? 'text-amber-600' : 'text-red-500')}>
             {dailyPlays}/{MAX_DAILY_PLAYS}
           </span>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-warm-400">
             {canPlay ? `(${remainingPlays}회 남음)` : '(소진)'}
           </span>
         </div>
@@ -411,13 +411,13 @@ export default function BingoPage() {
                 onClick={() => openCell(idx)}
                 disabled={answered !== undefined || activeIdx !== null}
                 className={clsx(
-                  'relative aspect-square rounded-lg sm:rounded-xl border-2 text-sm sm:text-base font-black transition-all duration-200',
-                  answered === undefined && activeIdx === null && 'hover:scale-105 hover:shadow-lg cursor-pointer',
-                  answered === undefined && !isActive && 'bg-white border-slate-200 text-slate-700',
-                  answered?.correct && isBingoLine && 'bg-gradient-to-br from-amber-400 to-yellow-500 border-amber-500 text-white shadow-lg ring-2 ring-amber-300',
+                  'relative aspect-square rounded-lg sm:rounded-xl border-2 text-sm sm:text-base font-bold transition-all duration-200',
+                  answered === undefined && activeIdx === null && 'hover:scale-105 hover:shadow-md cursor-pointer',
+                  answered === undefined && !isActive && 'bg-white border-warm-200 text-brand-700',
+                  answered?.correct && isBingoLine && 'bg-gradient-to-br from-amber-400 to-yellow-500 border-amber-500 text-white shadow-md ring-2 ring-amber-300',
                   answered?.correct && !isBingoLine && 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-600 text-white',
-                  answered && !answered.correct && 'bg-slate-100 border-slate-200 text-slate-300 line-through',
-                  isActive && 'ring-4 ring-brand-400 border-brand-500 bg-brand-50',
+                  answered && !answered.correct && 'bg-warm-100 border-warm-200 text-warm-300 line-through',
+                  isActive && 'ring-4 ring-brand-600 border-brand-500 bg-warm-50',
                   answered !== undefined && 'cursor-default',
                 )}
               >
@@ -448,9 +448,9 @@ export default function BingoPage() {
 
       {/* Active question panel */}
       {activeQuestion && activeIdx !== null ? (
-        <div className="card overflow-hidden border-2 border-brand-200 shadow-xl">
+        <div className="card overflow-hidden border-2 border-brand-200 shadow-md">
           {/* Timer bar */}
-          <div className="relative h-2 bg-slate-100">
+          <div className="relative h-2 bg-warm-100">
             <div
               className={clsx(
                 'h-full transition-all duration-1000 rounded-r-full',
@@ -466,14 +466,14 @@ export default function BingoPage() {
               <span className="badge badge-blue">문제 {activeIdx + 1} / 25</span>
               <div className="flex items-center gap-2">
                 {timer <= 5 && timer > 0 && (
-                  <span className="hurry-flash text-lg font-black mr-1">HURRY UP!!!</span>
+                  <span className="hurry-flash text-lg font-bold mr-1">HURRY UP!!!</span>
                 )}
                 <span className={clsx('text-3xl bomb-anim', timer <= 3 && 'fuse-glow')}>
                   💣
                 </span>
                 <span className={clsx(
-                  'text-2xl font-black tabular-nums',
-                  timer > 5 ? 'text-slate-700' : timer > 2 ? 'text-amber-600' : 'text-red-600'
+                  'text-2xl font-bold tabular-nums',
+                  timer > 5 ? 'text-brand-700' : timer > 2 ? 'text-amber-600' : 'text-red-600'
                 )}>
                   {timer}
                 </span>
@@ -481,7 +481,7 @@ export default function BingoPage() {
             </div>
 
             {/* Question */}
-            <p className="text-base font-bold text-slate-900 leading-7 mb-5">
+            <p className="text-base font-bold text-brand-900 leading-7 mb-5">
               {activeQuestion.question}
             </p>
 
@@ -495,11 +495,11 @@ export default function BingoPage() {
                     className={clsx(
                       'w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all',
                       selectedChoice === choice
-                        ? 'border-brand-500 bg-brand-50 text-brand-700'
-                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                        ? 'border-brand-500 bg-warm-50 text-brand-700'
+                        : 'border-warm-200 bg-white text-brand-700 hover:border-warm-300 hover:bg-warm-50'
                     )}
                   >
-                    <span className="mr-2 text-xs text-slate-400">{String.fromCharCode(65 + ci)}.</span>
+                    <span className="mr-2 text-xs text-warm-400">{String.fromCharCode(65 + ci)}.</span>
                     {choice}
                   </button>
                 ))}
@@ -535,7 +535,7 @@ export default function BingoPage() {
           </div>
         </div>
       ) : (
-        <div className="card p-6 text-center text-sm text-slate-400">
+        <div className="card p-6 text-center text-sm text-warm-400">
           <p className="text-lg mb-2">👈</p>
           <p>왼쪽 빙고판에서 번호를 클릭하세요</p>
         </div>
@@ -544,7 +544,7 @@ export default function BingoPage() {
       {/* Answer history (collapsed) */}
       {Object.keys(answers).length > 0 && (
         <details className="card overflow-hidden">
-          <summary className="cursor-pointer px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
+          <summary className="cursor-pointer px-5 py-3 text-sm font-bold text-brand-700 hover:bg-warm-50">
             풀이 내역 ({Object.keys(answers).length}/25)
           </summary>
           <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
@@ -555,7 +555,7 @@ export default function BingoPage() {
                     {ans.correct ? 'O' : 'X'} 문제 {Number(idx) + 1}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500">{ans.explanation}</p>
+                <p className="text-xs text-warm-500">{ans.explanation}</p>
               </div>
             ))}
           </div>
@@ -571,7 +571,7 @@ export default function BingoPage() {
             <div className="explode-anim text-8xl">💥</div>
             <div className="shockwave-anim absolute inset-0 rounded-full border-red-500" style={{ width: 80, height: 80, margin: 'auto', top: 0, bottom: 0, left: 0, right: 0 }} />
           </div>
-          <p className="absolute bottom-1/3 text-3xl font-black text-red-500 animate-pulse">시간 초과!</p>
+          <p className="absolute bottom-1/3 text-3xl font-bold text-red-500 animate-pulse">시간 초과!</p>
         </div>
       )}
 
@@ -593,17 +593,17 @@ export default function BingoPage() {
             </div>
           ))}
 
-          <div className="relative mx-4 max-w-md w-full rounded-3xl bg-white p-8 text-center shadow-2xl">
-            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 shadow-lg">
+          <div className="relative mx-4 max-w-md w-full rounded-xl bg-white p-8 text-center shadow-2xl">
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 shadow-md">
               <Trophy size={40} className="text-white" />
             </div>
-            <h2 className="text-2xl font-black text-slate-900">축하합니다!</h2>
+            <h2 className="text-2xl font-bold text-brand-900">축하합니다!</h2>
             <p className="mt-2 text-lg font-bold text-amber-600">빙고 3줄 완성!</p>
-            <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 px-5 py-3">
-              <Gift size={20} className="text-amber-500" />
+            <div className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 px-5 py-3">
+              <Gift size={20} className="text-accent-600" />
               <span className="text-sm font-bold text-amber-700">선물이 지급됩니다! 관리자에게 알림이 발송되었습니다.</span>
             </div>
-            <p className="mt-3 text-xs text-slate-400">
+            <p className="mt-3 text-xs text-warm-400">
               정답 {correctSet.size}/25 · 빙고 {bingoCount}줄
             </p>
             <div className="mt-6 flex gap-3">

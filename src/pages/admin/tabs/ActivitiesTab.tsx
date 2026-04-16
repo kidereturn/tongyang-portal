@@ -53,7 +53,7 @@ export default function ActivitiesTab({ refreshKey }: { refreshKey: number }) {
   return (
     <div className="space-y-4">
       <div className="relative">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-400" />
         <input
           type="text"
           value={search}
@@ -64,8 +64,8 @@ export default function ActivitiesTab({ refreshKey }: { refreshKey: number }) {
       </div>
 
       <div className="card overflow-hidden">
-        <div className="border-b border-gray-50 px-4 py-3 text-xs text-gray-500">
-          총 <b className="text-gray-700">{filtered.length}</b>건
+        <div className="border-b border-warm-50 px-4 py-3 text-xs text-warm-500">
+          총 <b className="text-brand-700">{filtered.length}</b>건
         </div>
         <div className="overflow-x-auto">
           <table className="data-table">
@@ -84,12 +84,12 @@ export default function ActivitiesTab({ refreshKey }: { refreshKey: number }) {
               {filtered.map(item => (
                 <tr key={item.id}>
                   <td>
-                    <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">{item.control_code ?? '-'}</code>
+                    <code className="rounded bg-warm-100 px-1.5 py-0.5 text-xs text-warm-600">{item.control_code ?? '-'}</code>
                   </td>
-                  <td className="text-sm font-medium text-gray-800">{item.owner_name ?? '-'}</td>
-                  <td className="text-xs text-gray-500">{item.department ?? '-'}</td>
-                  <td className="max-w-[220px] truncate text-xs text-gray-600">{item.title ?? '-'}</td>
-                  <td className="text-xs text-gray-500">{item.controller_name ?? '-'}</td>
+                  <td className="text-sm font-medium text-brand-800">{item.owner_name ?? '-'}</td>
+                  <td className="text-xs text-warm-500">{item.department ?? '-'}</td>
+                  <td className="max-w-[220px] truncate text-xs text-warm-600">{item.title ?? '-'}</td>
+                  <td className="text-xs text-warm-500">{item.controller_name ?? '-'}</td>
                   <td>
                     <span className={SUBMISSION_BADGES[item.submission_status ?? ''] ?? 'badge-gray'}>
                       {item.submission_status ?? '-'}

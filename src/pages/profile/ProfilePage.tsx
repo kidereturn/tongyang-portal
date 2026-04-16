@@ -99,31 +99,31 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <div className="rounded-[28px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-6 py-8 text-white shadow-2xl">
-        <p className="text-xs font-semibold tracking-[0.24em] text-slate-400">MY PROFILE</p>
-        <h1 className="mt-2 flex items-center gap-2 text-3xl font-black">
+        <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">MY PROFILE</p>
+        <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
           <User size={28} className="text-brand-300" />
           내 정보
         </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-warm-300">
           프로필 정보를 확인하고 수정할 수 있습니다. 비밀번호도 여기서 변경 가능합니다.
         </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Profile edit */}
-        <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl">
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="text-lg font-black text-slate-900">프로필 수정</h2>
+        <div className="overflow-hidden rounded-[28px] border border-warm-200 bg-white shadow-md">
+          <div className="border-b border-warm-100 px-5 py-4">
+            <h2 className="text-lg font-bold text-brand-900">프로필 수정</h2>
           </div>
           <div className="space-y-4 p-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="form-label">사번</label>
-                <input type="text" value={profile?.employee_id ?? '-'} disabled className="form-input bg-slate-50 text-slate-500" />
+                <input type="text" value={profile?.employee_id ?? '-'} disabled className="form-input bg-warm-50 text-warm-500" />
               </div>
               <div>
                 <label className="form-label">역할</label>
-                <input type="text" value={ROLE_LABEL[profile?.role ?? ''] ?? profile?.role ?? '-'} disabled className="form-input bg-slate-50 text-slate-500" />
+                <input type="text" value={ROLE_LABEL[profile?.role ?? ''] ?? profile?.role ?? '-'} disabled className="form-input bg-warm-50 text-warm-500" />
               </div>
             </div>
             <div>
@@ -158,14 +158,14 @@ export default function ProfilePage() {
         </div>
 
         {/* Password change */}
-        <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl">
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="text-lg font-black text-slate-900">비밀번호 변경</h2>
+        <div className="overflow-hidden rounded-[28px] border border-warm-200 bg-white shadow-md">
+          <div className="border-b border-warm-100 px-5 py-4">
+            <h2 className="text-lg font-bold text-brand-900">비밀번호 변경</h2>
           </div>
           <div className="space-y-4 p-5">
             <div>
               <label className="form-label">로그인 이메일 (자동생성)</label>
-              <input type="text" value={user?.email ?? '-'} disabled className="form-input bg-slate-50 text-slate-500 text-xs" />
+              <input type="text" value={user?.email ?? '-'} disabled className="form-input bg-warm-50 text-warm-500 text-xs" />
             </div>
             <div>
               <label className="form-label">현재 비밀번호</label>
@@ -184,7 +184,7 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => setShowNewPw(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-400"
                 >
                   {showNewPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -207,8 +207,8 @@ export default function ProfilePage() {
               비밀번호 변경
             </button>
 
-            <div className="rounded-2xl bg-slate-50 p-4 text-xs text-slate-500 leading-relaxed">
-              <p>초기 비밀번호는 <strong className="text-slate-700">사번</strong>입니다.</p>
+            <div className="rounded-lg bg-warm-50 p-4 text-xs text-warm-500 leading-relaxed">
+              <p>초기 비밀번호는 <strong className="text-brand-700">사번</strong>입니다.</p>
               <p className="mt-1">비밀번호 변경 후에는 변경된 비밀번호로 로그인합니다.</p>
             </div>
           </div>

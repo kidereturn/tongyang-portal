@@ -25,7 +25,7 @@ interface EvidenceDetail {
 }
 
 const STATUS_INFO: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  draft:     { label: '임시저장', color: 'text-slate-400 bg-slate-800 border-slate-700',       icon: FileText },
+  draft:     { label: '임시저장', color: 'text-warm-400 bg-brand-700 border-slate-700',       icon: FileText },
   submitted: { label: '검토중',   color: 'text-yellow-400 bg-yellow-950/50 border-yellow-800', icon: Clock },
   approved:  { label: '승인완료', color: 'text-green-400 bg-green-950/50 border-green-800',    icon: CheckCircle2 },
   rejected:  { label: '반려',     color: 'text-red-400 bg-red-950/50 border-red-800',          icon: XCircle },
@@ -133,7 +133,7 @@ export default function EvidenceDetailPage() {
 
   if (!rec) return (
     <div className="text-center py-20">
-      <p className="text-slate-400">증빙을 찾을 수 없습니다.</p>
+      <p className="text-warm-400">증빙을 찾을 수 없습니다.</p>
     </div>
   )
 
@@ -149,13 +149,13 @@ export default function EvidenceDetailPage() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate('/evidence')}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+          className="p-1.5 rounded-lg text-warm-400 hover:text-white hover:bg-brand-900 transition-all"
         >
           <ChevronLeft size={20} />
         </button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-white">증빙 상세</h1>
-          <p className="text-slate-400 text-sm mt-0.5">{rec.activities?.title ?? '활동 미지정'}</p>
+          <p className="text-warm-400 text-sm mt-0.5">{rec.activities?.title ?? '활동 미지정'}</p>
         </div>
         <span className={clsx('flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border', st.color)}>
           <Icon size={13} />
@@ -171,22 +171,22 @@ export default function EvidenceDetailPage() {
       )}
 
       {/* 정보 카드 */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
+      <div className="bg-brand-800 border border-slate-800 rounded-xl divide-y divide-slate-800">
         <div className="px-5 py-4 grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs text-slate-500 mb-1">통제 코드</p>
+            <p className="text-xs text-warm-500 mb-1">통제 코드</p>
             <p className="text-white text-sm font-medium">{rec.activities?.control_code ?? '-'}</p>
           </div>
           <div>
-            <p className="text-xs text-slate-500 mb-1">부서</p>
+            <p className="text-xs text-warm-500 mb-1">부서</p>
             <p className="text-white text-sm">{rec.activities?.department ?? '-'}</p>
           </div>
           <div>
-            <p className="text-xs text-slate-500 mb-1">제출자</p>
+            <p className="text-xs text-warm-500 mb-1">제출자</p>
             <p className="text-white text-sm">{rec.owner?.full_name ?? '-'}</p>
           </div>
           <div>
-            <p className="text-xs text-slate-500 mb-1">제출일시</p>
+            <p className="text-xs text-warm-500 mb-1">제출일시</p>
             <p className="text-white text-sm">
               {rec.submitted_at ? new Date(rec.submitted_at).toLocaleString('ko-KR') : '-'}
             </p>
@@ -195,22 +195,22 @@ export default function EvidenceDetailPage() {
 
         {rec.notes && (
           <div className="px-5 py-4">
-            <p className="text-xs text-slate-500 mb-1">비고</p>
-            <p className="text-slate-300 text-sm">{rec.notes}</p>
+            <p className="text-xs text-warm-500 mb-1">비고</p>
+            <p className="text-warm-300 text-sm">{rec.notes}</p>
           </div>
         )}
 
         {/* 파일 */}
         {rec.file_name && (
           <div className="px-5 py-4">
-            <p className="text-xs text-slate-500 mb-2">첨부 파일</p>
+            <p className="text-xs text-warm-500 mb-2">첨부 파일</p>
             <button
               onClick={handleDownload}
-              className="flex items-center gap-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg px-4 py-2.5 transition-all group w-full"
+              className="flex items-center gap-3 bg-brand-700 hover:bg-slate-700 border border-slate-700 rounded-lg px-4 py-2.5 transition-all group w-full"
             >
               <FileText size={18} className="text-brand-400 shrink-0" />
               <span className="text-white text-sm flex-1 text-left truncate">{rec.file_name}</span>
-              <Download size={15} className="text-slate-500 group-hover:text-brand-400 transition-colors" />
+              <Download size={15} className="text-warm-500 group-hover:text-brand-400 transition-colors" />
             </button>
           </div>
         )}
@@ -218,12 +218,12 @@ export default function EvidenceDetailPage() {
 
       {/* 액션 영역 */}
       {canSubmit && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-          <p className="text-sm text-slate-400 mb-4">임시저장 상태입니다. 결재를 상신하시겠습니까?</p>
+        <div className="bg-brand-800 border border-slate-800 rounded-xl p-5">
+          <p className="text-sm text-warm-400 mb-4">임시저장 상태입니다. 결재를 상신하시겠습니까?</p>
           <button
             onClick={handleSubmit}
             disabled={acting}
-            className="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-all"
+            className="flex items-center gap-2 bg-brand-800 hover:bg-warm-500 disabled:opacity-40 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-all"
           >
             {acting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
             결재 상신
@@ -232,14 +232,14 @@ export default function EvidenceDetailPage() {
       )}
 
       {canApprove && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+        <div className="bg-brand-800 border border-slate-800 rounded-xl p-5 space-y-4">
           <p className="text-sm font-medium text-white">결재 처리</p>
           <textarea
             value={comment}
             onChange={e => setComment(e.target.value)}
             placeholder="의견 또는 반려 사유 입력 (반려 시 필수)"
             rows={3}
-            className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-lg px-4 py-3 placeholder-slate-500 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all resize-none"
+            className="w-full bg-brand-700 border border-slate-700 text-white text-sm rounded-lg px-4 py-3 placeholder-slate-500 outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-700/20 transition-all resize-none"
           />
           <div className="flex gap-3">
             <button

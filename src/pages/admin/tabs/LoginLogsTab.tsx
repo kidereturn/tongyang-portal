@@ -107,63 +107,63 @@ export default function LoginLogsTab() {
       {/* Top 3 cards */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="card p-5">
-          <h3 className="flex items-center gap-2 text-sm font-black text-slate-900 mb-3">
-            <Trophy size={16} className="text-amber-500" />
+          <h3 className="flex items-center gap-2 text-sm font-bold text-brand-900 mb-3">
+            <Trophy size={16} className="text-accent-600" />
             TOP 3 접속자 (기간 내)
           </h3>
           {topUsers.length > 0 ? (
             <div className="space-y-2">
               {topUsers.map((u, i) => (
-                <div key={i} className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-2.5">
+                <div key={i} className="flex items-center gap-3 rounded-xl bg-warm-50 px-4 py-2.5">
                   <span className="text-lg">{medals[i]}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-900">{u.name}</p>
-                    <p className="text-xs text-slate-500">{u.dept}</p>
+                    <p className="text-sm font-bold text-brand-900">{u.name}</p>
+                    <p className="text-xs text-warm-500">{u.dept}</p>
                   </div>
-                  <span className="text-sm font-black text-brand-600">{u.count}회</span>
+                  <span className="text-sm font-bold text-brand-700">{u.count}회</span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-slate-400">데이터 없음</p>
+            <p className="text-sm text-warm-400">데이터 없음</p>
           )}
         </div>
 
         <div className="card p-5">
-          <h3 className="flex items-center gap-2 text-sm font-black text-slate-900 mb-3">
+          <h3 className="flex items-center gap-2 text-sm font-bold text-brand-900 mb-3">
             <Trophy size={16} className="text-emerald-500" />
             TOP 3 팀 (기간 내)
           </h3>
           {topTeams.length > 0 ? (
             <div className="space-y-2">
               {topTeams.map((t, i) => (
-                <div key={i} className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-2.5">
+                <div key={i} className="flex items-center gap-3 rounded-xl bg-warm-50 px-4 py-2.5">
                   <span className="text-lg">{medals[i]}</span>
-                  <p className="flex-1 text-sm font-bold text-slate-900">{t.name}</p>
-                  <span className="text-sm font-black text-emerald-600">{t.count}회</span>
+                  <p className="flex-1 text-sm font-bold text-brand-900">{t.name}</p>
+                  <span className="text-sm font-bold text-emerald-600">{t.count}회</span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-slate-400">데이터 없음</p>
+            <p className="text-sm text-warm-400">데이터 없음</p>
           )}
         </div>
       </div>
 
       {/* Log table */}
       <div className="card overflow-hidden">
-        <div className="border-b border-slate-100 px-5 py-3">
-          <p className="text-sm font-bold text-slate-900">로그인 이력 ({logs.length}건)</p>
+        <div className="border-b border-warm-100 px-5 py-3">
+          <p className="text-sm font-bold text-brand-900">로그인 이력 ({logs.length}건)</p>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-sm text-slate-400">로딩 중...</div>
+          <div className="p-8 text-center text-sm text-warm-400">로딩 중...</div>
         ) : logs.length === 0 ? (
-          <div className="p-8 text-center text-sm text-slate-400">로그인 이력이 없습니다.</div>
+          <div className="p-8 text-center text-sm text-warm-400">로그인 이력이 없습니다.</div>
         ) : (
           <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
             <table className="min-w-full divide-y divide-slate-100 text-sm">
-              <thead className="bg-slate-50 sticky top-0">
-                <tr className="text-left text-xs font-semibold text-slate-500">
+              <thead className="bg-warm-50 sticky top-0">
+                <tr className="text-left text-xs font-semibold text-warm-500">
                   <th className="px-4 py-2.5">사번</th>
                   <th className="px-4 py-2.5">이름</th>
                   <th className="px-4 py-2.5">소속팀</th>
@@ -173,12 +173,12 @@ export default function LoginLogsTab() {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {logs.map(log => (
-                  <tr key={log.id} className="hover:bg-slate-50/50">
-                    <td className="px-4 py-2.5 font-mono text-xs text-slate-500">{log.employee_id ?? '-'}</td>
-                    <td className="px-4 py-2.5 font-semibold text-slate-900">{log.full_name ?? '-'}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{log.department ?? '-'}</td>
-                    <td className="px-4 py-2.5 font-mono text-xs text-slate-400">{log.ip_address ?? '-'}</td>
-                    <td className="px-4 py-2.5 text-slate-500">{new Date(log.logged_in_at).toLocaleString('ko-KR')}</td>
+                  <tr key={log.id} className="hover:bg-warm-50/50">
+                    <td className="px-4 py-2.5 font-mono text-xs text-warm-500">{log.employee_id ?? '-'}</td>
+                    <td className="px-4 py-2.5 font-semibold text-brand-900">{log.full_name ?? '-'}</td>
+                    <td className="px-4 py-2.5 text-warm-600">{log.department ?? '-'}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs text-warm-400">{log.ip_address ?? '-'}</td>
+                    <td className="px-4 py-2.5 text-warm-500">{new Date(log.logged_in_at).toLocaleString('ko-KR')}</td>
                   </tr>
                 ))}
               </tbody>

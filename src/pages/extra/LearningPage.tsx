@@ -189,12 +189,12 @@ export default function LearningPage() {
   return (
     <div className="space-y-6">
       <div className="rounded-[28px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-6 py-8 text-white shadow-2xl">
-        <p className="text-xs font-semibold tracking-[0.24em] text-slate-400">COURSE MANAGEMENT</p>
-        <h1 className="mt-2 flex items-center gap-2 text-3xl font-black">
+        <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">COURSE MANAGEMENT</p>
+        <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
           <BarChart2 size={28} className="text-brand-300" />
           강좌관리
         </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-warm-300">
           {isAdmin
             ? '전체 사용자의 진도율, 이수완료 여부, 최근 학습시각을 한 번에 볼 수 있습니다.'
             : '본인의 강좌 진도율과 학습 상태를 확인합니다.'}
@@ -202,40 +202,40 @@ export default function LearningPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
-        <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+        <div className="rounded-[24px] border border-warm-200 bg-white p-5 shadow-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warm-50 text-brand-700">
             <Users size={18} />
           </div>
-          <p className="mt-4 text-sm text-slate-500">전체 강좌</p>
-          <p className="mt-1 text-3xl font-black text-slate-900">{isAdmin ? flatRows.length : courses.length}</p>
+          <p className="mt-4 text-sm text-warm-500">전체 강좌</p>
+          <p className="mt-1 text-3xl font-bold text-brand-900">{isAdmin ? flatRows.length : courses.length}</p>
         </div>
-        <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+        <div className="rounded-[24px] border border-warm-200 bg-white p-5 shadow-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
             <CheckCircle2 size={18} />
           </div>
-          <p className="mt-4 text-sm text-slate-500">이수완료</p>
-          <p className="mt-1 text-3xl font-black text-emerald-600">{completedCount}</p>
+          <p className="mt-4 text-sm text-warm-500">이수완료</p>
+          <p className="mt-1 text-3xl font-bold text-emerald-600">{completedCount}</p>
         </div>
-        <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+        <div className="rounded-[24px] border border-warm-200 bg-white p-5 shadow-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
             <Clock size={18} />
           </div>
-          <p className="mt-4 text-sm text-slate-500">수강중</p>
-          <p className="mt-1 text-3xl font-black text-blue-600">{inProgressCount}</p>
+          <p className="mt-4 text-sm text-warm-500">수강중</p>
+          <p className="mt-1 text-3xl font-bold text-blue-600">{inProgressCount}</p>
         </div>
-        <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+        <div className="rounded-[24px] border border-warm-200 bg-white p-5 shadow-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warm-100 text-warm-500">
             <Users size={18} />
           </div>
-          <p className="mt-4 text-sm text-slate-500">미시작</p>
-          <p className="mt-1 text-3xl font-black text-slate-500">{notStartedCount}</p>
+          <p className="mt-4 text-sm text-warm-500">미시작</p>
+          <p className="mt-1 text-3xl font-bold text-warm-500">{notStartedCount}</p>
         </div>
       </div>
 
       {isAdmin && (
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-400" />
             <input
               type="text"
               value={search}
@@ -245,7 +245,7 @@ export default function LearningPage() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <BookOpen size={16} className="text-slate-400" />
+            <BookOpen size={16} className="text-warm-400" />
             <select
               value={selectedCourse}
               onChange={e => setSelectedCourse(e.target.value)}
@@ -257,7 +257,7 @@ export default function LearningPage() {
               ))}
             </select>
           </div>
-          <span className="text-xs text-slate-400">{filteredRows.length}명 표시</span>
+          <span className="text-xs text-warm-400">{filteredRows.length}명 표시</span>
           <button onClick={downloadExcel} className="btn-secondary py-2 text-xs ml-auto">
             <Download size={14} />
             엑셀 다운로드
@@ -265,27 +265,27 @@ export default function LearningPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <h2 className="text-lg font-black text-slate-900">강좌관리</h2>
-          <p className="mt-1 text-sm text-slate-500">내부회계관리제도 강좌 학습현황</p>
+      <div className="overflow-hidden rounded-[28px] border border-warm-200 bg-white shadow-md">
+        <div className="border-b border-warm-100 px-5 py-4">
+          <h2 className="text-lg font-bold text-brand-900">강좌관리</h2>
+          <p className="mt-1 text-sm text-warm-500">내부회계관리제도 강좌 학습현황</p>
         </div>
 
         {loading ? (
           <div className="space-y-3 p-5">
             {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="skeleton h-12 w-full rounded-2xl" />
+              <div key={index} className="skeleton h-12 w-full rounded-lg" />
             ))}
           </div>
         ) : filteredRows.length === 0 ? (
-          <div className="px-5 py-16 text-center text-sm text-slate-400">
+          <div className="px-5 py-16 text-center text-sm text-warm-400">
             {search ? '검색 결과가 없습니다.' : '등록된 사용자가 없습니다.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-100">
-              <thead className="bg-slate-50">
-                <tr className="text-left text-xs font-semibold text-slate-500">
+              <thead className="bg-warm-50">
+                <tr className="text-left text-xs font-semibold text-warm-500">
                   <th className="px-5 py-3">사번</th>
                   <th className="px-5 py-3">이름</th>
                   <th className="px-5 py-3">소속팀</th>
@@ -300,35 +300,35 @@ export default function LearningPage() {
                   const status = fr.progress?.status ?? 'not_started'
                   const percent = fr.progress?.progress_percent ?? 0
                   return (
-                    <tr key={`${fr.profile.id}-${fr.progress?.course_id ?? idx}`} className="text-sm text-slate-700 hover:bg-slate-50/50">
-                      <td className="px-5 py-4 font-mono text-xs text-slate-500">{fr.profile.employee_id ?? '-'}</td>
-                      <td className="px-5 py-4 font-semibold text-slate-900">{fr.profile.full_name ?? '-'}</td>
+                    <tr key={`${fr.profile.id}-${fr.progress?.course_id ?? idx}`} className="text-sm text-brand-700 hover:bg-warm-50/50">
+                      <td className="px-5 py-4 font-mono text-xs text-warm-500">{fr.profile.employee_id ?? '-'}</td>
+                      <td className="px-5 py-4 font-semibold text-brand-900">{fr.profile.full_name ?? '-'}</td>
                       <td className="px-5 py-4">{fr.profile.department ?? '-'}</td>
                       <td className="px-5 py-4">
-                        <span className="text-sm text-slate-700 font-medium">{fr.courseName}</span>
+                        <span className="text-sm text-brand-700 font-medium">{fr.courseName}</span>
                       </td>
                       <td className="px-5 py-4">
                         <span className={clsx(
                           'inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
                           status === 'completed' ? 'bg-emerald-50 text-emerald-700' :
                           status === 'in_progress' ? 'bg-blue-50 text-blue-700' :
-                          'bg-slate-100 text-slate-500'
+                          'bg-warm-100 text-warm-500'
                         )}>
                           {status === 'completed' ? '이수완료' : status === 'in_progress' ? '수강중' : '미시작'}
                         </span>
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-2 w-28 rounded-full bg-slate-100">
+                          <div className="h-2 w-28 rounded-full bg-warm-100">
                             <div
                               className="h-2 rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 transition-all"
                               style={{ width: `${percent}%` }}
                             />
                           </div>
-                          <span className="text-xs font-semibold text-slate-600">{percent}%</span>
+                          <span className="text-xs font-semibold text-warm-600">{percent}%</span>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-xs text-slate-500">
+                      <td className="px-5 py-4 text-xs text-warm-500">
                         {fr.progress?.updated_at ? new Date(fr.progress.updated_at).toLocaleString('ko-KR') : '-'}
                       </td>
                     </tr>
@@ -340,8 +340,8 @@ export default function LearningPage() {
         )}
 
         {!loading && !isAdmin && profile && (
-          <div className="border-t border-slate-100 bg-slate-50 px-5 py-4">
-            <p className="text-sm font-bold text-slate-900">내 학습 데이터</p>
+          <div className="border-t border-warm-100 bg-warm-50 px-5 py-4">
+            <p className="text-sm font-bold text-brand-900">내 학습 데이터</p>
             {(userCourseMap[profile.id] ?? []).length > 0 ? (
               <div className="mt-2 space-y-2">
                 {(userCourseMap[profile.id] ?? []).map((uc, idx) => (
@@ -350,17 +350,17 @@ export default function LearningPage() {
                       'inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
                       uc.status === 'completed' ? 'bg-emerald-50 text-emerald-700' :
                       uc.status === 'in_progress' ? 'bg-blue-50 text-blue-700' :
-                      'bg-slate-100 text-slate-500'
+                      'bg-warm-100 text-warm-500'
                     )}>
                       {uc.status === 'completed' ? '이수완료' : uc.status === 'in_progress' ? '수강중' : '미시작'}
                     </span>
-                    <span className="font-medium text-slate-700">{uc.course_name || `강좌 ${idx + 1}`}</span>
-                    <span className="text-slate-500">진도율 {uc.progress_percent}%</span>
+                    <span className="font-medium text-brand-700">{uc.course_name || `강좌 ${idx + 1}`}</span>
+                    <span className="text-warm-500">진도율 {uc.progress_percent}%</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm text-warm-600">
                 진도율 {progressMap[profile.id]?.progress_percent ?? 0}% /
                 상태 {progressMap[profile.id]?.status === 'completed' ? '이수완료' : progressMap[profile.id]?.status === 'in_progress' ? '수강중' : '미시작'}
               </p>

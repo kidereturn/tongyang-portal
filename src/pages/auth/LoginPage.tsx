@@ -106,7 +106,7 @@ export default function LoginPage() {
           <div className="absolute bottom-40 right-20 h-80 w-80 rounded-full border border-white/20" />
           <div className="absolute bottom-20 right-32 h-48 w-48 rounded-full border border-white/30" />
         </div>
-        <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-brand-500/20 blur-3xl" />
+        <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-warm-500/20 blur-3xl" />
         <div className="absolute bottom-0 left-0 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl" />
 
         <div className="relative">
@@ -122,7 +122,7 @@ export default function LoginPage() {
             <span className="text-sm font-medium uppercase tracking-widest text-blue-200/80">Internal Controls</span>
           </div>
 
-          <h1 className="mb-4 text-4xl font-black leading-tight text-white">
+          <h1 className="mb-4 text-4xl font-bold leading-tight text-white">
             내부통제
             <br />
             증빙관리 포털
@@ -152,7 +152,7 @@ export default function LoginPage() {
               { label: '처리 완료율', value: '99%' },
             ].map(stat => (
               <div key={stat.label}>
-                <p className="text-2xl font-black text-white">{stat.value}</p>
+                <p className="text-2xl font-bold text-white">{stat.value}</p>
                 <p className="mt-0.5 text-xs text-blue-200/60">{stat.label}</p>
               </div>
             ))}
@@ -172,8 +172,8 @@ export default function LoginPage() {
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-black text-gray-900">로그인</h2>
-            <p className="mt-1.5 text-sm text-gray-500">사번과 비밀번호로 로그인해주세요.</p>
+            <h2 className="text-2xl font-bold text-brand-900">로그인</h2>
+            <p className="mt-1.5 text-sm text-warm-500">사번과 비밀번호로 로그인해주세요.</p>
           </div>
 
           {error && (
@@ -195,7 +195,7 @@ export default function LoginPage() {
                 className="form-input"
                 autoComplete="username"
               />
-              <p className="mt-1.5 text-xs text-gray-400">로그인 ID는 이메일이 아니라 사번입니다.</p>
+              <p className="mt-1.5 text-xs text-warm-400">로그인 ID는 이메일이 아니라 사번입니다.</p>
             </div>
 
             <div>
@@ -213,7 +213,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(value => !value)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-400 transition-colors hover:text-warm-600"
                 >
                   {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
@@ -223,7 +223,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-brand-700 active:bg-brand-800 disabled:cursor-not-allowed disabled:bg-brand-300"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-800 px-4 py-3.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-brand-900 active:bg-brand-950 disabled:cursor-not-allowed disabled:bg-brand-300"
             >
               {loading ? (
                 <div className="h-5 w-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
@@ -236,19 +236,19 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-8 rounded-xl border border-gray-100 bg-gray-50 p-4">
+          <div className="mt-8 rounded-xl border border-warm-100 bg-warm-50 p-4">
             <div className="mb-2 flex items-center gap-2">
-              <Shield size={14} className="text-gray-400" />
-              <p className="text-xs font-semibold text-gray-500">로그인 안내</p>
+              <Shield size={14} className="text-warm-400" />
+              <p className="text-xs font-semibold text-warm-500">로그인 안내</p>
             </div>
-            <p className="text-xs leading-relaxed text-gray-400">
-              최초 로그인 시 초기 비밀번호는 <strong className="text-gray-600">사번</strong>입니다.
+            <p className="text-xs leading-relaxed text-warm-400">
+              최초 로그인 시 초기 비밀번호는 <strong className="text-warm-600">사번</strong>입니다.
               <br />
               사용자가 비밀번호를 변경한 이후에는 변경한 비밀번호가 계속 유지됩니다.
             </p>
           </div>
 
-          <p className="mt-6 text-center text-xs text-gray-400">© 2026 (주)동양 내부통제관리 시스템</p>
+          <p className="mt-6 text-center text-xs text-warm-400">© 2026 (주)동양 내부통제관리 시스템</p>
         </div>
       </div>
     </div>

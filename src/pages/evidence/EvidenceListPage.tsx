@@ -185,7 +185,7 @@ export default function EvidenceListPage() {
       </div>
       <div className="card overflow-hidden">
         {[1,2,3,4,5,6].map(i => (
-          <div key={i} className="p-4 border-b border-gray-50 flex items-center gap-4">
+          <div key={i} className="p-4 border-b border-warm-50 flex items-center gap-4">
             <div className="skeleton h-4 w-24 rounded" />
             <div className="skeleton h-4 w-32 rounded" />
             <div className="skeleton h-4 w-40 rounded" />
@@ -201,11 +201,11 @@ export default function EvidenceListPage() {
       {/* 헤더 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-black text-gray-900 flex items-center gap-2">
-            <FileCheck2 size={22} className="text-brand-600" />
+          <h1 className="text-xl font-bold text-brand-900 flex items-center gap-2">
+            <FileCheck2 size={22} className="text-brand-700" />
             증빙관리
           </h1>
-          <p className="text-gray-500 text-sm mt-0.5">
+          <p className="text-warm-500 text-sm mt-0.5">
             {profile?.role === 'owner'
               ? '담당 통제활동의 증빙을 업로드하고 결재상신합니다'
               : profile?.role === 'controller'
@@ -234,15 +234,15 @@ export default function EvidenceListPage() {
         ].map(s => (
           <div key={s.label} className="card p-4">
             <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center mb-2',
-              s.color === 'brand' ? 'bg-brand-50 text-brand-600' :
+              s.color === 'brand' ? 'bg-warm-50 text-brand-700' :
               s.color === 'amber' ? 'bg-amber-50 text-amber-600' :
               s.color === 'blue'  ? 'bg-blue-50 text-blue-600' :
               s.color === 'green' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
             )}>
               <s.icon size={16} />
             </div>
-            <p className="text-xs text-gray-500">{s.label}</p>
-            <p className="text-xl font-black text-gray-900">{s.value}<span className="text-xs text-gray-400 font-normal ml-0.5">{s.unit}</span></p>
+            <p className="text-xs text-warm-500">{s.label}</p>
+            <p className="text-xl font-bold text-brand-900">{s.value}<span className="text-xs text-warm-400 font-normal ml-0.5">{s.unit}</span></p>
           </div>
         ))}
       </div>
@@ -250,16 +250,16 @@ export default function EvidenceListPage() {
       {/* 완료율 바 */}
       <div className="card p-4">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-semibold text-gray-700">전체 완료율</p>
-          <p className="text-sm font-black text-brand-600">{rate}%</p>
+          <p className="text-sm font-semibold text-brand-700">전체 완료율</p>
+          <p className="text-sm font-bold text-brand-700">{rate}%</p>
         </div>
-        <div className="bg-gray-100 rounded-full h-2">
+        <div className="bg-warm-100 rounded-full h-2">
           <div
             className="bg-gradient-to-r from-brand-500 to-emerald-500 h-2 rounded-full transition-all duration-700"
             style={{ width: `${rate}%` }}
           />
         </div>
-        <p className="text-xs text-gray-400 mt-1.5">
+        <p className="text-xs text-warm-400 mt-1.5">
           완료 {stats.complete + stats.approved}건 / 전체 {stats.total}건
         </p>
       </div>
@@ -275,7 +275,7 @@ export default function EvidenceListPage() {
       <div className="card p-4">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-400" />
             <input
               type="text" value={search}
               onChange={e => setSearch(e.target.value)}
@@ -284,7 +284,7 @@ export default function EvidenceListPage() {
             />
           </div>
           <div className="flex items-center gap-1.5 flex-wrap">
-            <Filter size={14} className="text-gray-400" />
+            <Filter size={14} className="text-warm-400" />
             {[
               { key: 'all', label: '전체' },
               { key: '미완료', label: '미완료' },
@@ -298,8 +298,8 @@ export default function EvidenceListPage() {
                 className={clsx(
                   'px-2.5 py-1 rounded-lg text-xs font-semibold transition-all',
                   statusFilter === f.key
-                    ? 'bg-brand-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-brand-800 text-white'
+                    : 'bg-warm-100 text-warm-600 hover:bg-warm-200'
                 )}
               >
                 {f.label}
@@ -312,9 +312,9 @@ export default function EvidenceListPage() {
       {/* 데이터 테이블 */}
       <div className="card overflow-hidden">
         {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-            <AlertCircle size={32} className="mb-3 text-gray-200" />
-            <p className="font-medium text-gray-500">데이터가 없습니다</p>
+          <div className="flex flex-col items-center justify-center py-16 text-warm-400">
+            <AlertCircle size={32} className="mb-3 text-warm-200" />
+            <p className="font-medium text-warm-500">데이터가 없습니다</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -343,23 +343,23 @@ export default function EvidenceListPage() {
                   const isView = profile?.role === 'controller' || (profile?.role === 'admin')
                   return (
                     <tr key={act.id} className="group">
-                      <td className="text-center text-sm text-gray-400 py-3">{i + 1}</td>
+                      <td className="text-center text-sm text-warm-400 py-3">{i + 1}</td>
                       <td className="py-3">
-                        <code className="text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded font-semibold">
+                        <code className="text-sm bg-warm-100 text-brand-700 px-2 py-1 rounded font-semibold">
                           {act.control_code}
                         </code>
                       </td>
                       {profile?.role !== 'owner' && (
-                        <td className="font-semibold text-sm text-gray-800 py-3">{act.owner_name ?? '-'}</td>
+                        <td className="font-semibold text-sm text-brand-800 py-3">{act.owner_name ?? '-'}</td>
                       )}
-                      <td className="text-sm text-gray-600 py-3">{act.department ?? '-'}</td>
+                      <td className="text-sm text-warm-600 py-3">{act.department ?? '-'}</td>
                       <td className="py-3">
-                        <span className="text-sm font-medium text-gray-700 cursor-help" title={act.title ?? ''}>
+                        <span className="text-sm font-medium text-brand-700 cursor-help" title={act.title ?? ''}>
                           {act.title && act.title.length > 36 ? act.title.slice(0, 36) + '…' : (act.title ?? '-')}
                         </span>
                       </td>
                       <td className="py-3">
-                        <span className="text-sm text-gray-600 cursor-help" title={act.description ?? ''}>
+                        <span className="text-sm text-warm-600 cursor-help" title={act.description ?? ''}>
                           {act.description && act.description.length > 40 ? act.description.slice(0, 40) + '…' : (act.description ?? '-')}
                         </span>
                       </td>
@@ -367,7 +367,7 @@ export default function EvidenceListPage() {
                         {canUpload ? (
                           <button
                             onClick={() => openUploadModal(act)}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-brand-50 text-brand-700 border border-brand-100 rounded-lg text-sm font-semibold hover:bg-brand-100 transition-all"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-warm-50 text-brand-700 border border-brand-100 rounded-lg text-sm font-semibold hover:bg-brand-100 transition-all"
                           >
                             <Upload size={13} />증빙 Upload
                           </button>
@@ -379,18 +379,18 @@ export default function EvidenceListPage() {
                             <FileCheck2 size={13} />증빙확인
                           </button>
                         ) : (
-                          <span className="text-sm text-gray-400">-</span>
+                          <span className="text-sm text-warm-400">-</span>
                         )}
                       </td>
                       <td className="text-center py-3">
-                        <span className={clsx('text-sm font-bold', (evidenceCounts[act.id] ?? 0) > 0 ? 'text-brand-700' : 'text-gray-300')}>
+                        <span className={clsx('text-sm font-bold', (evidenceCounts[act.id] ?? 0) > 0 ? 'text-brand-700' : 'text-warm-300')}>
                           {evidenceCounts[act.id] ?? 0}
                         </span>
                       </td>
                       {profile?.role === 'admin' && (
-                        <td className="text-sm text-gray-600 py-3">{act.controller_name ?? '-'}</td>
+                        <td className="text-sm text-warm-600 py-3">{act.controller_name ?? '-'}</td>
                       )}
-                      <td className="text-center text-sm font-semibold text-gray-700 py-3">
+                      <td className="text-center text-sm font-semibold text-brand-700 py-3">
                         {act.kpi_score != null ? act.kpi_score.toFixed(1) : '-'}
                       </td>
                       <td className="text-center py-3">
@@ -404,11 +404,11 @@ export default function EvidenceListPage() {
                         ) : approvalStatuses[act.id] === 'submitted' ? (
                           <span className="badge-yellow">승인대기</span>
                         ) : (
-                          <span className="text-sm text-gray-300">-</span>
+                          <span className="text-sm text-warm-300">-</span>
                         )}
                       </td>
                       <td className="py-3">
-                        <ChevronRight size={14} className="text-gray-200 group-hover:text-gray-400 transition-colors" />
+                        <ChevronRight size={14} className="text-warm-200 group-hover:text-warm-400 transition-colors" />
                       </td>
                     </tr>
                   )
@@ -417,8 +417,8 @@ export default function EvidenceListPage() {
             </table>
           </div>
         )}
-        <div className="px-4 py-2.5 border-t border-gray-50 flex justify-between text-xs text-gray-400">
-          <span>총 <b className="text-gray-600">{filtered.length}</b>건{filtered.length !== activities.length ? ` (전체 ${activities.length}건 중)` : ''}</span>
+        <div className="px-4 py-2.5 border-t border-warm-50 flex justify-between text-xs text-warm-400">
+          <span>총 <b className="text-warm-600">{filtered.length}</b>건{filtered.length !== activities.length ? ` (전체 ${activities.length}건 중)` : ''}</span>
           <span>페이지 로드 시 자동 새로고침</span>
         </div>
       </div>

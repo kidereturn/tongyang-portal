@@ -125,8 +125,8 @@ export default function PopulationUploadTab({ onDone }: { onDone: () => void }) 
   return (
     <div className="space-y-5">
       <div className="card p-6">
-        <h3 className="mb-1 text-base font-bold text-gray-900">모집단 업로드</h3>
-        <p className="mb-4 text-sm text-gray-500">
+        <h3 className="mb-1 text-base font-bold text-brand-900">모집단 업로드</h3>
+        <p className="mb-4 text-sm text-warm-500">
           모집단 파일은 거래 단위 데이터만 다시 적재합니다. 사용자 생성과는 완전히 분리되어 있습니다.
         </p>
 
@@ -142,11 +142,11 @@ export default function PopulationUploadTab({ onDone }: { onDone: () => void }) 
 
         {uploading && (
           <div className="mt-4 space-y-2">
-            <div className="flex items-center justify-between text-xs text-gray-600">
+            <div className="flex items-center justify-between text-xs text-warm-600">
               <span>{progress.phase}</span>
               <span>{progress.current.toLocaleString()} / {progress.total.toLocaleString()} ({pct}%)</span>
             </div>
-            <div className="h-2.5 w-full rounded-full bg-gray-100 overflow-hidden">
+            <div className="h-2.5 w-full rounded-full bg-warm-100 overflow-hidden">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 transition-all duration-300"
                 style={{ width: `${pct}%` }}

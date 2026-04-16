@@ -65,7 +65,7 @@ const ROLE_LABEL: Record<string, string> = {
 
 const ROLE_CLASS: Record<string, string> = {
   admin: 'bg-warm-100 text-brand-700 border-warm-200',
-  controller: 'bg-warm-100 text-brand-600 border-warm-200',
+  controller: 'bg-warm-100 text-brand-700 border-warm-200',
   owner: 'bg-warm-100 text-brand-500 border-warm-200',
 }
 
@@ -238,11 +238,11 @@ export default function TopNav() {
               </button>
 
               {notiOpen && (
-                <div className="absolute right-0 top-12 max-w-[90vw] w-80 overflow-hidden rounded-lg border border-warm-200 bg-white shadow-lg sm:w-96">
+                <div className="absolute right-0 top-12 max-w-[90vw] w-80 overflow-hidden rounded-lg border border-warm-200 bg-white shadow-md sm:w-96">
                   <div className="flex items-center justify-between border-b border-warm-100 px-5 py-3.5">
                     <p className="text-sm font-semibold text-brand-900">알림</p>
                     {unreadCount > 0 && (
-                      <button onClick={markAllAsRead} className="text-xs font-medium text-brand-600 hover:text-brand-800 transition-colors">
+                      <button onClick={markAllAsRead} className="text-xs font-medium text-brand-700 hover:text-brand-800 transition-colors">
                         모두 읽음
                       </button>
                     )}
@@ -308,7 +308,7 @@ export default function TopNav() {
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 top-14 w-56 overflow-hidden rounded-lg border border-warm-200 bg-white shadow-lg">
+                <div className="absolute right-0 top-14 w-56 overflow-hidden rounded-lg border border-warm-200 bg-white shadow-md">
                   <div className="border-b border-warm-100 px-5 py-3.5">
                     <p className="text-sm font-semibold text-brand-900">{profile?.full_name}</p>
                     <p className="mt-0.5 text-xs text-warm-500">{profile?.department ?? '-'}</p>

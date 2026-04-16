@@ -47,7 +47,7 @@ export default function UsersTab({ refreshKey }: { refreshKey: number }) {
   return (
     <div className="space-y-4">
       <div className="relative">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-400" />
         <input
           type="text"
           value={search}
@@ -58,8 +58,8 @@ export default function UsersTab({ refreshKey }: { refreshKey: number }) {
       </div>
 
       <div className="card overflow-hidden">
-        <div className="border-b border-gray-50 px-4 py-3 text-xs text-gray-500">
-          총 <b className="text-gray-700">{filtered.length}</b>명
+        <div className="border-b border-warm-50 px-4 py-3 text-xs text-warm-500">
+          총 <b className="text-brand-700">{filtered.length}</b>명
         </div>
         <div className="overflow-x-auto">
           <table className="data-table">
@@ -78,21 +78,21 @@ export default function UsersTab({ refreshKey }: { refreshKey: number }) {
             <tbody>
               {filtered.map(user => (
                 <tr key={user.id}>
-                  <td className="font-mono text-xs text-gray-600">{user.employee_id ?? '-'}</td>
-                  <td className="text-sm font-semibold text-gray-800">{user.full_name ?? '-'}</td>
-                  <td className="text-xs text-gray-500">{user.email ?? buildLoginEmail(user.employee_id ?? '')}</td>
-                  <td className="text-xs text-gray-600">{user.department ?? '-'}</td>
+                  <td className="font-mono text-xs text-warm-600">{user.employee_id ?? '-'}</td>
+                  <td className="text-sm font-semibold text-brand-800">{user.full_name ?? '-'}</td>
+                  <td className="text-xs text-warm-500">{user.email ?? buildLoginEmail(user.employee_id ?? '')}</td>
+                  <td className="text-xs text-warm-600">{user.department ?? '-'}</td>
                   <td>
                     <span className={ROLE_BADGES[user.role] ?? 'badge-gray'}>{ROLE_LABELS[user.role] ?? user.role}</span>
                   </td>
                   <td>
                     <div className="flex items-center gap-1">
-                      <code className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                      <code className="rounded bg-warm-100 px-2 py-0.5 text-xs text-warm-600">
                         {showPassword[user.id] ? user.initial_password ?? '사용자 변경 또는 미기록' : '••••••'}
                       </code>
                       <button
                         onClick={() => setShowPassword(previous => ({ ...previous, [user.id]: !previous[user.id] }))}
-                        className="text-gray-400 hover:text-gray-600"
+                        className="text-warm-400 hover:text-warm-600"
                       >
                         {showPassword[user.id] ? <EyeOff size={12} /> : <Eye size={12} />}
                       </button>

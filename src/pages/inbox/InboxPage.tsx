@@ -244,11 +244,11 @@ export default function InboxPage() {
       {/* 헤더 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-black text-gray-900 flex items-center gap-2">
-            <Inbox size={22} className="text-brand-600" />
+          <h1 className="text-xl font-bold text-brand-900 flex items-center gap-2">
+            <Inbox size={22} className="text-brand-700" />
             {profile?.role === 'controller' ? '내승인함' : '결재 현황'}
           </h1>
-          <p className="text-gray-500 text-sm mt-0.5">
+          <p className="text-warm-500 text-sm mt-0.5">
             {profile?.role === 'controller'
               ? '담당자가 상신한 증빙 결재를 처리합니다'
               : '전체 결재 현황을 관리합니다'}
@@ -265,30 +265,30 @@ export default function InboxPage() {
           <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center mb-2">
             <Clock size={16} />
           </div>
-          <p className="text-xs text-gray-500">결재 대기</p>
-          <p className="text-xl font-black text-gray-900">{pending}<span className="text-xs text-gray-400 font-normal ml-0.5">건</span></p>
+          <p className="text-xs text-warm-500">결재 대기</p>
+          <p className="text-xl font-bold text-brand-900">{pending}<span className="text-xs text-warm-400 font-normal ml-0.5">건</span></p>
         </div>
         <div className="card p-4">
           <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2">
             <CheckCircle2 size={16} />
           </div>
-          <p className="text-xs text-gray-500">승인완료</p>
-          <p className="text-xl font-black text-gray-900">{approved}<span className="text-xs text-gray-400 font-normal ml-0.5">건</span></p>
+          <p className="text-xs text-warm-500">승인완료</p>
+          <p className="text-xl font-bold text-brand-900">{approved}<span className="text-xs text-warm-400 font-normal ml-0.5">건</span></p>
         </div>
         <div className="card p-4">
           <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center mb-2">
             <XCircle size={16} />
           </div>
-          <p className="text-xs text-gray-500">반려</p>
-          <p className="text-xl font-black text-gray-900">{rejected}<span className="text-xs text-gray-400 font-normal ml-0.5">건</span></p>
+          <p className="text-xs text-warm-500">반려</p>
+          <p className="text-xl font-bold text-brand-900">{rejected}<span className="text-xs text-warm-400 font-normal ml-0.5">건</span></p>
         </div>
       </div>
 
       {/* 결재 목록 */}
       {items.length === 0 ? (
-        <div className="card flex flex-col items-center justify-center py-16 text-gray-400">
-          <Inbox size={40} className="mb-3 text-gray-200" />
-          <p className="font-medium text-gray-500">결재 항목이 없습니다</p>
+        <div className="card flex flex-col items-center justify-center py-16 text-warm-400">
+          <Inbox size={40} className="mb-3 text-warm-200" />
+          <p className="font-medium text-warm-500">결재 항목이 없습니다</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -305,7 +305,7 @@ export default function InboxPage() {
                   <div className="flex-1">
                     {/* 상단: 통제번호 + 상태 */}
                     <div className="flex items-center gap-2 flex-wrap mb-2">
-                      <code className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                      <code className="text-xs bg-warm-100 text-warm-600 px-2 py-0.5 rounded">
                         {act?.control_code ?? item.control_code ?? '-'}
                       </code>
                       <span className={si.cls}>{si.label}</span>
@@ -317,14 +317,14 @@ export default function InboxPage() {
                     </div>
 
                     {/* 통제활동명 */}
-                    <p className="text-sm font-bold text-gray-900 mb-1">
+                    <p className="text-sm font-bold text-brand-900 mb-1">
                       {act?.title ?? '(활동명 없음)'}
                     </p>
 
                     {/* 메타 */}
-                    <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-                      <span>담당자: <b className="text-gray-700">{act?.owner_name ?? '-'}</b></span>
-                      <span>부서: <b className="text-gray-700">{act?.department ?? '-'}</b></span>
+                    <div className="flex flex-wrap gap-3 text-xs text-warm-500">
+                      <span>담당자: <b className="text-brand-700">{act?.owner_name ?? '-'}</b></span>
+                      <span>부서: <b className="text-brand-700">{act?.department ?? '-'}</b></span>
                       {item.submitted_at && (
                         <span>상신일: {new Date(item.submitted_at).toLocaleDateString('ko-KR')}</span>
                       )}
@@ -335,7 +335,7 @@ export default function InboxPage() {
 
                     {/* 코멘트 */}
                     {item.controller_comment && (
-                      <div className="mt-2 flex items-start gap-1.5 text-xs text-gray-500 bg-gray-50 rounded-lg p-2">
+                      <div className="mt-2 flex items-start gap-1.5 text-xs text-warm-500 bg-warm-50 rounded-lg p-2">
                         <MessageSquare size={11} className="shrink-0 mt-0.5" />
                         <span>{item.controller_comment}</span>
                       </div>
