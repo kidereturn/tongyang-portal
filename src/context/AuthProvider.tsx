@@ -121,37 +121,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     )
 
-    // Failsafe: if INITIAL_SESSION never fires within 5s, unblock the UI
+    // Failsafe: if INITIAL_SESSION never fires within 3s, unblock the UI
     const timeout = setTimeout(() => {
-      if (mounted) setState(prev => ({ ...prev, loading: false }))
-    }, 5000)
+      if (mounted) {
+        console.warn('[AuthProvider] failsafe: force loading=false after 3s')
+        setState(prev => ({ ...prev, loading: false }))
+      }
+    }, 3000)
 
-    // TOKEN_REFRESHED 실패 시 자동 복구
-    // Supabase autoRefreshToken 이 실패하면 세션이 끊기므로 수동 재시도
-    const refreshRetry = setInterval(async () => {
-      if (!mounted) return
-      try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession()
-        if (!currentSession) return // 로그인 안 됨
-
-        const expiresAt = currentSession.expires_at ?? 0
-        const now = Math.floor(Date.now() / 1000)
-        // 만료 5분 전이면 강제 갱신
-        if (expiresAt - now < 300) {
-          const { error } = await supabase.auth.refreshSession()
-          if (error) {
-            console.warn('[AuthProvider] refresh retry failed:', error.message)
-          } else {
-            console.info('[AuthProvider] session refreshed successfully')
-          }
-        }
-      } catch { /* silent */ }
-    }, 2 * 60 * 1000) // 2분마다 체크
+    // ⚠️ 중복 refreshRetry 제거됨
+    // Supabase SDK 내장 autoRefreshToken 이 토큰 갱신을 담당.
+    // 추가 refresh 호출은 memoryLock 데드락의 원인이었음.
 
     return () => {
       mounted = false
       clearTimeout(timeout)
-      clearInterval(refreshRetry)
       subscription.unsubscribe()
     }
   }, [])

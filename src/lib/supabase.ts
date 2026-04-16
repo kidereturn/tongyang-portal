@@ -10,20 +10,37 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 /**
  * In-memory mutex lock — 동일 탭 내 토큰 갱신 동시 실행 방지
- * navigator.locks 는 탭이 닫혀도 브라우저에 잔존해 블로킹 유발하므로
- * 대신 메모리 기반 뮤텍스로 구현
+ *
+ * 핵심 수정: timeout 을 반드시 존중!
+ * 이전 버전은 _timeout 을 무시해서, fn() 이 느려지면 영구 데드락 발생.
+ * 모든 후속 인증 호출(getSession, refreshSession 등)이 영원히 차단되어
+ * "수분 후 먹통" 현상의 직접적 원인이었음.
  */
 const locks = new Map<string, Promise<unknown>>()
 
 function memoryLock(
   name: string,
-  _timeout: number,
+  timeout: number,
   fn: () => Promise<unknown>,
 ): Promise<unknown> {
+  const effectiveTimeout = Math.max(timeout || 5000, 3000) // 최소 3초
   const prev = locks.get(name) ?? Promise.resolve()
-  const next = prev.then(fn, fn).finally(() => {
+
+  const next = prev.catch(() => {}).then(() =>
+    // fn() 과 타임아웃 중 먼저 끝나는 것을 사용
+    Promise.race([
+      fn(),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`[memoryLock] "${name}" timed out (${effectiveTimeout}ms)`)),
+          effectiveTimeout,
+        ),
+      ),
+    ]),
+  ).finally(() => {
     if (locks.get(name) === next) locks.delete(name)
   })
+
   locks.set(name, next)
   return next
 }
@@ -31,7 +48,7 @@ function memoryLock(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    autoRefreshToken: true,
+    autoRefreshToken: true,   // Supabase SDK 내장 자동갱신만 사용
     persistSession: true,
     detectSessionInUrl: false,
     storage: window.localStorage,
@@ -39,52 +56,6 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   } as any, // lock 은 gotrue-js 내부 옵션이라 타입에 미노출
 })
 
-/**
- * 세션 건강 체크 — 주기적으로 토큰이 유효한지 확인하고 갱신
- * 탭 복귀(visibilitychange) 시에도 즉시 체크
- */
-let healthTimer: ReturnType<typeof setInterval> | null = null
-
-async function checkSession() {
-  try {
-    const { data: { session }, error } = await supabase.auth.getSession()
-    if (error) {
-      console.warn('[supabase] session check error:', error.message)
-      // 세션이 깨졌으면 강제 갱신 시도
-      await supabase.auth.refreshSession()
-      return
-    }
-    if (!session) return // 로그인 안 된 상태
-
-    // JWT 만료 10분 전이면 선제 갱신
-    const expiresAt = session.expires_at ?? 0
-    const now = Math.floor(Date.now() / 1000)
-    if (expiresAt - now < 600) {
-      console.info('[supabase] preemptive token refresh')
-      await supabase.auth.refreshSession()
-    }
-  } catch (err) {
-    console.warn('[supabase] session health check failed:', err)
-  }
-}
-
-function startHealthCheck() {
-  if (healthTimer) return
-  // 3분마다 세션 건강 체크
-  healthTimer = setInterval(checkSession, 3 * 60 * 1000)
-
-  // 탭이 다시 활성화될 때 즉시 세션 체크
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      checkSession()
-    }
-  })
-
-  // 네트워크 복구 시 즉시 세션 체크
-  window.addEventListener('online', () => {
-    console.info('[supabase] network restored, checking session...')
-    checkSession()
-  })
-}
-
-startHealthCheck()
+// ⚠️ 별도 healthCheck / refreshRetry 제거됨
+// Supabase SDK 의 autoRefreshToken 이 충분하며,
+// 중복 refresh 호출이 memoryLock 데드락의 주범이었음.

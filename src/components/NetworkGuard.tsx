@@ -1,18 +1,12 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { WifiOff, RefreshCw } from 'lucide-react'
-import { supabase } from '../lib/supabase'
 
 /**
- * NetworkGuard — 네트워크 단절 감지 + Supabase 연결 불안 자동 복구
+ * NetworkGuard — 네트워크 단절 감지 전용 (수정 시도 안 함)
  *
- * 증상: "처음에는 잘 되다가 수분 후 먹통"
- * 원인: 토큰 갱신 실패, 네트워크 일시 단절, 탭 비활성화 후 복귀
- *
- * 이 컴포넌트가 하는 일:
- * 1. navigator.onLine 으로 오프라인 감지
- * 2. 30초마다 Supabase API ping (실제 DB 요청)
- * 3. 실패 3회 연속 → 노란색 배너 표시 + 자동 세션 갱신 시도
- * 4. 복구되면 배너 자동 숨김
+ * ⚠️ 이전 버전은 supabase.auth.refreshSession() 을 직접 호출했으나,
+ *    이것이 memoryLock 데드락의 주범이었음.
+ *    지금은 감지만 하고, 복구는 페이지 리로드로만 수행.
  */
 export default function NetworkGuard() {
   const [offline, setOffline] = useState(!navigator.onLine)
@@ -21,36 +15,33 @@ export default function NetworkGuard() {
   const failCount = useRef(0)
   const pingTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // 가벼운 HEAD 요청으로 연결 상태만 확인 (Supabase auth 호출 안 함)
   const ping = useCallback(async () => {
     if (!navigator.onLine) return
     try {
-      // 가벼운 쿼리로 Supabase 연결 상태 확인
-      const { error } = await (supabase as any)
-        .from('profiles')
-        .select('id', { count: 'exact', head: true })
-        .limit(1)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
 
-      if (error) {
-        failCount.current += 1
-        console.warn(`[NetworkGuard] ping failed (${failCount.current}):`, error.message)
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`,
+        {
+          method: 'HEAD',
+          headers: { apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+          signal: controller.signal,
+        },
+      )
+      clearTimeout(timeoutId)
 
-        // 401 = 토큰 만료 → 즉시 갱신
-        if (error.message?.includes('JWT') || error.code === 'PGRST301') {
-          console.info('[NetworkGuard] JWT issue detected, refreshing session...')
-          await supabase.auth.refreshSession()
-          failCount.current = 0
-          return
-        }
-      } else {
+      if (res.ok || res.status === 400) {
+        // 서버가 응답하면 연결 OK (400도 서버 살아있음)
         if (failCount.current > 0) {
           console.info('[NetworkGuard] connection restored')
         }
         failCount.current = 0
         setApiDown(false)
-      }
-
-      if (failCount.current >= 3) {
-        setApiDown(true)
+      } else {
+        failCount.current += 1
+        if (failCount.current >= 3) setApiDown(true)
       }
     } catch {
       failCount.current += 1
@@ -58,30 +49,17 @@ export default function NetworkGuard() {
     }
   }, [])
 
-  const handleRecover = useCallback(async () => {
+  const handleRecover = useCallback(() => {
     setRecovering(true)
-    try {
-      // 1. 세션 강제 갱신
-      await supabase.auth.refreshSession()
-      // 2. 연결 재확인
-      await ping()
-      // 3. 여전히 실패하면 페이지 리로드
-      if (failCount.current >= 3) {
-        window.location.reload()
-      }
-    } catch {
-      window.location.reload()
-    } finally {
-      setRecovering(false)
-    }
-  }, [ping])
+    // 단순히 페이지 리로드 — Supabase auth 를 건드리지 않음
+    window.location.reload()
+  }, [])
 
   useEffect(() => {
     const onOnline = () => {
       setOffline(false)
       failCount.current = 0
       setApiDown(false)
-      // 네트워크 복구 시 즉시 ping
       ping()
     }
     const onOffline = () => setOffline(true)
@@ -89,16 +67,12 @@ export default function NetworkGuard() {
     window.addEventListener('online', onOnline)
     window.addEventListener('offline', onOffline)
 
-    // 30초마다 연결 상태 체크
-    pingTimer.current = setInterval(ping, 30_000)
-    // 초기 1회
-    ping()
+    // 60초마다 연결 상태 체크 (이전 30초 → 60초로 완화)
+    pingTimer.current = setInterval(ping, 60_000)
 
-    // 탭 활성화 시 즉시 체크
+    // 탭 활성화 시 체크
     const onVisible = () => {
-      if (document.visibilityState === 'visible') {
-        ping()
-      }
+      if (document.visibilityState === 'visible') ping()
     }
     document.addEventListener('visibilitychange', onVisible)
 
@@ -127,7 +101,7 @@ export default function NetworkGuard() {
           className="ml-2 flex items-center gap-1 rounded-md bg-white/20 px-3 py-1 text-xs font-bold hover:bg-white/30 transition disabled:opacity-50"
         >
           <RefreshCw size={12} className={recovering ? 'animate-spin' : ''} />
-          {recovering ? '복구 중...' : '재연결'}
+          {recovering ? '새로고침 중...' : '새로고침'}
         </button>
       )}
     </div>

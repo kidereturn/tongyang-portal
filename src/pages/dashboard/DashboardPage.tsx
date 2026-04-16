@@ -176,51 +176,74 @@ export default function DashboardPage() {
   useEffect(() => {
     void fetchAll()
     void fetchExtras()
+
+    // 절대 안전장치: 8초 후에도 로딩 중이면 강제 해제
+    const failsafe = setTimeout(() => {
+      setLoading(prev => {
+        if (prev) {
+          console.warn('[Dashboard] failsafe: force loading=false after 8s')
+          setLoadError('데이터 로딩이 지연되고 있습니다.')
+        }
+        return false
+      })
+    }, 8000)
+
+    return () => clearTimeout(failsafe)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id])
 
   async function fetchExtras() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
+    const extrasTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('extras_timeout')), 6000),
+    )
     try {
-      // Notices
-      const { data: notices } = await db.from('notices').select('id, type, title, badge, badge_color, created_at')
-        .order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(10)
-      setDbNotices(notices ?? [])
+      await Promise.race([
+        (async () => {
+          // Notices
+          const { data: notices } = await db.from('notices').select('id, type, title, badge, badge_color, created_at')
+            .order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(10)
+          setDbNotices(notices ?? [])
 
-      // Points ranking TOP 5
-      const { data: pts } = await db.rpc('get_points_ranking')
-      setPointsRanking((pts ?? []).slice(0, 5))
+          // Points ranking TOP 5
+          const { data: pts } = await db.rpc('get_points_ranking')
+          setPointsRanking((pts ?? []).slice(0, 5))
 
-      // Quiz perfect scorers
-      const { data: qr } = await db.from('quiz_results').select('id, user_id, score, total_questions, created_at')
-        .eq('score', 10).order('created_at', { ascending: false }).limit(5)
-      if (qr && qr.length > 0) {
-        const userIds = [...new Set(qr.map((r: any) => r.user_id))]
-        const { data: profiles } = await db.from('profiles').select('id, full_name').in('id', userIds)
-        const nameMap: Record<string, string> = {}
-        for (const p of profiles ?? []) nameMap[p.id] = p.full_name ?? ''
-        setQuizPerfect(qr.map((r: any) => ({ ...r, full_name: nameMap[r.user_id] ?? null })))
-      }
+          // Quiz perfect scorers
+          const { data: qr } = await db.from('quiz_results').select('id, user_id, score, total_questions, created_at')
+            .eq('score', 10).order('created_at', { ascending: false }).limit(5)
+          if (qr && qr.length > 0) {
+            const userIds = [...new Set(qr.map((r: any) => r.user_id))]
+            const { data: profiles } = await db.from('profiles').select('id, full_name').in('id', userIds)
+            const nameMap: Record<string, string> = {}
+            for (const p of profiles ?? []) nameMap[p.id] = p.full_name ?? ''
+            setQuizPerfect(qr.map((r: any) => ({ ...r, full_name: nameMap[r.user_id] ?? null })))
+          }
 
-      // Learning stats
-      const { data: cVids } = await db.from('course_videos').select('id').eq('is_active', true)
-      const totalCourses = cVids?.length ?? 10
-      const { data: allProg } = await db.from('learning_progress').select('user_id, course_id, progress_percent')
-      const progRows = allProg ?? []
-      if (profile?.role === 'admin') {
-        const inProg = progRows.filter((p: any) => p.progress_percent > 0 && p.progress_percent < 95).length
-        const comp = progRows.filter((p: any) => p.progress_percent >= 95).length
-        setLearningStats({ total: totalCourses, inProgress: inProg, completed: comp })
-      } else if (profile?.id) {
-        const myProg = progRows.filter((p: any) => p.user_id === profile.id)
-        const inProg = myProg.filter((p: any) => p.progress_percent > 0 && p.progress_percent < 95).length
-        const comp = myProg.filter((p: any) => p.progress_percent >= 95).length
-        setLearningStats({ total: totalCourses, inProgress: inProg, completed: comp })
-      } else {
-        setLearningStats({ total: totalCourses, inProgress: 0, completed: 0 })
-      }
-    } catch { /* silent */ }
+          // Learning stats
+          const { data: cVids } = await db.from('course_videos').select('id').eq('is_active', true)
+          const totalCourses = cVids?.length ?? 10
+          const { data: allProg } = await db.from('learning_progress').select('user_id, course_id, progress_percent')
+          const progRows = allProg ?? []
+          if (profile?.role === 'admin') {
+            const inProg = progRows.filter((p: any) => p.progress_percent > 0 && p.progress_percent < 95).length
+            const comp = progRows.filter((p: any) => p.progress_percent >= 95).length
+            setLearningStats({ total: totalCourses, inProgress: inProg, completed: comp })
+          } else if (profile?.id) {
+            const myProg = progRows.filter((p: any) => p.user_id === profile.id)
+            const inProg = myProg.filter((p: any) => p.progress_percent > 0 && p.progress_percent < 95).length
+            const comp = myProg.filter((p: any) => p.progress_percent >= 95).length
+            setLearningStats({ total: totalCourses, inProgress: inProg, completed: comp })
+          } else {
+            setLearningStats({ total: totalCourses, inProgress: 0, completed: 0 })
+          }
+        })(),
+        extrasTimeout,
+      ])
+    } catch {
+      console.warn('[Dashboard] fetchExtras timeout or error')
+    }
   }
 
   async function fetchAll() {
@@ -249,7 +272,7 @@ export default function DashboardPage() {
       }
 
       const timeout = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('dashboard_timeout')), 15000)
+        setTimeout(() => reject(new Error('dashboard_timeout')), 8000)
       })
 
       const { data: records } = await Promise.race([activityQuery, timeout]) as { data: DashboardActivity[] | null }
@@ -512,8 +535,17 @@ export default function DashboardPage() {
       </div>
 
       {loadError && (
-        <div className="card p-4 text-sm text-amber-700 bg-amber-50 border-amber-100">
-          {loadError}
+        <div className="card p-4 flex items-center justify-between gap-3 bg-amber-50 border-amber-200">
+          <div className="flex items-center gap-2 text-sm text-amber-700">
+            <AlertTriangle size={16} className="shrink-0" />
+            <span>{loadError}</span>
+          </div>
+          <button
+            onClick={() => { setLoadError(null); setLoading(true); void fetchAll(); void fetchExtras() }}
+            className="shrink-0 rounded-lg bg-amber-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-amber-700 transition"
+          >
+            새로고침
+          </button>
         </div>
       )}
 
@@ -620,7 +652,7 @@ export default function DashboardPage() {
                 <XAxis dataKey="month" tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 12 }} />
-                <Bar dataKey="submitted" fill="#6366f1" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="submitted" fill="#A89167" radius={[3, 3, 0, 0]} />
                 <Bar dataKey="approved" fill="#22c55e" radius={[3, 3, 0, 0]} />
                 <Bar dataKey="rejected" fill="#ef4444" radius={[3, 3, 0, 0]} />
               </BarChart>
@@ -683,7 +715,7 @@ export default function DashboardPage() {
                     <YAxis type="category" dataKey="name" tick={{ fill: '#6b7280', fontSize: 11 }} width={60} axisLine={false} />
                     <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 12 }} />
                     <Bar dataKey="approved" fill="#22c55e" radius={[0, 3, 3, 0]} name="승인" stackId="a" />
-                    <Bar dataKey="pending" fill="#6366f1" radius={[0, 3, 3, 0]} name="결재대기" stackId="a" />
+                    <Bar dataKey="pending" fill="#A89167" radius={[0, 3, 3, 0]} name="결재대기" stackId="a" />
                     <Bar dataKey="total" fill="#e5e7eb" radius={[0, 3, 3, 0]} name="전체" />
                   </BarChart>
                 </ResponsiveContainer>
@@ -706,7 +738,7 @@ export default function DashboardPage() {
                   <XAxis dataKey="day" tick={{ fill: '#9ca3af', fontSize: 10 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
                   <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 12 }} />
-                  <Line type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={2} dot={{ r: 3, fill: '#6366f1' }} name="활동 건수" />
+                  <Line type="monotone" dataKey="count" stroke="#A89167" strokeWidth={2} dot={{ r: 3, fill: '#A89167' }} name="활동 건수" />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -723,7 +755,7 @@ export default function DashboardPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[
-              { label: '상신완료율', value: stats.total > 0 ? Math.round(((stats.pendingApproval + stats.approved + stats.rejected) / stats.total) * 100) : 0, color: '#6366f1' },
+              { label: '상신완료율', value: stats.total > 0 ? Math.round(((stats.pendingApproval + stats.approved + stats.rejected) / stats.total) * 100) : 0, color: '#A89167' },
               { label: '승인 완료율', value: stats.total > 0 ? Math.round((stats.approved / stats.total) * 100) : 0, color: '#22c55e' },
               { label: '반려율', value: (stats.approved + stats.rejected) > 0 ? Math.round((stats.rejected / (stats.approved + stats.rejected)) * 100) : 0, color: '#ef4444' },
             ].map(g => (
