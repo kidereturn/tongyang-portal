@@ -343,7 +343,7 @@ export default function BingoPage() {
       `}</style>
 
       {/* Header — compact */}
-      <div className="rounded-lg bg-gradient-to-r from-brand-900 via-indigo-700 to-slate-900 px-5 py-5 text-white shadow-md">
+      <div className="rounded-lg bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 px-5 py-5 text-white shadow-md">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex-1 min-w-0">
             <h1 className="flex items-center gap-2 text-xl font-bold">
@@ -593,7 +593,7 @@ export default function BingoPage() {
             </div>
           ))}
 
-          <div className="relative mx-4 max-w-md w-full rounded-xl bg-white p-8 text-center shadow-2xl">
+          <div className="relative mx-4 max-w-md w-full rounded-xl bg-white p-8 text-center shadow-md">
             <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 shadow-md">
               <Trophy size={40} className="text-white" />
             </div>

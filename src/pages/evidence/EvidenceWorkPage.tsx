@@ -428,7 +428,7 @@ export default function EvidenceWorkPage() {
       {/* 업로드 모달 */}
       {modalItem && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-brand-800 border border-slate-700 rounded-lg w-full max-w-md shadow-2xl">
+          <div className="bg-brand-800 border border-slate-700 rounded-lg w-full max-w-md shadow-md">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
               <div>
                 <p className="text-white font-medium text-sm">증빙 파일 업로드</p>

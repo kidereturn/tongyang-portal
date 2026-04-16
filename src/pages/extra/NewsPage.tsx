@@ -129,7 +129,7 @@ export default function NewsPage() {
   return (
     <div className="space-y-6">
       {/* Hero */}
-      <div className="rounded-[28px] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-6 py-8 text-white shadow-2xl">
+      <div className="rounded-lg bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">LIVE FEED</p>
@@ -356,7 +356,7 @@ function StockInfoCard({ info }: { info: StockInfo }) {
   const pct = range > 0 ? Math.max(0, Math.min(100, ((cur - low) / range) * 100)) : 50
 
   return (
-    <div className="rounded-lg border border-warm-200 bg-gradient-to-br from-white to-slate-50 p-4 shadow-sm">
+    <div className="rounded-lg border border-warm-200 bg-gradient-to-br from-white to-warm-50 p-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-bold text-brand-900 flex items-center gap-2">
           <TrendingUp size={16} className="text-sky-600" />
@@ -378,7 +378,7 @@ function StockInfoCard({ info }: { info: StockInfo }) {
           <p className="text-[10px] font-semibold text-warm-400 mb-2">52주 가격범위</p>
           <div className="relative h-6">
             {/* Background bar */}
-            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 rounded-full bg-gradient-to-r from-blue-100 via-slate-100 to-red-100" />
+            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 rounded-full bg-gradient-to-r from-blue-100 via-warm-100 to-red-100" />
             {/* Current position marker */}
             <div
               className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10"
@@ -471,7 +471,7 @@ function CompanySearchPopup({
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-2xl rounded-lg bg-white shadow-2xl border border-warm-200 overflow-hidden"
+        className="w-full max-w-2xl rounded-lg bg-white shadow-md border border-warm-200 overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

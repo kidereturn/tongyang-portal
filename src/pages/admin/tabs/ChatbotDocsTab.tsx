@@ -357,7 +357,7 @@ export default function ChatbotDocsTab() {
           <p className="text-xs text-warm-500">활성 문서</p>
         </div>
         <div className="card p-3 text-center">
-          <p className="text-2xl font-bold text-purple-600">{categories.length}</p>
+          <p className="text-2xl font-bold text-brand-600">{categories.length}</p>
           <p className="text-xs text-warm-500">카테고리</p>
         </div>
         <div className="card p-3 text-center">
@@ -429,7 +429,7 @@ export default function ChatbotDocsTab() {
           <Plus size={14} />직접 입력
         </button>
         <label className={clsx(
-          'btn-primary text-xs gap-1 bg-purple-600 hover:bg-purple-700 cursor-pointer',
+          'btn-primary text-xs gap-1 bg-brand-600 hover:bg-brand-700 cursor-pointer',
           pdfExtracting && 'opacity-50 pointer-events-none'
         )}>
           <FileUp size={14} />PDF 1건
@@ -446,7 +446,7 @@ export default function ChatbotDocsTab() {
           />
         </label>
         <label className={clsx(
-          'btn-primary text-xs gap-1 bg-indigo-600 hover:bg-indigo-700 cursor-pointer',
+          'btn-primary text-xs gap-1 bg-brand-700 hover:bg-brand-700 cursor-pointer',
           pdfExtracting && 'opacity-50 pointer-events-none'
         )}>
           <FileUp size={14} />PDF 일괄
@@ -541,7 +541,7 @@ export default function ChatbotDocsTab() {
       {/* 편집 모달 */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg bg-white shadow-2xl">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg bg-white shadow-md">
             <div className="flex items-center justify-between border-b px-5 py-3">
               <h3 className="font-bold text-brand-900 flex items-center gap-2">
                 <BookOpen size={16} className="text-brand-700" />
@@ -591,7 +591,7 @@ export default function ChatbotDocsTab() {
                     내용 <span className="text-warm-400 font-normal">({editing.content.length.toLocaleString()}자)</span>
                   </label>
                   <label className={clsx(
-                    'inline-flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 cursor-pointer font-semibold',
+                    'inline-flex items-center gap-1 text-xs text-brand-600 hover:text-brand-800 cursor-pointer font-semibold',
                     pdfExtracting && 'opacity-50 pointer-events-none'
                   )}>
                     <FileUp size={12} />PDF에서 추출

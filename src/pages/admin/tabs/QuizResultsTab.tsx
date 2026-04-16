@@ -231,7 +231,7 @@ export default function QuizResultsTab() {
           <p className="text-xs text-warm-500">퀴즈 응시</p>
         </div>
         <div className="rounded-lg border border-warm-200 bg-white p-4 shadow-sm">
-          <Clock size={20} className="text-indigo-500" />
+          <Clock size={20} className="text-brand-600" />
           <p className="mt-2 text-2xl font-bold text-brand-900">{avgQuizScore}%</p>
           <p className="text-xs text-warm-500">평균 퀴즈 점수</p>
         </div>

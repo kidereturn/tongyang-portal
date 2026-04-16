@@ -349,7 +349,7 @@ export default function CoursesPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="rounded-[28px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-6 py-8 text-white shadow-2xl">
+        <div className="rounded-lg bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
           <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">COURSE PLAYER</p>
           <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
             <BookOpen size={28} className="text-brand-300" />내 강좌
@@ -365,7 +365,7 @@ export default function CoursesPage() {
   if (videos.length === 0) {
     return (
       <div className="space-y-6">
-        <div className="rounded-[28px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-6 py-8 text-white shadow-2xl">
+        <div className="rounded-lg bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
           <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">COURSE PLAYER</p>
           <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
             <BookOpen size={28} className="text-brand-300" />내 강좌
@@ -378,7 +378,7 @@ export default function CoursesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-[28px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-6 py-8 text-white shadow-2xl">
+      <div className="rounded-lg bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
         <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">COURSE PLAYER</p>
         <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
           <BookOpen size={28} className="text-brand-300" />내 강좌
@@ -390,7 +390,7 @@ export default function CoursesPage() {
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         {/* Player */}
-        <section className="overflow-hidden rounded-[28px] border border-warm-200 bg-white shadow-md">
+        <section className="overflow-hidden rounded-lg border border-warm-200 bg-white shadow-md">
           <div className="border-b border-warm-100 px-5 py-4">
             <h2 className="text-xl font-bold text-brand-900">{selectedVideo?.title}</h2>
             {selectedVideo?.description && (
@@ -451,7 +451,7 @@ export default function CoursesPage() {
 
         {/* Video list */}
         <section className="space-y-4">
-          <div className="rounded-[28px] border border-warm-200 bg-white shadow-md overflow-hidden">
+          <div className="rounded-lg border border-warm-200 bg-white shadow-md overflow-hidden">
             <div className="border-b border-warm-100 px-5 py-3">
               <p className="text-sm font-bold text-brand-900">강좌 목록 ({videos.length}개) — 최신순</p>
             </div>
@@ -494,7 +494,7 @@ export default function CoursesPage() {
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-warm-200 bg-white p-5 shadow-md">
+          <div className="rounded-lg border border-warm-200 bg-white p-5 shadow-md">
             <p className="text-sm font-bold text-brand-900">안내</p>
             <div className="mt-3 space-y-2">
               <div className="rounded-lg bg-warm-50 px-4 py-3">

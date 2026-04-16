@@ -65,7 +65,7 @@ export default function NoticeDetailPage() {
     blue: 'bg-blue-100 text-blue-700',
     red: 'bg-red-100 text-red-700',
     green: 'bg-green-100 text-green-700',
-    purple: 'bg-purple-100 text-purple-700',
+    purple: 'bg-warm-100 text-brand-700',
     amber: 'bg-amber-100 text-amber-700',
     slate: 'bg-warm-100 text-warm-600',
   }
@@ -76,7 +76,7 @@ export default function NoticeDetailPage() {
         <ArrowLeft size={16} />HOME으로 돌아가기
       </Link>
 
-      <article className="rounded-[28px] border border-warm-200 bg-white shadow-md overflow-hidden">
+      <article className="rounded-lg border border-warm-200 bg-white shadow-md overflow-hidden">
         {/* Header */}
         <div className="border-b border-warm-100 px-6 py-5 sm:px-8 sm:py-6">
           <div className="flex flex-wrap items-center gap-2 mb-3">

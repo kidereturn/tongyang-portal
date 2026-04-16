@@ -133,7 +133,7 @@ export default function MobileTabBar() {
                   onClick={() => setMoreOpen(false)}
                   className={({ isActive }) => clsx(
                     'mb-4 flex items-center gap-3 rounded-lg px-4 py-3.5 text-sm font-semibold transition',
-                    isActive ? 'bg-purple-50 text-purple-700' : 'bg-warm-50 text-brand-700 active:bg-warm-100'
+                    isActive ? 'bg-warm-50 text-brand-700' : 'bg-warm-50 text-brand-700 active:bg-warm-100'
                   )}
                 >
                   <Shield size={20} />

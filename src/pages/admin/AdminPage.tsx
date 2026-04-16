@@ -63,7 +63,7 @@ export default function AdminPage() {
     <div className="space-y-5">
       <div>
         <h1 className="flex items-center gap-2 text-xl font-bold text-brand-900">
-          <Shield size={22} className="text-purple-600" />
+          <Shield size={22} className="text-brand-600" />
           관리자
         </h1>
         <p className="mt-0.5 text-sm text-warm-500">

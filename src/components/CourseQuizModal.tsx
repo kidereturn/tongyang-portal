@@ -128,9 +128,9 @@ export default function CourseQuizModal({ courseId, courseTitle, open, onClose }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-2xl">
+      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-md">
         {/* Header */}
-        <div className="sticky top-0 z-10 rounded-t-3xl border-b border-warm-100 bg-gradient-to-r from-brand-800 to-indigo-600 px-6 py-4 text-white">
+        <div className="sticky top-0 z-10 rounded-t-3xl border-b border-warm-100 bg-gradient-to-r from-brand-800 to-brand-700 px-6 py-4 text-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold opacity-80">COURSE QUIZ</p>
@@ -201,7 +201,7 @@ export default function CourseQuizModal({ courseId, courseTitle, open, onClose }
 
               <button
                 onClick={onClose}
-                className="mt-4 w-full rounded-lg bg-gradient-to-r from-brand-800 to-indigo-600 py-3 text-sm font-bold text-white shadow-md hover:shadow-md transition"
+                className="mt-4 w-full rounded-lg bg-gradient-to-r from-brand-800 to-brand-700 py-3 text-sm font-bold text-white shadow-md hover:shadow-md transition"
               >
                 확인
               </button>

@@ -74,12 +74,12 @@ export default function WebtoonPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="rounded-[28px] bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 px-6 py-8 text-white shadow-2xl">
+        <div className="rounded-lg bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
           <div className="flex items-center gap-3">
             <BookOpen className="h-8 w-8 opacity-80" />
             <p className="text-xs font-semibold uppercase tracking-[0.24em] opacity-70">Webtoon</p>
           </div>
-          <h1 className="mt-3 text-3xl font-extrabold tracking-tight">내부회계 웹툰</h1>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight">내부회계 웹툰</h1>
         </div>
         <div className="flex items-center justify-center py-20 text-warm-400">
           <Loader2 size={24} className="animate-spin mr-2" />
@@ -92,12 +92,12 @@ export default function WebtoonPage() {
   if (episodes.length === 0) {
     return (
       <div className="space-y-6">
-        <div className="rounded-[28px] bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 px-6 py-8 text-white shadow-2xl">
+        <div className="rounded-lg bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
           <div className="flex items-center gap-3">
             <BookOpen className="h-8 w-8 opacity-80" />
             <p className="text-xs font-semibold uppercase tracking-[0.24em] opacity-70">Webtoon</p>
           </div>
-          <h1 className="mt-3 text-3xl font-extrabold tracking-tight">내부회계 웹툰</h1>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight">내부회계 웹툰</h1>
         </div>
         <div className="py-20 text-center text-sm text-warm-400">
           등록된 웹툰이 없습니다. 관리자가 에피소드를 업로드하면 여기에 표시됩니다.
@@ -112,12 +112,12 @@ export default function WebtoonPage() {
   return (
     <div className="space-y-6">
       {/* Hero */}
-      <div className="rounded-[28px] bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 px-6 py-8 text-white shadow-2xl">
+      <div className="rounded-lg bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
         <div className="flex items-center gap-3">
           <BookOpen className="h-8 w-8 opacity-80" />
           <p className="text-xs font-semibold uppercase tracking-[0.24em] opacity-70">Webtoon</p>
         </div>
-        <h1 className="mt-3 text-3xl font-extrabold tracking-tight">내부회계 웹툰</h1>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight">내부회계 웹툰</h1>
         <p className="mt-2 max-w-xl text-sm leading-relaxed opacity-80">
           내부회계관리제도를 쉽고 재미있게 이해할 수 있는 웹툰 콘텐츠입니다.
         </p>
@@ -162,7 +162,7 @@ export default function WebtoonPage() {
 
       {/* Webtoon Viewer - 분할된 이미지를 이어서 표시 */}
       {ep && (
-        <div className="mx-auto max-w-[720px] bg-white">
+        <div className="mx-auto max-w-[960px] bg-white rounded-lg overflow-hidden shadow-sm">
           {imagePaths.map((path, idx) => (
             <img
               key={`${ep.id}-${idx}`}
@@ -180,7 +180,7 @@ export default function WebtoonPage() {
       )}
 
       {/* Bottom navigation */}
-      <div className="mx-auto flex max-w-[720px] items-center justify-between rounded-lg border border-warm-200 bg-white px-5 py-4">
+      <div className="mx-auto flex max-w-[960px] items-center justify-between rounded-lg border border-warm-200 bg-white px-5 py-4">
         <button
           onClick={goPrev}
           disabled={current === 0}
@@ -195,7 +195,7 @@ export default function WebtoonPage() {
               onClick={() => { setCurrent(idx); scrollToTop() }}
               className={clsx(
                 'h-2.5 rounded-full transition-all',
-                idx === current ? 'w-8 bg-brand-800' : 'w-2.5 bg-slate-300 hover:bg-slate-400'
+                idx === current ? 'w-8 bg-brand-800' : 'w-2.5 bg-warm-300 hover:bg-warm-400'
               )}
             />
           ))}
@@ -213,7 +213,7 @@ export default function WebtoonPage() {
       {showScrollTop && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-8 right-8 z-50 flex h-12 items-center gap-2 rounded-full bg-brand-800 px-5 text-sm font-bold text-white shadow-2xl transition-all hover:bg-brand-900 hover:shadow-brand-200 active:scale-95"
+          className="fixed bottom-8 right-8 z-50 flex h-12 items-center gap-2 rounded-full bg-brand-800 px-5 text-sm font-bold text-white shadow-md transition-all hover:bg-brand-900 hover:shadow-brand-200 active:scale-95"
         >
           <ArrowUp size={16} />
           처음으로

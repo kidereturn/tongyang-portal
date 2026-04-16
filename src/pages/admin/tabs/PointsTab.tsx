@@ -204,9 +204,9 @@ export default function PointsTab() {
           <p className="text-[10px] font-bold text-emerald-500">전체 사용자</p>
           <p className="text-2xl font-bold text-emerald-700">{rows.length}<span className="text-xs ml-0.5">명</span></p>
         </div>
-        <div className="rounded-xl bg-purple-50 border border-purple-100 p-4 text-center">
-          <p className="text-[10px] font-bold text-purple-500">평균 포인트</p>
-          <p className="text-2xl font-bold text-purple-700">
+        <div className="rounded-xl bg-warm-50 border border-warm-100 p-4 text-center">
+          <p className="text-[10px] font-bold text-warm-500">평균 포인트</p>
+          <p className="text-2xl font-bold text-brand-700">
             {rows.length > 0 ? Math.round(totalPoints / rows.length) : 0}<span className="text-xs ml-0.5">P</span>
           </p>
         </div>
@@ -337,7 +337,7 @@ export default function PointsTab() {
       {/* User history popup */}
       {selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setSelectedUser(null)}>
-          <div className="w-full max-w-lg rounded-lg bg-white shadow-2xl border border-warm-200 overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-lg rounded-lg bg-white shadow-md border border-warm-200 overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-warm-200 bg-amber-50 px-5 py-4">
               <div>
                 <h3 className="text-sm font-bold text-brand-900 flex items-center gap-2">

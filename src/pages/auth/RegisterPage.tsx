@@ -83,7 +83,7 @@ export default function RegisterPage() {
           <p className="text-warm-400 text-sm mt-1">관리자 승인 후 계정이 활성화됩니다</p>
         </div>
 
-        <div className="bg-brand-800 border border-slate-800 rounded-lg p-8 shadow-2xl">
+        <div className="bg-brand-800 border border-slate-800 rounded-lg p-8 shadow-md">
           {error && (
             <div className="flex items-center gap-2 bg-red-950/50 border border-red-800 text-red-300 text-sm rounded-lg px-4 py-3 mb-5">
               <AlertCircle size={16} className="shrink-0" />

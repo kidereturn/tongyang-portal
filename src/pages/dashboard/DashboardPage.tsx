@@ -390,7 +390,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5 pb-mobile-tab lg:pb-0">
-      <div className="rounded-lg bg-gradient-to-r from-brand-800 via-brand-700 to-indigo-700 p-4 sm:p-6 text-white relative overflow-hidden">
+      <div className="rounded-lg bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 p-4 sm:p-6 text-white relative overflow-hidden">
         <div className="absolute right-0 top-0 bottom-0 w-64 opacity-10">
           <LayoutDashboard size={180} className="absolute -right-8 -top-4" />
         </div>
@@ -796,14 +796,14 @@ export default function DashboardPage() {
 
           <Link to="/bingo" className="card p-5 hover:shadow-md transition-all group">
             <div className="flex items-center gap-2 mb-3">
-              <Gamepad2 size={15} className="text-purple-500" />
+              <Gamepad2 size={15} className="text-warm-500" />
               <p className="font-bold text-brand-900 text-sm">빙고퀴즈 참여현황</p>
               <ArrowRight size={12} className="ml-auto text-warm-300 group-hover:text-brand-500 transition" />
             </div>
             <div className="grid grid-cols-2 gap-3 text-center">
-              <div className="rounded-xl bg-purple-50 p-3">
-                <p className="text-xs text-purple-500">빙고퀴즈</p>
-                <p className="text-lg font-bold text-purple-700">5x5</p>
+              <div className="rounded-xl bg-warm-50 p-3">
+                <p className="text-xs text-warm-500">빙고퀴즈</p>
+                <p className="text-lg font-bold text-brand-700">5x5</p>
               </div>
               <div className="rounded-xl bg-amber-50 p-3">
                 <p className="text-xs text-accent-600">목표</p>
@@ -839,7 +839,7 @@ export default function DashboardPage() {
                       ? 'bg-blue-50 text-blue-600'
                       : item.color === 'green'
                         ? 'bg-emerald-50 text-emerald-600'
-                        : 'bg-purple-50 text-purple-600'
+                        : 'bg-warm-50 text-brand-600'
                 )}
               >
                 <item.icon size={15} />

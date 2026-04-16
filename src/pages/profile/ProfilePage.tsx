@@ -98,7 +98,7 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-[28px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-6 py-8 text-white shadow-2xl">
+      <div className="rounded-lg bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
         <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">MY PROFILE</p>
         <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
           <User size={28} className="text-brand-300" />
@@ -111,7 +111,7 @@ export default function ProfilePage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Profile edit */}
-        <div className="overflow-hidden rounded-[28px] border border-warm-200 bg-white shadow-md">
+        <div className="overflow-hidden rounded-lg border border-warm-200 bg-white shadow-md">
           <div className="border-b border-warm-100 px-5 py-4">
             <h2 className="text-lg font-bold text-brand-900">프로필 수정</h2>
           </div>
@@ -158,7 +158,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Password change */}
-        <div className="overflow-hidden rounded-[28px] border border-warm-200 bg-white shadow-md">
+        <div className="overflow-hidden rounded-lg border border-warm-200 bg-white shadow-md">
           <div className="border-b border-warm-100 px-5 py-4">
             <h2 className="text-lg font-bold text-brand-900">비밀번호 변경</h2>
           </div>

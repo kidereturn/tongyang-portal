@@ -21,7 +21,7 @@ const CATEGORIES = [
   { key: '응원메시지', label: '응원메시지', color: 'bg-emerald-100 text-emerald-700' },
   { key: '불편사항', label: '불편사항', color: 'bg-red-100 text-red-700' },
   { key: '개선건의', label: '개선건의', color: 'bg-blue-100 text-blue-700' },
-  { key: '이것도 해주세요', label: '이것도 해주세요', color: 'bg-purple-100 text-purple-700' },
+  { key: '이것도 해주세요', label: '이것도 해주세요', color: 'bg-warm-100 text-brand-700' },
   { key: '쓴소리', label: '쓴소리', color: 'bg-amber-100 text-amber-700' },
   { key: '기타', label: '기타', color: 'bg-warm-100 text-warm-600' },
 ]
@@ -101,10 +101,10 @@ export default function TellMePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-[28px] bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 px-6 py-8 text-white shadow-2xl">
-        <p className="text-xs font-semibold tracking-[0.24em] text-purple-300">TELL ME!!</p>
+      <div className="rounded-lg bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
+        <p className="text-xs font-semibold tracking-[0.24em] text-warm-300">TELL ME!!</p>
         <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
-          <MessageCircle size={28} className="text-purple-300" />
+          <MessageCircle size={28} className="text-warm-300" />
           Tell me!!
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-warm-300">
@@ -160,7 +160,7 @@ export default function TellMePage() {
           {filtered.map(post => (
             <div key={post.id} className="card p-5 hover:shadow-md transition-shadow">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-600 shrink-0">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-warm-100 to-warm-100 text-brand-600 shrink-0">
                   <User size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -188,9 +188,9 @@ export default function TellMePage() {
       {/* Write form modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowForm(false)}>
-          <div className="w-full max-w-lg mx-4 rounded-lg bg-white shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-warm-200 bg-purple-50 px-5 py-4">
-              <h3 className="flex items-center gap-2 text-base font-bold text-purple-900">
+          <div className="w-full max-w-lg mx-4 rounded-lg bg-white shadow-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-warm-200 bg-warm-50 px-5 py-4">
+              <h3 className="flex items-center gap-2 text-base font-bold text-brand-900">
                 <MessageCircle size={20} />
                 Tell me!! 글쓰기
               </h3>
@@ -212,7 +212,7 @@ export default function TellMePage() {
                       className={clsx(
                         'px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all',
                         formCategory === cat.key
-                          ? 'bg-purple-600 text-white border-purple-600'
+                          ? 'bg-brand-600 text-white border-brand-600'
                           : 'bg-white text-warm-600 border-warm-200 hover:bg-warm-50'
                       )}
                     >
@@ -254,7 +254,7 @@ export default function TellMePage() {
                   type="checkbox"
                   checked={formAnonymous}
                   onChange={e => setFormAnonymous(e.target.checked)}
-                  className="rounded border-warm-300 text-purple-600 focus:ring-purple-500"
+                  className="rounded border-warm-300 text-brand-600 focus:ring-warm-500"
                 />
                 <span className="text-sm text-brand-700">익명으로 게시</span>
               </label>

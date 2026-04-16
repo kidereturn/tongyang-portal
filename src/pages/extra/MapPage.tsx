@@ -222,7 +222,7 @@ export default function MapPage() {
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <div className="rounded-[28px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-6 py-8 text-white shadow-2xl">
+      <div className="rounded-lg bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">MAP CENTER</p>
@@ -258,7 +258,7 @@ export default function MapPage() {
 
       {/* 본문 */}
       <div className="grid gap-6 xl:grid-cols-[1.5fr_0.9fr]">
-        <section className="overflow-hidden rounded-[28px] border border-warm-200 bg-white shadow-md">
+        <section className="overflow-hidden rounded-lg border border-warm-200 bg-white shadow-md">
           <div className="border-b border-warm-100 px-5 py-4">
             <p className="text-sm font-bold text-brand-900">
               현재 선택: <span className="text-brand-700">{selectedLocation?.name}</span>
@@ -269,7 +269,7 @@ export default function MapPage() {
         </section>
 
         <section className="space-y-4">
-          <div className="rounded-[28px] border border-warm-200 bg-white p-5 shadow-md">
+          <div className="rounded-lg border border-warm-200 bg-white p-5 shadow-md">
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-400" />
               <input

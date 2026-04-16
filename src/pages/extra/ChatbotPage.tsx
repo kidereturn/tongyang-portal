@@ -143,7 +143,7 @@ export default function ChatbotPage() {
           {/* 채팅 헤더 */}
           <div className="px-5 py-3 border-b border-warm-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br from-brand-500 to-purple-600">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br from-brand-500 to-brand-600">
                 <Bot size={15} className="text-white" />
               </div>
               <div>
@@ -163,7 +163,7 @@ export default function ChatbotPage() {
             {messages.map((msg, i) => (
               <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                 {msg.role === 'assistant' && (
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-gradient-to-br from-brand-500 to-purple-600">
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-gradient-to-br from-brand-500 to-brand-600">
                     <Bot size={12} className="text-white" />
                   </div>
                 )}
@@ -189,7 +189,7 @@ export default function ChatbotPage() {
 
             {thinking && (
               <div className="flex gap-3">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-gradient-to-br from-brand-500 to-purple-600">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-gradient-to-br from-brand-500 to-brand-600">
                   <Bot size={12} className="text-white" />
                 </div>
                 <div className="bg-warm-50 border border-warm-100 rounded-lg rounded-tl-sm px-4 py-3 flex gap-1 items-center">
@@ -256,7 +256,7 @@ export default function ChatbotPage() {
             </div>
           </div>
 
-          <div className="card p-4 bg-gradient-to-br from-brand-50 to-purple-50 border-brand-100">
+          <div className="card p-4 bg-gradient-to-br from-brand-50 to-warm-50 border-brand-100">
             <div className="flex items-center gap-2 mb-2">
               <BookOpen size={14} className="text-brand-700" />
               <p className="text-sm font-bold text-brand-900">문서 기반 AI</p>
