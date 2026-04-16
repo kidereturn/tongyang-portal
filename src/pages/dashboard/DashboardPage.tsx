@@ -83,7 +83,7 @@ interface DailyData {
   count: number
 }
 
-const PIE_COLORS = ['#f59e0b', '#6366f1', '#22c55e', '#ef4444']
+const PIE_COLORS = ['#A89167', '#5C564A', '#7A7466', '#C2BEB5']
 
 function StatCard({
   icon: Icon,

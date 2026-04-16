@@ -4,6 +4,8 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Artek-inspired Design System ─── */
+
 @layer base {
   * { box-sizing: border-box; }
   html {
@@ -11,65 +13,102 @@
       'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    letter-spacing: -0.01em;
-    font-size: 108%;
+    letter-spacing: -0.008em;
+    font-size: 100%;
+    line-height: 1.7;
   }
-  body { @apply bg-gray-50 text-gray-900; margin: 0; padding: 0; }
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  body {
+    @apply bg-warm-50 text-brand-900;
+    margin: 0;
+    padding: 0;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+  }
+  p { line-height: 1.75; }
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full; }
-  ::-webkit-scrollbar-thumb:hover { @apply bg-gray-400; }
+  ::-webkit-scrollbar-thumb { @apply bg-warm-300 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-warm-400; }
 }
 
 @layer components {
+  /* ─── Buttons: restrained, elegant ─── */
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white text-sm font-semibold
-           rounded-lg hover:bg-brand-700 active:bg-brand-800 transition-all duration-150
-           shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center gap-2 px-5 py-2.5
+           bg-brand-800 text-white text-sm font-medium tracking-wide
+           rounded-md hover:bg-brand-900 active:bg-brand-950
+           transition-all duration-200
+           disabled:opacity-40 disabled:cursor-not-allowed;
   }
   .btn-secondary {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 text-sm font-semibold
-           border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300
-           transition-all duration-150 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center gap-2 px-5 py-2.5
+           bg-white text-brand-700 text-sm font-medium
+           border border-warm-300 rounded-md
+           hover:bg-warm-50 hover:border-warm-400
+           transition-all duration-200
+           disabled:opacity-40 disabled:cursor-not-allowed;
   }
   .btn-danger {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-red-500 text-white text-sm font-semibold
-           rounded-lg hover:bg-red-600 transition-all duration-150 shadow-sm
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center gap-2 px-5 py-2.5
+           bg-red-700 text-white text-sm font-medium
+           rounded-md hover:bg-red-800
+           transition-all duration-200
+           disabled:opacity-40 disabled:cursor-not-allowed;
   }
   .btn-success {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white text-sm font-semibold
-           rounded-lg hover:bg-emerald-600 transition-all duration-150 shadow-sm
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center gap-2 px-5 py-2.5
+           bg-emerald-700 text-white text-sm font-medium
+           rounded-md hover:bg-emerald-800
+           transition-all duration-200
+           disabled:opacity-40 disabled:cursor-not-allowed;
   }
   .btn-ghost {
-    @apply inline-flex items-center gap-2 px-3 py-2 text-gray-600 text-sm font-medium
-           rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-all duration-150
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center gap-2 px-4 py-2
+           text-brand-600 text-sm font-medium
+           rounded-md hover:bg-warm-100 hover:text-brand-800
+           transition-all duration-200
+           disabled:opacity-40 disabled:cursor-not-allowed;
   }
-  .card { @apply bg-white rounded-xl border border-gray-100 shadow-sm; }
-  .card-hover { @apply card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200; }
+
+  /* ─── Cards: borderless feel, very subtle ─── */
+  .card {
+    @apply bg-white rounded-lg border border-warm-200;
+    box-shadow: 0 1px 2px 0 rgba(30,27,24,0.03);
+  }
+  .card-hover {
+    @apply card hover:border-warm-300 transition-all duration-300;
+    &:hover { box-shadow: 0 2px 8px 0 rgba(30,27,24,0.06); }
+  }
+
+  /* ─── Form inputs: clean lines ─── */
   .form-input {
-    @apply w-full px-3 py-2.5 text-sm bg-white border border-gray-200 rounded-lg
-           placeholder:text-gray-400 text-gray-900
-           focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500
-           transition-colors duration-150;
+    @apply w-full px-4 py-3 text-sm bg-white
+           border border-warm-200 rounded-md
+           placeholder:text-warm-400 text-brand-900
+           focus:outline-none focus:ring-1 focus:ring-brand-400/30 focus:border-brand-500
+           transition-colors duration-200;
   }
-  .form-label { @apply block text-sm font-medium text-gray-700 mb-1.5; }
-  .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold; }
-  .badge-blue   { @apply badge bg-blue-50 text-blue-700 border border-blue-100; }
-  .badge-green  { @apply badge bg-emerald-50 text-emerald-700 border border-emerald-100; }
-  .badge-red    { @apply badge bg-red-50 text-red-700 border border-red-100; }
-  .badge-yellow { @apply badge bg-amber-50 text-amber-700 border border-amber-100; }
-  .badge-gray   { @apply badge bg-gray-100 text-gray-600 border border-gray-200; }
-  .badge-purple { @apply badge bg-purple-50 text-purple-700 border border-purple-100; }
+  .form-label { @apply block text-sm font-medium text-brand-700 mb-2; }
+
+  /* ─── Badges: muted, understated ─── */
+  .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium tracking-wide; }
+  .badge-blue   { @apply badge bg-blue-50 text-blue-800; }
+  .badge-green  { @apply badge bg-emerald-50 text-emerald-800; }
+  .badge-red    { @apply badge bg-red-50 text-red-800; }
+  .badge-yellow { @apply badge bg-amber-50 text-amber-800; }
+  .badge-gray   { @apply badge bg-warm-100 text-warm-600; }
+  .badge-purple { @apply badge bg-purple-50 text-purple-800; }
+
+  /* ─── Modals: refined ─── */
   .modal-overlay {
-    @apply fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm;
-    animation: fadeIn 0.15s ease-out;
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-brand-950/30 backdrop-blur-sm;
+    animation: fadeIn 0.2s ease-out;
   }
   .modal-box {
-    @apply bg-white rounded-2xl shadow-2xl w-full mx-4 max-h-[90vh] overflow-auto;
-    animation: scaleIn 0.15s ease-out;
+    @apply bg-white rounded-lg shadow-2xl w-full mx-4 max-h-[90vh] overflow-auto;
+    animation: scaleIn 0.2s ease-out;
   }
 }
 
@@ -78,11 +117,11 @@
   to { opacity: 1; }
 }
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.96); }
+  from { opacity: 0; transform: scale(0.97); }
   to { opacity: 1; transform: scale(1); }
 }
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-8px); }
+  from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes shimmer {
@@ -90,57 +129,58 @@
   100% { background-position: 400px 0; }
 }
 @keyframes countUp {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 데이터 테이블 */
+/* ─── Data table: clean, generous ─── */
 .data-table { @apply w-full text-left border-collapse; }
 .data-table th {
-  @apply px-3 py-2.5 text-xs font-semibold text-gray-500 bg-gray-50/80
-         border-b border-gray-100 whitespace-nowrap;
+  @apply px-4 py-3 text-xs font-medium text-warm-500 uppercase tracking-wider
+         bg-warm-50 border-b border-warm-200 whitespace-nowrap;
 }
 .data-table td {
-  @apply px-3 py-2.5 text-xs text-gray-700 border-b border-gray-50;
+  @apply px-4 py-3 text-sm text-brand-700 border-b border-warm-100;
 }
-.data-table tbody tr:hover { @apply bg-gray-50/50; }
+.data-table tbody tr { @apply transition-colors duration-150; }
+.data-table tbody tr:hover { @apply bg-warm-50/60; }
 
-/* 스켈레톤 로더 */
+/* ─── Skeleton loader ─── */
 .skeleton {
-  @apply rounded-lg bg-gray-100 overflow-hidden relative;
-  background: linear-gradient(90deg, #f3f4f6 25%, #e9ebee 50%, #f3f4f6 75%);
+  @apply rounded-md bg-warm-100 overflow-hidden relative;
+  background: linear-gradient(90deg, #F5F4F0 25%, #ECEAE4 50%, #F5F4F0 75%);
   background-size: 400px 100%;
-  animation: shimmer 1.4s infinite linear;
+  animation: shimmer 1.6s infinite linear;
 }
 
-/* 모바일 하단 탭 바 여백 */
+/* ─── Mobile bottom tab bar spacing ─── */
 @media (max-width: 1023px) {
   .pb-mobile-tab { padding-bottom: 5rem; }
 }
 
-/* 모바일 safe area (iPhone 노치/홈바) */
+/* ─── Mobile safe area ─── */
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* 모바일 메뉴 애니메이션 */
+/* ─── Mobile menu animation ─── */
 @keyframes slideUp {
   from { transform: translateY(100%); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
 }
-.animate-in { animation: slideUp 0.25s ease-out forwards; }
+.animate-in { animation: slideUp 0.3s ease-out forwards; }
 
-/* 모바일에서 터치 하이라이트 제거 */
+/* ─── Mobile touch highlight ─── */
 @media (max-width: 1023px) {
   button, a { -webkit-tap-highlight-color: transparent; }
 }
 
-/* 모바일에서 스크롤바 숨기기 */
+/* ─── Mobile scrollbar ─── */
 @media (max-width: 640px) {
   ::-webkit-scrollbar { display: none; }
   * { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
-/* GNB 스크롤바 숨기기 */
+/* ─── GNB scrollbar ─── */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

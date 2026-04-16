@@ -73,15 +73,15 @@ export default function MobileTabBar() {
 
           <div className="overflow-y-auto px-4 py-4" style={{ maxHeight: 'calc(100vh - 56px)' }}>
             {/* 프로필 카드 */}
-            <div className="mb-4 flex items-center gap-3 rounded-2xl bg-gradient-to-r from-brand-600 to-brand-700 p-4 text-white shadow-lg">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 text-lg font-black">
+            <div className="mb-4 flex items-center gap-3 rounded-lg bg-brand-800 p-4 text-white">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-base font-semibold">
                 {profile?.full_name?.slice(0, 1) ?? '?'}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-base font-bold truncate">{profile?.full_name ?? '사용자'}</p>
-                <p className="text-sm text-brand-100 truncate">{profile?.department ?? ''}</p>
+                <p className="text-sm font-semibold truncate">{profile?.full_name ?? '사용자'}</p>
+                <p className="text-xs text-warm-300 truncate">{profile?.department ?? ''}</p>
               </div>
-              <span className="rounded-full bg-white/20 px-2.5 py-1 text-xs font-bold">
+              <span className="rounded-md bg-white/15 px-2.5 py-1 text-[10px] font-medium tracking-wide">
                 {role === 'admin' ? '관리자' : role === 'controller' ? '승인자' : '담당자'}
               </span>
             </div>
@@ -155,7 +155,7 @@ export default function MobileTabBar() {
       )}
 
       {/* 하단 탭바 */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 backdrop-blur-lg lg:hidden safe-bottom">
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-warm-200 bg-white/95 backdrop-blur-md lg:hidden safe-bottom">
         <div className="mx-auto flex h-16 max-w-md items-stretch justify-around">
           {tabs.map(item => (
             <NavLink

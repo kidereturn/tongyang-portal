@@ -64,9 +64,9 @@ const ROLE_LABEL: Record<string, string> = {
 }
 
 const ROLE_CLASS: Record<string, string> = {
-  admin: 'bg-purple-100 text-purple-700 border-purple-200',
-  controller: 'bg-blue-100 text-blue-700 border-blue-200',
-  owner: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  admin: 'bg-warm-100 text-brand-700 border-warm-200',
+  controller: 'bg-warm-100 text-brand-600 border-warm-200',
+  owner: 'bg-warm-100 text-brand-500 border-warm-200',
 }
 
 function filterNavItems(role?: string | null) {
@@ -174,31 +174,33 @@ export default function TopNav() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur">
-        <div className="mx-auto flex h-14 sm:h-16 max-w-screen-2xl items-center gap-3 px-3 sm:px-4 md:px-6">
-          <Link to="/dashboard" className="mr-1 flex items-center shrink-0">
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-warm-200 bg-white/95 backdrop-blur-md">
+        <div className="mx-auto flex h-14 sm:h-16 max-w-screen-2xl items-center gap-4 px-4 sm:px-5 md:px-8">
+          <Link to="/dashboard" className="mr-2 flex items-center shrink-0">
             <div className="hidden lg:block">
-              <p className="text-sm font-black leading-tight text-slate-900">(주)동양 내부회계 PORTAL</p>
-              <p className="text-[10px] font-medium tracking-[0.14em] text-slate-400">
-                TONGYANG INTERNAL CONTROLS
+              <p className="text-[13px] font-bold leading-tight tracking-tight text-brand-900">(주)동양 내부회계 PORTAL</p>
+              <p className="text-[9px] font-medium tracking-[0.18em] text-warm-400 uppercase">
+                Tongyang Internal Controls
               </p>
             </div>
-            <p className="text-sm font-black text-slate-900 lg:hidden">(주)동양 PORTAL</p>
+            <p className="text-[13px] font-bold tracking-tight text-brand-900 lg:hidden">(주)동양 PORTAL</p>
           </Link>
 
-          <nav className="hidden min-w-0 flex-1 items-center gap-0.5 overflow-x-auto scrollbar-hide lg:flex">
+          <nav className="hidden min-w-0 flex-1 items-center gap-0 overflow-x-auto scrollbar-hide lg:flex">
             {visibleItems.map(item => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
                   clsx(
-                    'inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-[13px] font-semibold whitespace-nowrap transition',
-                    isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    'inline-flex items-center gap-1.5 px-3 py-2 text-[13px] whitespace-nowrap transition-colors duration-200 border-b-2',
+                    isActive
+                      ? 'text-brand-900 font-semibold border-brand-800'
+                      : 'text-warm-500 font-medium border-transparent hover:text-brand-700 hover:border-warm-300'
                   )
                 }
               >
-                <item.icon size={14} />
+                <item.icon size={14} strokeWidth={1.5} />
                 <span>{item.label}</span>
               </NavLink>
             ))}
@@ -208,66 +210,68 @@ export default function TopNav() {
                 to="/admin"
                 className={({ isActive }) =>
                   clsx(
-                    'inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-[13px] font-semibold whitespace-nowrap transition',
-                    isActive ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    'inline-flex items-center gap-1.5 px-3 py-2 text-[13px] whitespace-nowrap transition-colors duration-200 border-b-2',
+                    isActive
+                      ? 'text-brand-900 font-semibold border-brand-800'
+                      : 'text-warm-500 font-medium border-transparent hover:text-brand-700 hover:border-warm-300'
                   )
                 }
               >
-                <Shield size={14} />
+                <Shield size={14} strokeWidth={1.5} />
                 <span>관리자</span>
               </NavLink>
             )}
           </nav>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-3">
             <div ref={notiRef} className="relative">
               <button
                 onClick={() => setNotiOpen(v => !v)}
-                className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                className="relative flex h-9 w-9 items-center justify-center rounded-md text-warm-500 transition-colors duration-200 hover:bg-warm-100 hover:text-brand-800"
               >
-                <Bell size={18} />
+                <Bell size={17} strokeWidth={1.5} />
                 {unreadCount > 0 && (
-                  <span className="absolute right-1.5 top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                  <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-800 px-1 text-[9px] font-bold text-white">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </button>
 
               {notiOpen && (
-                <div className="absolute right-0 top-12 max-w-[90vw] w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:w-96">
-                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                    <p className="text-sm font-bold text-slate-900">알림</p>
+                <div className="absolute right-0 top-12 max-w-[90vw] w-80 overflow-hidden rounded-lg border border-warm-200 bg-white shadow-lg sm:w-96">
+                  <div className="flex items-center justify-between border-b border-warm-100 px-5 py-3.5">
+                    <p className="text-sm font-semibold text-brand-900">알림</p>
                     {unreadCount > 0 && (
-                      <button onClick={markAllAsRead} className="text-xs font-medium text-brand-600 hover:text-brand-800">
+                      <button onClick={markAllAsRead} className="text-xs font-medium text-brand-600 hover:text-brand-800 transition-colors">
                         모두 읽음
                       </button>
                     )}
                   </div>
                   <div className="max-h-80 overflow-y-auto">
                     {notifications.length === 0 ? (
-                      <div className="px-4 py-8 text-center text-sm text-slate-400">알림이 없습니다</div>
+                      <div className="px-5 py-10 text-center text-sm text-warm-400">알림이 없습니다</div>
                     ) : (
                       notifications.map(n => (
                         <button
                           key={n.id}
                           onClick={() => { if (!n.is_read) markAsRead(n.id) }}
                           className={clsx(
-                            'flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-slate-50',
-                            !n.is_read && 'bg-brand-50/40'
+                            'flex w-full items-start gap-3 px-5 py-3.5 text-left transition-colors duration-150 hover:bg-warm-50',
+                            !n.is_read && 'bg-warm-50/60'
                           )}
                         >
                           <div className={clsx(
-                            'mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
-                            n.is_read ? 'bg-slate-100 text-slate-400' : 'bg-brand-100 text-brand-600'
+                            'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
+                            n.is_read ? 'bg-warm-100 text-warm-400' : 'bg-brand-100 text-brand-700'
                           )}>
-                            {n.is_read ? <Check size={12} /> : <Bell size={12} />}
+                            {n.is_read ? <Check size={11} /> : <Bell size={11} />}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className={clsx('text-sm', n.is_read ? 'text-slate-600' : 'font-semibold text-slate-900')}>
+                            <p className={clsx('text-sm leading-snug', n.is_read ? 'text-warm-600' : 'font-medium text-brand-900')}>
                               {n.title}
                             </p>
-                            {n.body && <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{n.body}</p>}
-                            <p className="mt-1 text-[11px] text-slate-400">
+                            {n.body && <p className="mt-0.5 line-clamp-2 text-xs text-warm-400 leading-relaxed">{n.body}</p>}
+                            <p className="mt-1.5 text-[11px] text-warm-400">
                               {n.sender?.full_name ? `${n.sender.full_name} · ` : ''}
                               {new Date(n.created_at).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </p>
@@ -284,56 +288,56 @@ export default function TopNav() {
             <div ref={profileRef} className="relative hidden lg:block">
               <button
                 onClick={() => setProfileOpen(value => !value)}
-                className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-1.5 transition hover:border-slate-300 hover:bg-slate-50"
+                className="flex items-center gap-2.5 rounded-md border border-warm-200 bg-white px-3 py-1.5 transition-colors duration-200 hover:border-warm-300 hover:bg-warm-50"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-black text-white">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-800 text-xs font-semibold text-white">
                   {profile?.full_name?.slice(0, 1) ?? '?'}
                 </div>
                 <div className="hidden text-left md:block">
-                  <p className="text-sm font-bold text-slate-900">
+                  <p className="text-[13px] font-medium text-brand-900">
                     {profile?.full_name ?? '사용자'}
-                    <span className="ml-1.5 text-xs font-black text-amber-500">{totalPoints}P</span>
+                    <span className="ml-1.5 text-[11px] font-semibold text-accent-600">{totalPoints}P</span>
                   </p>
                 </div>
                 {profile?.role && (
-                  <span className={clsx('badge border text-xs', ROLE_CLASS[profile.role] ?? 'badge-gray')}>
+                  <span className={clsx('badge border text-[10px]', ROLE_CLASS[profile.role] ?? 'badge-gray')}>
                     {ROLE_LABEL[profile.role] ?? profile.role}
                   </span>
                 )}
-                <ChevronDown size={14} className={clsx('text-slate-400 transition', profileOpen && 'rotate-180')} />
+                <ChevronDown size={13} className={clsx('text-warm-400 transition-transform duration-200', profileOpen && 'rotate-180')} />
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 top-14 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-                  <div className="border-b border-slate-100 px-4 py-3">
-                    <p className="text-sm font-bold text-slate-900">{profile?.full_name}</p>
-                    <p className="mt-1 text-xs text-slate-500">{profile?.department ?? '-'}</p>
-                    <p className="text-xs text-slate-400">{profile?.email ?? '-'}</p>
+                <div className="absolute right-0 top-14 w-56 overflow-hidden rounded-lg border border-warm-200 bg-white shadow-lg">
+                  <div className="border-b border-warm-100 px-5 py-3.5">
+                    <p className="text-sm font-semibold text-brand-900">{profile?.full_name}</p>
+                    <p className="mt-0.5 text-xs text-warm-500">{profile?.department ?? '-'}</p>
+                    <p className="text-xs text-warm-400">{profile?.email ?? '-'}</p>
                   </div>
-                  <div className="p-2">
+                  <div className="p-1.5">
                     <NavLink
                       to="/profile"
                       onClick={() => setProfileOpen(false)}
-                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+                      className="flex w-full items-center gap-2.5 rounded-md px-3 py-2.5 text-sm text-brand-700 transition-colors duration-150 hover:bg-warm-50"
                     >
-                      <User size={15} className="text-slate-400" />
+                      <User size={15} className="text-warm-400" strokeWidth={1.5} />
                       내 정보
                     </NavLink>
                     {isAdmin && (
                       <NavLink
                         to="/admin"
                         onClick={() => setProfileOpen(false)}
-                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+                        className="flex w-full items-center gap-2.5 rounded-md px-3 py-2.5 text-sm text-brand-700 transition-colors duration-150 hover:bg-warm-50"
                       >
-                        <Settings size={15} className="text-slate-400" />
+                        <Settings size={15} className="text-warm-400" strokeWidth={1.5} />
                         관리자 설정
                       </NavLink>
                     )}
                     <button
                       onClick={handleSignOut}
-                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-red-600 transition hover:bg-red-50"
+                      className="flex w-full items-center gap-2.5 rounded-md px-3 py-2.5 text-sm text-red-700 transition-colors duration-150 hover:bg-red-50"
                     >
-                      <LogOut size={15} />
+                      <LogOut size={15} strokeWidth={1.5} />
                       로그아웃
                     </button>
                   </div>
