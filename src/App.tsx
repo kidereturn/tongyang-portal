@@ -4,6 +4,7 @@ import { useAuth } from './hooks/useAuth'
 import { Loader2 } from 'lucide-react'
 import Layout from './components/layout/Layout'
 import ErrorBoundary from './components/ErrorBoundary'
+import NetworkGuard from './components/NetworkGuard'
 
 // Retry wrapper: on chunk-load failure, retry up to 2 times then hard reload
 function lazyRetry<T extends { default: React.ComponentType<any> }>(
@@ -143,6 +144,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <NetworkGuard />
       <ErrorBoundary>
         <Suspense fallback={<LoadingScreen />}>
           <Routes>

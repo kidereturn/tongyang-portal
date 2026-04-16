@@ -126,12 +126,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (mounted) setState(prev => ({ ...prev, loading: false }))
     }, 5000)
 
-    // Supabase autoRefreshToken handles session refresh automatically.
-    // No additional interval needed.
+    // TOKEN_REFRESHED 실패 시 자동 복구
+    // Supabase autoRefreshToken 이 실패하면 세션이 끊기므로 수동 재시도
+    const refreshRetry = setInterval(async () => {
+      if (!mounted) return
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession()
+        if (!currentSession) return // 로그인 안 됨
+
+        const expiresAt = currentSession.expires_at ?? 0
+        const now = Math.floor(Date.now() / 1000)
+        // 만료 5분 전이면 강제 갱신
+        if (expiresAt - now < 300) {
+          const { error } = await supabase.auth.refreshSession()
+          if (error) {
+            console.warn('[AuthProvider] refresh retry failed:', error.message)
+          } else {
+            console.info('[AuthProvider] session refreshed successfully')
+          }
+        }
+      } catch { /* silent */ }
+    }, 2 * 60 * 1000) // 2분마다 체크
 
     return () => {
       mounted = false
       clearTimeout(timeout)
+      clearInterval(refreshRetry)
       subscription.unsubscribe()
     }
   }, [])
