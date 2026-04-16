@@ -318,21 +318,21 @@ export default function EvidenceListPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="data-table text-xs">
+            <table className="data-table text-xs" style={{ tableLayout: 'auto' }}>
               <thead>
                 <tr>
                   <th className="text-center w-8">#</th>
-                  <th>통제번호</th>
-                  {profile?.role !== 'owner' && <th>담당자</th>}
-                  <th>관련부서</th>
-                  <th className="min-w-[180px]">통제활동명</th>
-                  <th className="min-w-[160px]">제출 증빙 설명</th>
-                  <th className="text-center min-w-[120px]">증빙 Upload</th>
-                  <th className="text-center min-w-[80px]">증빙수</th>
-                  {profile?.role === 'admin' && <th>승인자</th>}
-                  <th className="text-center min-w-[90px]">KPI점수</th>
-                  <th className="text-center min-w-[100px]">상신여부</th>
-                  <th className="text-center min-w-[100px]">승인상태</th>
+                  <th className="whitespace-nowrap">통제번호</th>
+                  {profile?.role !== 'owner' && <th className="whitespace-nowrap">담당자</th>}
+                  <th className="whitespace-nowrap">관련부서</th>
+                  <th className="min-w-[160px]">통제활동명</th>
+                  <th className="min-w-[140px]">제출 증빙 설명</th>
+                  <th className="text-center whitespace-nowrap">증빙 Upload</th>
+                  <th className="text-center whitespace-nowrap">증빙수</th>
+                  {profile?.role === 'admin' && <th className="whitespace-nowrap">승인자</th>}
+                  <th className="text-center whitespace-nowrap">KPI점수</th>
+                  <th className="text-center whitespace-nowrap">상신여부</th>
+                  <th className="text-center whitespace-nowrap">승인상태</th>
                   <th className="w-6"></th>
                 </tr>
               </thead>
@@ -343,60 +343,60 @@ export default function EvidenceListPage() {
                   const isView = profile?.role === 'controller' || (profile?.role === 'admin')
                   return (
                     <tr key={act.id} className="group">
-                      <td className="text-center text-sm text-warm-400 py-3">{i + 1}</td>
-                      <td className="py-3">
-                        <code className="text-sm bg-warm-100 text-brand-700 px-2 py-1 rounded font-semibold">
+                      <td className="text-center text-xs text-warm-400 py-2.5">{i + 1}</td>
+                      <td className="py-2.5 whitespace-nowrap">
+                        <code className="text-[11px] bg-warm-100 text-brand-700 px-1.5 py-0.5 rounded font-semibold">
                           {act.control_code}
                         </code>
                       </td>
                       {profile?.role !== 'owner' && (
-                        <td className="font-semibold text-sm text-brand-800 py-3">{act.owner_name ?? '-'}</td>
+                        <td className="font-semibold text-xs text-brand-800 py-2.5 whitespace-nowrap">{act.owner_name ?? '-'}</td>
                       )}
-                      <td className="text-sm text-warm-600 py-3">{act.department ?? '-'}</td>
-                      <td className="py-3">
-                        <span className="text-sm font-medium text-brand-700 cursor-help" title={act.title ?? ''}>
+                      <td className="text-xs text-warm-600 py-2.5 whitespace-nowrap">{act.department ?? '-'}</td>
+                      <td className="py-2.5">
+                        <span className="text-xs font-medium text-brand-700 cursor-help" title={act.title ?? ''}>
                           {act.title && act.title.length > 36 ? act.title.slice(0, 36) + '…' : (act.title ?? '-')}
                         </span>
                       </td>
-                      <td className="py-3">
-                        <span className="text-sm text-warm-600 cursor-help" title={act.description ?? ''}>
+                      <td className="py-2.5">
+                        <span className="text-xs text-warm-600 cursor-help" title={act.description ?? ''}>
                           {act.description && act.description.length > 40 ? act.description.slice(0, 40) + '…' : (act.description ?? '-')}
                         </span>
                       </td>
-                      <td className="text-center py-3">
+                      <td className="text-center py-2.5 whitespace-nowrap">
                         {canUpload ? (
                           <button
                             onClick={() => openUploadModal(act)}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-warm-50 text-brand-700 border border-brand-100 rounded-lg text-sm font-semibold hover:bg-brand-100 transition-all"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-warm-50 text-brand-700 border border-brand-100 rounded-lg text-[11px] font-semibold hover:bg-brand-100 transition-all whitespace-nowrap"
                           >
-                            <Upload size={13} />증빙 Upload
+                            <Upload size={12} />증빙확인
                           </button>
                         ) : isView ? (
                           <button
                             onClick={() => openUploadModal(act)}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg text-sm font-semibold hover:bg-blue-100 transition-all"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg text-[11px] font-semibold hover:bg-blue-100 transition-all whitespace-nowrap"
                           >
-                            <FileCheck2 size={13} />증빙확인
+                            <FileCheck2 size={12} />증빙확인
                           </button>
                         ) : (
-                          <span className="text-sm text-warm-400">-</span>
+                          <span className="text-xs text-warm-400">-</span>
                         )}
                       </td>
-                      <td className="text-center py-3">
-                        <span className={clsx('text-sm font-bold', (evidenceCounts[act.id] ?? 0) > 0 ? 'text-brand-700' : 'text-warm-300')}>
+                      <td className="text-center py-2.5 whitespace-nowrap">
+                        <span className={clsx('text-xs font-bold', (evidenceCounts[act.id] ?? 0) > 0 ? 'text-brand-700' : 'text-warm-300')}>
                           {evidenceCounts[act.id] ?? 0}
                         </span>
                       </td>
                       {profile?.role === 'admin' && (
-                        <td className="text-sm text-warm-600 py-3">{act.controller_name ?? '-'}</td>
+                        <td className="text-xs text-warm-600 py-2.5 whitespace-nowrap">{act.controller_name ?? '-'}</td>
                       )}
-                      <td className="text-center text-sm font-semibold text-brand-700 py-3">
+                      <td className="text-center text-xs font-semibold text-brand-700 py-2.5 whitespace-nowrap">
                         {act.kpi_score != null ? act.kpi_score.toFixed(1) : '-'}
                       </td>
-                      <td className="text-center py-3">
+                      <td className="text-center py-2.5 whitespace-nowrap">
                         <span className={si.cls}>{si.label}</span>
                       </td>
-                      <td className="text-center py-3">
+                      <td className="text-center py-2.5 whitespace-nowrap">
                         {approvalStatuses[act.id] === 'approved' ? (
                           <span className="badge-green">승인완료</span>
                         ) : approvalStatuses[act.id] === 'rejected' ? (
@@ -404,11 +404,11 @@ export default function EvidenceListPage() {
                         ) : approvalStatuses[act.id] === 'submitted' ? (
                           <span className="badge-yellow">승인대기</span>
                         ) : (
-                          <span className="text-sm text-warm-300">-</span>
+                          <span className="text-xs text-warm-300">-</span>
                         )}
                       </td>
-                      <td className="py-3">
-                        <ChevronRight size={14} className="text-warm-200 group-hover:text-warm-400 transition-colors" />
+                      <td className="py-2.5">
+                        <ChevronRight size={12} className="text-warm-200 group-hover:text-warm-400 transition-colors" />
                       </td>
                     </tr>
                   )
