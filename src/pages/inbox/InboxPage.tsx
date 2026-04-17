@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
   Inbox, CheckCircle2, XCircle, Clock, MessageSquare,
-  RefreshCw, Eye, Loader2
+  RefreshCw, Eye, Loader2, CheckSquare, Square
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
@@ -50,6 +50,8 @@ export default function InboxPage() {
   const [commentMap, setCommentMap] = useState<Record<string, string>>({})
   const [selectedActivity, setSelectedActivity] = useState<ApprovalItem['activity'] | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set<string>())
+  const [batchProcessing, setBatchProcessing] = useState(false)
 
   const fetchInbox = useCallback(async () => {
     if (!profile) return
@@ -201,6 +203,196 @@ export default function InboxPage() {
     }
   }
 
+  const canBatchSelect = profile?.role === 'controller' || profile?.role === 'admin'
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    const visibleIds = items.map(i => i.id)
+    const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id))
+    if (allSelected) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(visibleIds))
+    }
+  }
+
+  async function handleBatchApprove() {
+    const targets = items.filter(i => selectedIds.has(i.id) && i.status === 'submitted')
+    if (targets.length === 0) {
+      alert('승인 가능한 항목이 없습니다. (결재 대기 상태만 승인 가능)')
+      return
+    }
+    if (!confirm(`선택한 ${targets.length}건을 일괄 승인하시겠습니까?`)) return
+
+    setBatchProcessing(true)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+    let successCount = 0
+
+    for (const item of targets) {
+      try {
+        const comment = commentMap[item.id] ?? ''
+        await db.from('approval_requests')
+          .update({
+            status: 'approved',
+            controller_comment: comment,
+            decided_at: new Date().toISOString(),
+          })
+          .eq('id', item.id)
+
+        if (item.activity_id) {
+          await db.from('activities')
+            .update({ submission_status: '승인', updated_at: new Date().toISOString() })
+            .eq('id', item.activity_id)
+        } else if (item.unique_key) {
+          await db.from('activities')
+            .update({ submission_status: '승인', updated_at: new Date().toISOString() })
+            .eq('unique_key', item.unique_key)
+        }
+
+        // 이메일 알림
+        try {
+          const ownerEmail = item.activity?.owner_email
+          if (ownerEmail) {
+            await supabase.functions.invoke('send-approval-email', {
+              body: {
+                type: 'approved',
+                to: ownerEmail,
+                recipientName: item.activity?.owner_name ?? '',
+                submitterName: item.activity?.owner_name ?? '',
+                controlCode: item.control_code ?? item.activity?.control_code ?? '',
+                activityTitle: item.activity?.title ?? '',
+                uniqueKey: item.unique_key ?? '',
+              }
+            })
+          }
+        } catch { /* 이메일 실패해도 결재 처리 유지 */ }
+
+        successCount++
+      } catch (err) {
+        console.error(`[InboxPage] batch approve error for ${item.id}:`, err)
+      }
+    }
+
+    alert(`${successCount}/${targets.length}건 승인 완료`)
+    setSelectedIds(new Set())
+    setBatchProcessing(false)
+    fetchInbox()
+  }
+
+  async function handleBatchCancel() {
+    const targets = items.filter(i => selectedIds.has(i.id))
+
+    if (profile?.role === 'controller') {
+      // controller: 대기 중인 항목만 반려 가능
+      const pendingTargets = targets.filter(i => i.status === 'submitted')
+      if (pendingTargets.length === 0) {
+        alert('반려 가능한 항목이 없습니다. (결재 대기 상태만 반려 가능)')
+        return
+      }
+      if (!confirm(`선택한 ${pendingTargets.length}건을 일괄 반려하시겠습니까?`)) return
+
+      setBatchProcessing(true)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+      let successCount = 0
+
+      for (const item of pendingTargets) {
+        try {
+          const comment = commentMap[item.id] ?? ''
+          await db.from('approval_requests')
+            .update({
+              status: 'rejected',
+              controller_comment: comment || '일괄 반려',
+              decided_at: new Date().toISOString(),
+            })
+            .eq('id', item.id)
+
+          if (item.activity_id) {
+            await db.from('activities')
+              .update({ submission_status: '반려', updated_at: new Date().toISOString() })
+              .eq('id', item.activity_id)
+          } else if (item.unique_key) {
+            await db.from('activities')
+              .update({ submission_status: '반려', updated_at: new Date().toISOString() })
+              .eq('unique_key', item.unique_key)
+          }
+
+          // 이메일 알림
+          try {
+            const ownerEmail = item.activity?.owner_email
+            if (ownerEmail) {
+              await supabase.functions.invoke('send-approval-email', {
+                body: {
+                  type: 'rejected',
+                  to: ownerEmail,
+                  recipientName: item.activity?.owner_name ?? '',
+                  submitterName: item.activity?.owner_name ?? '',
+                  controlCode: item.control_code ?? item.activity?.control_code ?? '',
+                  activityTitle: item.activity?.title ?? '',
+                  uniqueKey: item.unique_key ?? '',
+                  rejectedReason: comment || '일괄 반려',
+                }
+              })
+            }
+          } catch { /* 이메일 실패해도 결재 처리 유지 */ }
+
+          successCount++
+        } catch (err) {
+          console.error(`[InboxPage] batch reject error for ${item.id}:`, err)
+        }
+      }
+
+      alert(`${successCount}/${pendingTargets.length}건 반려 완료`)
+    } else if (profile?.role === 'admin') {
+      // admin: 모든 상태 취소 가능
+      if (targets.length === 0) {
+        alert('선택된 항목이 없습니다.')
+        return
+      }
+      if (!confirm(`선택한 ${targets.length}건을 일괄 취소하시겠습니까?\n상신여부: 반려, 승인상태: 초기화, 증빙 Upload 재활성화`)) return
+
+      setBatchProcessing(true)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+      let successCount = 0
+
+      for (const item of targets) {
+        try {
+          await db.from('approval_requests').delete().eq('id', item.id)
+
+          if (item.activity_id) {
+            await db.from('activities')
+              .update({ submission_status: '반려', updated_at: new Date().toISOString() })
+              .eq('id', item.activity_id)
+          } else if (item.unique_key) {
+            await db.from('activities')
+              .update({ submission_status: '반려', updated_at: new Date().toISOString() })
+              .eq('unique_key', item.unique_key)
+          }
+
+          successCount++
+        } catch (err) {
+          console.error(`[InboxPage] batch admin cancel error for ${item.id}:`, err)
+        }
+      }
+
+      alert(`${successCount}/${targets.length}건 취소 완료`)
+    }
+
+    setSelectedIds(new Set())
+    setBatchProcessing(false)
+    fetchInbox()
+  }
+
   if (loading) return (
     <div className="space-y-5 pb-mobile-tab lg:pb-0">
       <div className="flex justify-between items-center">
@@ -284,6 +476,55 @@ export default function InboxPage() {
         </div>
       </div>
 
+      {/* 일괄 처리 바 (controller, admin만) */}
+      {canBatchSelect && items.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 card p-3">
+          <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-brand-900 font-medium">
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              className="flex items-center justify-center w-5 h-5 text-brand-700 hover:text-brand-900 transition-colors"
+            >
+              {items.length > 0 && items.every(i => selectedIds.has(i.id))
+                ? <CheckSquare size={18} />
+                : <Square size={18} />}
+            </button>
+            전체선택
+          </label>
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-xs text-warm-500">{selectedIds.size}건 선택</span>
+              <button
+                onClick={handleBatchApprove}
+                disabled={batchProcessing}
+                className={clsx(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
+                  'bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50'
+                )}
+              >
+                {batchProcessing
+                  ? <Loader2 size={13} className="animate-spin" />
+                  : <CheckCircle2 size={13} />}
+                일괄 승인
+              </button>
+              <button
+                onClick={handleBatchCancel}
+                disabled={batchProcessing}
+                className={clsx(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
+                  'bg-red-600 text-white hover:bg-red-700 disabled:opacity-50'
+                )}
+              >
+                {batchProcessing
+                  ? <Loader2 size={13} className="animate-spin" />
+                  : <XCircle size={13} />}
+                {profile?.role === 'admin' ? '일괄 취소' : '일괄 반려'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 결재 목록 */}
       {items.length === 0 ? (
         <div className="card flex flex-col items-center justify-center py-16 text-warm-400">
@@ -299,9 +540,21 @@ export default function InboxPage() {
             return (
               <div key={item.id} className={clsx(
                 'card p-5 transition-all',
-                isPending && 'border-amber-100 bg-amber-50/30'
+                isPending && 'border-amber-100 bg-amber-50/30',
+                selectedIds.has(item.id) && 'ring-2 ring-brand-500/40 bg-brand-50/20'
               )}>
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  {canBatchSelect && (
+                    <button
+                      type="button"
+                      onClick={() => toggleSelect(item.id)}
+                      className="flex items-center justify-center w-5 h-5 shrink-0 mt-0.5 text-brand-700 hover:text-brand-900 transition-colors"
+                    >
+                      {selectedIds.has(item.id)
+                        ? <CheckSquare size={18} className="text-brand-600" />
+                        : <Square size={18} className="text-warm-400" />}
+                    </button>
+                  )}
                   <div className="flex-1">
                     {/* 상단: 통제번호 + 상태 */}
                     <div className="flex items-center gap-2 flex-wrap mb-2">

@@ -193,9 +193,10 @@ export default function NewsPage() {
                   <input
                     type="text"
                     value={corpName}
-                    onChange={e => { setCorpName(e.target.value); setCorpCode(''); setStockCode('') }}
-                    placeholder="회사명 입력"
-                    className="form-input pl-8 pr-20 text-sm"
+                    readOnly
+                    onClick={() => setShowSearchPopup(true)}
+                    placeholder="회사명찾기를 클릭하세요"
+                    className="form-input pl-8 pr-20 text-sm cursor-pointer bg-warm-50"
                   />
                   <button
                     type="button"

@@ -11,6 +11,7 @@ import {
   Download,
   Trash2,
   FileSpreadsheet,
+  RefreshCw,
 } from 'lucide-react'
 import clsx from 'clsx'
 import * as XLSX from 'xlsx'
@@ -39,6 +40,7 @@ interface PopulationItem {
   transaction_id: string | null
   transaction_date: string | null
   description: string | null
+  evidence_name?: string | null
   extra_info: string | null
   extra_info_2?: string | null
   extra_info_3?: string | null
@@ -195,11 +197,38 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
       return
     }
 
+    const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+
+    const targetItem = items.find(item => item.id === itemId)
+    const expectedName = targetItem?.evidence_name || targetItem?.description || null
+
+    const validFiles: File[] = []
+    for (const file of Array.from(files)) {
+      if (file.size > MAX_FILE_SIZE) {
+        alert(`파일 크기는 100MB를 초과할 수 없습니다: ${file.name}`)
+        continue
+      }
+
+      if (expectedName) {
+        const uploadedNameWithoutExt = file.name.replace(/\.[^.]+$/, '')
+        if (uploadedNameWithoutExt !== expectedName) {
+          alert(
+            `파일명이 모집단의 증빙 파일명과 일치하지 않습니다.\n\n업로드 파일: ${uploadedNameWithoutExt}\n기대 파일: ${expectedName}`
+          )
+          continue
+        }
+      }
+
+      validFiles.push(file)
+    }
+
+    if (validFiles.length === 0) return
+
     setItems(previous =>
       previous.map(item => {
         if (item.id !== itemId) return item
 
-        const newUploads: UploadedFile[] = Array.from(files).map(file => ({
+        const newUploads: UploadedFile[] = validFiles.map(file => ({
           file_name: file.name,
           file_path: '',
           file_size: file.size,
@@ -222,6 +251,117 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
         }
       })
     )
+  }
+
+  const replaceInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+
+  async function reloadItems() {
+    if (!activity.unique_key) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+
+    const { data: popItems } = await db
+      .from('population_items')
+      .select('*')
+      .eq('unique_key', activity.unique_key)
+      .order('transaction_date')
+
+    const { data: uploads } = await db
+      .from('evidence_uploads')
+      .select('id, file_name, original_file_name, file_path, file_size, uploaded_at, population_item_id')
+      .eq('activity_id', activity.id)
+
+    const uploadMap: Record<string, UploadedFile[]> = {}
+    ;((uploads ?? []) as StoredUploadRow[]).forEach(upload => {
+      if (!uploadMap[upload.population_item_id]) {
+        uploadMap[upload.population_item_id] = []
+      }
+      uploadMap[upload.population_item_id].push({
+        id: upload.id,
+        file_name: upload.original_file_name || upload.file_name,
+        file_path: upload.file_path,
+        file_size: upload.file_size ?? undefined,
+        uploaded_at: upload.uploaded_at ?? undefined,
+      })
+    })
+
+    setItems(
+      ((popItems ?? []) as PopulationItem[]).map(item => ({
+        ...item,
+        uploads: uploadMap[item.id] ?? [],
+      }))
+    )
+  }
+
+  async function handleDeletePersisted(uploadId: string, filePath: string) {
+    if (!window.confirm('이 증빙 파일을 삭제하시겠습니까?')) return
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+
+      await (supabase.storage as any).from('evidence').remove([filePath])
+
+      const { error: deleteError } = await db
+        .from('evidence_uploads')
+        .delete()
+        .eq('id', uploadId)
+
+      if (deleteError) throw deleteError
+
+      await reloadItems()
+      setSavedMsg('파일이 삭제되었습니다.')
+      setTimeout(() => setSavedMsg(''), 2500)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '파일 삭제 중 오류가 발생했습니다.')
+    }
+  }
+
+  async function handleReplacePersisted(uploadId: string, oldFilePath: string, populationItemId: string, newFile: File) {
+    if (!profile?.id) {
+      setError('로그인 정보가 확인되지 않아 교체를 진행할 수 없습니다.')
+      return
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+      const safeName = sanitizeFileName(newFile.name)
+      const storagePath = `${profile.id}/${populationItemId}/${timestamp}_${safeName}`
+
+      const { error: storageError } = await (supabase.storage as any)
+        .from('evidence')
+        .upload(storagePath, newFile, { upsert: false })
+
+      if (storageError) throw storageError
+
+      const dbFileName = `${activity.unique_key ?? ''}_${populationItemId}_${newFile.name}`
+      const { error: updateError } = await db
+        .from('evidence_uploads')
+        .update({
+          file_path: storagePath,
+          file_name: dbFileName,
+          original_file_name: newFile.name,
+          file_size: newFile.size,
+          uploaded_at: new Date().toISOString(),
+        })
+        .eq('id', uploadId)
+
+      if (updateError) {
+        await (supabase.storage as any).from('evidence').remove([storagePath])
+        throw updateError
+      }
+
+      await (supabase.storage as any).from('evidence').remove([oldFilePath])
+
+      await reloadItems()
+      setSavedMsg('파일이 교체되었습니다.')
+      setTimeout(() => setSavedMsg(''), 2500)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '파일 교체 중 오류가 발생했습니다.')
+    }
   }
 
   async function resolveControllerId() {
@@ -375,6 +515,14 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
 
     if (!hasAnyUploads && !hasNewFiles) {
       setError('최소 하나 이상의 파일을 업로드해야 결재상신이 가능합니다.')
+      return
+    }
+
+    const incompleteItems = items.filter(item => item.uploads.length === 0)
+    if (incompleteItems.length > 0) {
+      alert(
+        `모든 증빙이 업로드되지 않았습니다.\n미완료 항목: ${incompleteItems.length}건\n\n모든 증빙을 업로드한 후 결재상신해주세요.`
+      )
       return
     }
 
@@ -616,13 +764,45 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                                         <button
                                           onClick={() => removeFile(item.id, upload.file_name)}
                                           className="text-warm-400 hover:text-red-500 transition-colors"
+                                          title="제거"
                                         >
                                           <Trash2 size={12} />
                                         </button>
                                       ) : null}
 
                                       {!upload.isNew && upload.file_path ? (
-                                        <FileDownloadBtn path={upload.file_path} name={upload.file_name} />
+                                        <div className="flex items-center gap-1">
+                                          <FileDownloadBtn path={upload.file_path} name={upload.file_name} />
+                                          {!viewOnly && upload.id && (
+                                            <>
+                                              <input
+                                                type="file"
+                                                ref={el => { replaceInputRefs.current[upload.id!] = el }}
+                                                onChange={e => {
+                                                  const file = e.target.files?.[0]
+                                                  if (file) handleReplacePersisted(upload.id!, upload.file_path, item.id, file)
+                                                  e.target.value = ''
+                                                }}
+                                                className="hidden"
+                                                accept=".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png,.gif,.zip"
+                                              />
+                                              <button
+                                                onClick={() => replaceInputRefs.current[upload.id!]?.click()}
+                                                className="text-warm-400 hover:text-brand-600 transition-colors"
+                                                title="교체"
+                                              >
+                                                <RefreshCw size={12} />
+                                              </button>
+                                              <button
+                                                onClick={() => handleDeletePersisted(upload.id!, upload.file_path)}
+                                                className="text-warm-400 hover:text-red-500 transition-colors"
+                                                title="삭제"
+                                              >
+                                                <Trash2 size={12} />
+                                              </button>
+                                            </>
+                                          )}
+                                        </div>
                                       ) : null}
                                     </div>
                                   ))}
@@ -716,15 +896,12 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
   )
 }
 
-function FileDownloadBtn({ path, name }: { path: string; name: string }) {
+function FileDownloadBtn({ path, name: _name }: { path: string; name: string }) {
   async function handleDownload() {
     const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 3600)
     if (!data?.signedUrl) return
 
-    const link = document.createElement('a')
-    link.href = data.signedUrl
-    link.download = name
-    link.click()
+    window.open(data.signedUrl, '_blank')
   }
 
   return (

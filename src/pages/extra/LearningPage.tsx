@@ -207,28 +207,28 @@ export default function LearningPage() {
             <Users size={18} />
           </div>
           <p className="mt-4 text-sm text-warm-500">전체 강좌</p>
-          <p className="mt-1 text-3xl font-bold text-brand-900">{isAdmin ? flatRows.length : courses.length}</p>
+          <p className="mt-1 text-3xl font-bold text-brand-900">{(isAdmin ? flatRows.length : courses.length).toLocaleString()}</p>
         </div>
         <div className="rounded-[24px] border border-warm-200 bg-white p-5 shadow-sm">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
             <CheckCircle2 size={18} />
           </div>
           <p className="mt-4 text-sm text-warm-500">이수완료</p>
-          <p className="mt-1 text-3xl font-bold text-emerald-600">{completedCount}</p>
+          <p className="mt-1 text-3xl font-bold text-emerald-600">{completedCount.toLocaleString()}</p>
         </div>
         <div className="rounded-[24px] border border-warm-200 bg-white p-5 shadow-sm">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
             <Clock size={18} />
           </div>
           <p className="mt-4 text-sm text-warm-500">수강중</p>
-          <p className="mt-1 text-3xl font-bold text-blue-600">{inProgressCount}</p>
+          <p className="mt-1 text-3xl font-bold text-blue-600">{inProgressCount.toLocaleString()}</p>
         </div>
         <div className="rounded-[24px] border border-warm-200 bg-white p-5 shadow-sm">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warm-100 text-warm-500">
             <Users size={18} />
           </div>
           <p className="mt-4 text-sm text-warm-500">미시작</p>
-          <p className="mt-1 text-3xl font-bold text-warm-500">{notStartedCount}</p>
+          <p className="mt-1 text-3xl font-bold text-warm-500">{notStartedCount.toLocaleString()}</p>
         </div>
       </div>
 

@@ -429,8 +429,8 @@ async function fetchStockInfo(stockCode: string): Promise<StockInfo | null> {
     const isRising = comp.name === 'RISING'
     const isFalling = comp.name === 'FALLING'
     const changeDir = isRising ? '+' : isFalling ? '-' : ''
-    const changeVal = String(basic.compareToPreviousClosePrice ?? '')
-    const changeRate = String(basic.fluctuationsRatio ?? '')
+    const changeVal = String(basic.compareToPreviousClosePrice ?? '').replace(/^[-+]/, '')
+    const changeRate = String(basic.fluctuationsRatio ?? '').replace(/^[-+]/, '')
 
     return {
       name: basic.stockName ?? '',

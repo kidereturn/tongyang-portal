@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "tongyang-portal",
-      "runtimeExecutable": "npx",
+      "runtimeExecutable": "npx.cmd",
       "runtimeArgs": ["vite", "--port", "5173", "--host"],
       "port": 5173
     }

@@ -496,7 +496,7 @@ export default function DashboardPage() {
               <div key={r.user_id} className="flex items-center gap-2 rounded-lg bg-warm-50 px-2.5 py-1.5">
                 <span className="text-sm">{i === 0 ? '\uD83E\uDD47' : i === 1 ? '\uD83E\uDD48' : i === 2 ? '\uD83E\uDD49' : `${i+1}`}</span>
                 <span className="flex-1 text-xs font-semibold text-brand-800 truncate">{r.full_name ?? '사용자'}</span>
-                <span className="text-xs font-bold text-accent-600">{r.total_points}P</span>
+                <span className="text-xs font-bold text-blue-600">{r.total_points}P</span>
               </div>
             ))}
             {pointsRanking.length === 0 && <p className="text-[10px] text-warm-400 text-center py-2">데이터 없음</p>}

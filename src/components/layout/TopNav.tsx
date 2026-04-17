@@ -296,7 +296,7 @@ export default function TopNav() {
                 <div className="hidden text-left md:block">
                   <p className="text-[13px] font-medium text-brand-900">
                     {profile?.full_name ?? '사용자'}
-                    <span className="ml-1.5 text-[11px] font-semibold text-accent-600">{totalPoints}P</span>
+                    <span className="ml-1.5 text-[11px] font-semibold text-blue-600">{totalPoints}P</span>
                   </p>
                 </div>
                 {profile?.role && (
