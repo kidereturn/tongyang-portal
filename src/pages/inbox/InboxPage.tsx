@@ -174,18 +174,29 @@ export default function InboxPage() {
   }
 
   async function handleAdminCancel(item: ApprovalItem) {
-    if (!confirm('관리자 권한으로 이 결재를 취소(반려)하시겠습니까?\n상신여부: 반려, 승인상태: 초기화, 증빙 Upload 재활성화')) return
+    if (!confirm('관리자 권한으로 이 결재를 강제 취소하시겠습니까?\n\n• 승인/반려 이력 삭제 (승인자 승인완료 상태 초기화)\n• 상신여부 → 미완료\n• 검토결과 → 미검토\n• 증빙 Upload 재활성화\n• 대시보드 자동 반영')) return
     setProcessing(item.id)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
     try {
-      // 결재 요청 삭제 (승인상태 공란 처리)
-      await db.from('approval_requests').delete().eq('id', item.id)
-      // 상신여부를 반려로 설정 → 증빙 Upload 버튼 재활성화
+      // 1. 결재 이력 전체 삭제 (activity_id 기준, 같은 activity의 모든 approval_requests 제거)
+      //    → 승인자의 '승인완료' 뱃지도 즉시 사라짐
       if (item.activity_id) {
-        await db.from('activities').update({ submission_status: '반려', updated_at: new Date().toISOString() }).eq('id', item.activity_id)
+        await db.from('approval_requests').delete().eq('activity_id', item.activity_id)
+      } else {
+        await db.from('approval_requests').delete().eq('id', item.id)
+      }
+
+      // 2. 통제활동 상태 완전 리셋 → 미완료 + 검토결과 미검토 → 담당자가 처음부터 다시 작업 가능
+      const resetPayload = {
+        submission_status: '미완료',
+        review_status: '미검토',
+        updated_at: new Date().toISOString(),
+      }
+      if (item.activity_id) {
+        await db.from('activities').update(resetPayload).eq('id', item.activity_id)
       } else if (item.unique_key) {
-        await db.from('activities').update({ submission_status: '반려', updated_at: new Date().toISOString() }).eq('unique_key', item.unique_key)
+        await db.from('activities').update(resetPayload).eq('unique_key', item.unique_key)
       }
       fetchInbox()
     } catch (err) {
@@ -353,12 +364,12 @@ export default function InboxPage() {
 
       alert(`${successCount}/${pendingTargets.length}건 반려 완료`)
     } else if (profile?.role === 'admin') {
-      // admin: 모든 상태 취소 가능
+      // admin: 모든 상태 강제 취소 가능 (per spec #8)
       if (targets.length === 0) {
         alert('선택된 항목이 없습니다.')
         return
       }
-      if (!confirm(`선택한 ${targets.length}건을 일괄 취소하시겠습니까?\n상신여부: 반려, 승인상태: 초기화, 증빙 Upload 재활성화`)) return
+      if (!confirm(`선택한 ${targets.length}건을 일괄 강제 취소하시겠습니까?\n\n• 승인/반려 이력 삭제 (승인완료 뱃지 제거)\n• 상신여부 → 미완료, 검토결과 → 미검토\n• 증빙 Upload 재활성화\n• 대시보드 자동 반영`)) return
 
       setBatchProcessing(true)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -367,16 +378,22 @@ export default function InboxPage() {
 
       for (const item of targets) {
         try {
-          await db.from('approval_requests').delete().eq('id', item.id)
-
+          // Delete ALL approval_requests for this activity (not just this row)
           if (item.activity_id) {
-            await db.from('activities')
-              .update({ submission_status: '반려', updated_at: new Date().toISOString() })
-              .eq('id', item.activity_id)
+            await db.from('approval_requests').delete().eq('activity_id', item.activity_id)
+          } else {
+            await db.from('approval_requests').delete().eq('id', item.id)
+          }
+
+          const resetPayload = {
+            submission_status: '미완료',
+            review_status: '미검토',
+            updated_at: new Date().toISOString(),
+          }
+          if (item.activity_id) {
+            await db.from('activities').update(resetPayload).eq('id', item.activity_id)
           } else if (item.unique_key) {
-            await db.from('activities')
-              .update({ submission_status: '반려', updated_at: new Date().toISOString() })
-              .eq('unique_key', item.unique_key)
+            await db.from('activities').update(resetPayload).eq('unique_key', item.unique_key)
           }
 
           successCount++
@@ -385,7 +402,7 @@ export default function InboxPage() {
         }
       }
 
-      alert(`${successCount}/${targets.length}건 취소 완료`)
+      alert(`${successCount}/${targets.length}건 강제 취소 완료`)
     }
 
     setSelectedIds(new Set())

@@ -1,10 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { useAuth } from './hooks/useAuth'
-import { Loader2 } from 'lucide-react'
 import Layout from './components/layout/Layout'
 import ErrorBoundary from './components/ErrorBoundary'
 import NetworkGuard from './components/NetworkGuard'
+import IntroGate from './components/IntroGate'
+// LoginPage is NOT lazy so it's ready the instant the intro video finishes.
+import LoginPage from './pages/auth/LoginPage'
 
 // Retry wrapper: on chunk-load failure, retry up to 2 times then hard reload
 function lazyRetry<T extends { default: React.ComponentType<any> }>(
@@ -33,7 +35,6 @@ function lazyRetry<T extends { default: React.ComponentType<any> }>(
   })
 }
 
-const LoginPage       = lazyRetry(() => import('./pages/auth/LoginPage'))
 const DashboardPage   = lazyRetry(() => import('./pages/dashboard/DashboardPage'))
 const EvidenceListPage = lazyRetry(() => import('./pages/evidence/EvidenceListPage'))
 const InboxPage       = lazyRetry(() => import('./pages/inbox/InboxPage'))
@@ -50,93 +51,29 @@ const ProfilePage     = lazyRetry(() => import('./pages/profile/ProfilePage'))
 const TellMePage      = lazyRetry(() => import('./pages/extra/TellMePage'))
 const NoticeDetailPage = lazyRetry(() => import('./pages/notices/NoticeDetailPage'))
 
-function LoadingScreen() {
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0a0a0a] via-[#1a1206] to-[#0a0a0a] flex items-center justify-center">
-      <style>{`
-        @keyframes shieldGlow {
-          0%, 100% { filter: drop-shadow(0 0 8px rgba(218,165,32,0.3)); }
-          50% { filter: drop-shadow(0 0 24px rgba(218,165,32,0.7)); }
-        }
-        @keyframes roarPulse {
-          0% { transform: scale(1); opacity: 0.9; }
-          15% { transform: scale(1.08); opacity: 1; }
-          30% { transform: scale(1); opacity: 0.9; }
-          100% { transform: scale(1); opacity: 0.9; }
-        }
-        @keyframes ribbonShine {
-          0% { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
-        .shield-container { animation: shieldGlow 2s ease-in-out infinite; }
-        .lion-icon { animation: roarPulse 2.5s ease-in-out infinite; }
-        .ribbon-shine {
-          background: linear-gradient(90deg, #b8860b 0%, #ffd700 40%, #fff8dc 50%, #ffd700 60%, #b8860b 100%);
-          background-size: 200% 100%;
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: ribbonShine 3s linear infinite;
-        }
-      `}</style>
-      <div className="flex flex-col items-center gap-5">
-        {/* Shield shape with lion */}
-        <div className="shield-container">
-          <div className="relative flex h-28 w-24 items-center justify-center">
-            {/* Shield background */}
-            <svg viewBox="0 0 100 120" className="absolute inset-0 h-full w-full">
-              <path d="M50 2 L95 20 L95 70 Q95 100 50 118 Q5 100 5 70 L5 20 Z"
-                fill="url(#shieldGrad)" stroke="#daa520" strokeWidth="2" />
-              <defs>
-                <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#1a1a2e" />
-                  <stop offset="50%" stopColor="#16213e" />
-                  <stop offset="100%" stopColor="#0f0f23" />
-                </linearGradient>
-              </defs>
-            </svg>
-            {/* Lion face */}
-            <div className="lion-icon relative z-10 text-4xl select-none" role="img" aria-label="lion">
-              🦁
-            </div>
-          </div>
-        </div>
-
-        {/* Company name with golden ribbon effect */}
-        <div className="text-center">
-          <p className="ribbon-shine text-xl font-bold tracking-wider">(주)동양</p>
-          <p className="mt-1 text-[11px] font-semibold tracking-[0.3em] text-amber-600/60">
-            TONGYANG CORPORATION
-          </p>
-        </div>
-
-        {/* Loading indicator */}
-        <div className="flex items-center gap-2">
-          <Loader2 size={16} className="text-accent-600/70 animate-spin" />
-          <p className="text-amber-600/50 text-xs font-medium tracking-wider">LOADING</p>
-        </div>
-      </div>
-    </div>
-  )
+// Silent loader — plain dark background, no branding, no lion.
+// Used while auth state is being checked or a lazy chunk is loading.
+function SilentLoader() {
+  return <div className="min-h-screen bg-black" />
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
-  if (loading) return <LoadingScreen />
+  if (loading) return <SilentLoader />
   if (!user) return <Navigate to="/login" replace />
   return <>{children}</>
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { profile, loading } = useAuth()
-  if (loading) return <LoadingScreen />
+  if (loading) return <SilentLoader />
   if (!profile || profile.role !== 'admin') return <Navigate to="/dashboard" replace />
   return <>{children}</>
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
-  if (loading) return <LoadingScreen />
+  if (loading) return <SilentLoader />
   if (user) return <Navigate to="/dashboard" replace />
   return <>{children}</>
 }
@@ -146,9 +83,20 @@ export default function App() {
     <BrowserRouter>
       <NetworkGuard />
       <ErrorBoundary>
-        <Suspense fallback={<LoadingScreen />}>
+        <Suspense fallback={<SilentLoader />}>
           <Routes>
-            <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+            <Route
+              path="/login"
+              element={
+                // IntroGate is OUTSIDE PublicRoute so the video starts immediately
+                // without waiting for auth check. PublicRoute runs after the video ends.
+                <IntroGate>
+                  <PublicRoute>
+                    <LoginPage />
+                  </PublicRoute>
+                </IntroGate>
+              }
+            />
 
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route index element={<Navigate to="/dashboard" replace />} />

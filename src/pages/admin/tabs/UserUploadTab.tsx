@@ -11,8 +11,11 @@ import {
   PreviewTable,
   ResultCard,
 } from '../adminShared'
+import { useToast } from '../../../components/Toast'
 
 export default function UserUploadTab({ onDone }: { onDone: () => void }) {
+  const toast = useToast()
+  const resultRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState<Record<string, string>[]>([])
@@ -59,7 +62,9 @@ export default function UserUploadTab({ onDone }: { onDone: () => void }) {
     const normalized: UserUploadInput[] = []
     const seenIds = new Set<string>()
 
-    for (const row of rows) {
+    for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+      const row = rows[rowIdx]
+      const rowNumber = rowIdx + 2 // header is row 1
       const employeeId = readText(row, ['사번', 'employee_id'])
       const fullName = readText(row, ['이름', '성명', 'full_name'])
       const role = readRole(readText(row, ['구분', '권한', 'role']))
@@ -70,10 +75,22 @@ export default function UserUploadTab({ onDone }: { onDone: () => void }) {
 
       if (!employeeId && !fullName) continue
       if (!employeeId || !fullName || !role) {
-        errors.push(`필수값 누락: 사번=${employeeId || '-'} 이름=${fullName || '-'} 구분=${role ?? '-'}`)
+        const missingFields = [
+          !employeeId && '사번',
+          !fullName && '이름',
+          !role && '구분(담당자/승인자/관리자)',
+        ]
+          .filter(Boolean)
+          .join(', ')
+        errors.push(
+          `행 ${rowNumber}: 필수값 누락 — ${missingFields} (사번="${employeeId || '-'}", 이름="${fullName || '-'}", 구분="${role ?? '-'}")`
+        )
         continue
       }
-      if (seenIds.has(employeeId)) continue
+      if (seenIds.has(employeeId)) {
+        errors.push(`행 ${rowNumber}: 중복 사번 "${employeeId}" — 첫 번째 행만 사용됩니다`)
+        continue
+      }
       seenIds.add(employeeId)
       normalized.push({ employee_id: employeeId, full_name: fullName, role, department, phone, contact_email: contactEmail, is_active: isActive })
     }
@@ -90,12 +107,16 @@ export default function UserUploadTab({ onDone }: { onDone: () => void }) {
     setUploading(true)
     setResult(null)
 
+    const loadingId = toast.loading('사용자 전체 초기화 진행 중...', '기존 데이터 삭제 및 신규 사용자 생성')
+
     const rows = await parseFile(file)
     const { normalized, errors } = normalizeRows(rows)
 
     if (errors.length) {
       setResult({ createdCount: 0, deletedAuthCount: 0, deletedStorageCount: 0, clearedTables: {}, errors })
       setUploading(false)
+      toast.update(loadingId, { kind: 'error', title: '사용자 업로드 실패', description: `${errors.length}건 검증 오류 — 결과 카드 확인` })
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
       return
     }
 
@@ -104,6 +125,7 @@ export default function UserUploadTab({ onDone }: { onDone: () => void }) {
     if (!token) {
       setResult({ createdCount: 0, deletedAuthCount: 0, deletedStorageCount: 0, clearedTables: {}, errors: ['관리자 세션을 확인할 수 없습니다. 다시 로그인 후 시도해주세요.'] })
       setUploading(false)
+      toast.update(loadingId, { kind: 'error', title: '사용자 업로드 실패', description: '관리자 세션 없음 — 다시 로그인 후 시도하세요' })
       return
     }
 
@@ -116,13 +138,24 @@ export default function UserUploadTab({ onDone }: { onDone: () => void }) {
       const payload = await response.json()
 
       if (!response.ok || !payload?.ok) {
-        setResult({ createdCount: 0, deletedAuthCount: 0, deletedStorageCount: 0, clearedTables: {}, errors: [payload?.detail ?? payload?.error ?? '사용자 초기 업로드에 실패했습니다.'] })
+        const msg = payload?.detail ?? payload?.error ?? '사용자 초기 업로드에 실패했습니다.'
+        setResult({ createdCount: 0, deletedAuthCount: 0, deletedStorageCount: 0, clearedTables: {}, errors: [msg] })
+        toast.update(loadingId, { kind: 'error', title: '사용자 초기화 실패', description: msg })
       } else {
-        setResult({ createdCount: payload.createdCount ?? 0, deletedAuthCount: payload.deletedAuthCount ?? 0, deletedStorageCount: payload.deletedStorageCount ?? 0, clearedTables: payload.clearedTables ?? {}, errors: payload.errors ?? [] })
+        const created = payload.createdCount ?? 0
+        const deletedAuth = payload.deletedAuthCount ?? 0
+        const errs = payload.errors ?? []
+        setResult({ createdCount: created, deletedAuthCount: deletedAuth, deletedStorageCount: payload.deletedStorageCount ?? 0, clearedTables: payload.clearedTables ?? {}, errors: errs })
         onDone()
+        const summary = `신규 ${created.toLocaleString()}명 · 이전 계정 ${deletedAuth.toLocaleString()}개 삭제`
+        if (errs.length === 0) toast.update(loadingId, { kind: 'success', title: '사용자 전체 초기화 완료', description: summary })
+        else toast.update(loadingId, { kind: 'info', title: '사용자 초기화 부분 완료', description: `${summary}\n오류 ${errs.length}건` })
       }
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
     } catch (error) {
-      setResult({ createdCount: 0, deletedAuthCount: 0, deletedStorageCount: 0, clearedTables: {}, errors: [error instanceof Error ? error.message : String(error)] })
+      const msg = error instanceof Error ? error.message : String(error)
+      setResult({ createdCount: 0, deletedAuthCount: 0, deletedStorageCount: 0, clearedTables: {}, errors: [msg] })
+      toast.update(loadingId, { kind: 'error', title: '사용자 초기화 실패', description: msg })
     } finally {
       setUploading(false)
     }
@@ -136,15 +169,17 @@ export default function UserUploadTab({ onDone }: { onDone: () => void }) {
     setUpdateResult(null)
 
     const rows = await parseFile(file)
-    const { normalized } = normalizeRows(rows)
+    const { normalized, errors: parseErrors } = normalizeRows(rows)
 
     const session = await supabase.auth.getSession()
     const token = session.data.session?.access_token
     if (!token) {
-      setUpdateResult({ createdCount: 0, updatedCount: 0, errors: ['관리자 세션 없음. 다시 로그인해주세요.'] })
+      setUpdateResult({ createdCount: 0, updatedCount: 0, errors: [...parseErrors, '관리자 세션 없음. 다시 로그인해주세요.'] })
       setUploading(false)
       return
     }
+
+    const loadingId = toast.loading('사용자 정보 업데이트 진행 중...', `${normalized.length}명 처리 중`)
 
     try {
       const response = await fetch('/api/admin/update-users', {
@@ -153,10 +188,25 @@ export default function UserUploadTab({ onDone }: { onDone: () => void }) {
         body: JSON.stringify({ users: normalized }),
       })
       const payload = await response.json()
-      setUpdateResult({ createdCount: payload.createdCount ?? 0, updatedCount: payload.updatedCount ?? 0, errors: payload.errors ?? [payload.detail ?? payload.error ?? '업데이트 실패'] })
+      const apiErrors = payload.errors ?? (payload.detail || payload.error ? [payload.detail ?? payload.error] : [])
+      const created = payload.createdCount ?? 0
+      const updated = payload.updatedCount ?? 0
+      const allErrors = [...parseErrors, ...apiErrors]
+      setUpdateResult({ createdCount: created, updatedCount: updated, errors: allErrors })
       if (response.ok && payload.ok) onDone()
+      const summary = `정보 업데이트 ${updated.toLocaleString()}명 · 신규 생성 ${created.toLocaleString()}명`
+      if (allErrors.length === 0) {
+        toast.update(loadingId, { kind: 'success', title: '사용자 업데이트 완료', description: summary })
+      } else if (created + updated === 0) {
+        toast.update(loadingId, { kind: 'error', title: '사용자 업데이트 실패', description: `${allErrors.length}건 오류` })
+      } else {
+        toast.update(loadingId, { kind: 'info', title: '사용자 업데이트 부분 완료', description: `${summary}\n오류 ${allErrors.length}건` })
+      }
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
     } catch (error) {
-      setUpdateResult({ createdCount: 0, updatedCount: 0, errors: [error instanceof Error ? error.message : String(error)] })
+      const msg = error instanceof Error ? error.message : String(error)
+      setUpdateResult({ createdCount: 0, updatedCount: 0, errors: [...parseErrors, msg] })
+      toast.update(loadingId, { kind: 'error', title: '사용자 업데이트 실패', description: msg })
     } finally {
       setUploading(false)
     }
@@ -201,6 +251,8 @@ export default function UserUploadTab({ onDone }: { onDone: () => void }) {
       </div>
 
       <PreviewTable rows={preview} />
+
+      <div ref={resultRef} />
 
       {updateResult && (
         <ResultCard

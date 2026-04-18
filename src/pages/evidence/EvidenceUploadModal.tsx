@@ -37,6 +37,7 @@ interface Activity {
 interface PopulationItem {
   id: string
   unique_key: string
+  unique_key_2: string | null
   transaction_id: string | null
   transaction_date: string | null
   description: string | null
@@ -113,6 +114,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
   const [savedMsg, setSavedMsg] = useState('')
   const [error, setError] = useState('')
   const [uploadBlocked, setUploadBlocked] = useState(false)
+  const [dragOverItemId, setDragOverItemId] = useState<string | null>(null)
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   // Check upload block setting
@@ -146,7 +148,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
         .from('population_items')
         .select('*')
         .eq('unique_key', activity.unique_key)
-        .order('transaction_date')
+        .order('unique_key_2', { ascending: true, nullsFirst: false })
 
       const { data: uploads } = await db
         .from('evidence_uploads')
@@ -199,24 +201,11 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
 
     const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
 
-    const targetItem = items.find(item => item.id === itemId)
-    const expectedName = targetItem?.evidence_name || targetItem?.description || null
-
     const validFiles: File[] = []
     for (const file of Array.from(files)) {
       if (file.size > MAX_FILE_SIZE) {
         alert(`파일 크기는 100MB를 초과할 수 없습니다: ${file.name}`)
         continue
-      }
-
-      if (expectedName) {
-        const uploadedNameWithoutExt = file.name.replace(/\.[^.]+$/, '')
-        if (uploadedNameWithoutExt !== expectedName) {
-          alert(
-            `파일명이 모집단의 증빙 파일명과 일치하지 않습니다.\n\n업로드 파일: ${uploadedNameWithoutExt}\n기대 파일: ${expectedName}`
-          )
-          continue
-        }
       }
 
       validFiles.push(file)
@@ -239,6 +228,30 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
         return { ...item, uploads: [...item.uploads, ...newUploads] }
       })
     )
+  }
+
+  function handleDragOver(event: React.DragEvent, itemId: string) {
+    event.preventDefault()
+    event.stopPropagation()
+    if (viewOnly || uploadBlocked) return
+    setDragOverItemId(itemId)
+  }
+
+  function handleDragLeave(event: React.DragEvent, itemId: string) {
+    event.preventDefault()
+    event.stopPropagation()
+    if (dragOverItemId === itemId) setDragOverItemId(null)
+  }
+
+  function handleDrop(event: React.DragEvent, itemId: string) {
+    event.preventDefault()
+    event.stopPropagation()
+    setDragOverItemId(null)
+    if (viewOnly) return
+    const droppedFiles = event.dataTransfer?.files
+    if (droppedFiles && droppedFiles.length > 0) {
+      handleFileSelect(itemId, droppedFiles)
+    }
   }
 
   function removeFile(itemId: string, fileName: string) {
@@ -679,99 +692,141 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                 )}
               </p>
 
-              <div className="overflow-auto border border-warm-200 rounded-lg max-h-[60vh] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
-                <table className="data-table min-w-[1380px]">
-                  <thead>
-                    <tr>
-                      <th className="text-center w-12">#</th>
-                      <th className="min-w-[220px]">Transaction ID</th>
-                      <th className="min-w-[130px]">거래일</th>
-                      <th className="min-w-[420px]">거래 설명</th>
-                      <th className="min-w-[260px]">추가 정보</th>
-                      <th className="min-w-[360px]">업로드된 파일</th>
-                      {!viewOnly && <th className="text-center min-w-[110px]">업로드</th>}
+              <div className="overflow-y-auto overflow-x-hidden border border-warm-200 rounded-lg max-h-[62vh] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+                <table className="w-full table-fixed text-left border-collapse compact-evidence-table">
+                  <colgroup>
+                    <col style={{ width: '36px' }} />
+                    <col style={{ width: '130px' }} />
+                    <col style={{ width: '160px' }} />
+                    <col style={{ width: '90px' }} />
+                    <col style={{ width: '22%' }} />
+                    <col style={{ width: '16%' }} />
+                    <col style={{ width: '22%' }} />
+                    {!viewOnly && <col style={{ width: '86px' }} />}
+                  </colgroup>
+                  <thead className="bg-warm-50">
+                    <tr className="border-b border-warm-200">
+                      <th className="text-center px-1.5 py-2 text-[11px] font-medium text-warm-500 uppercase tracking-wider">#</th>
+                      <th className="px-2 py-2 text-[11px] font-medium text-warm-500 uppercase tracking-wider">고유키2</th>
+                      <th className="px-2 py-2 text-[11px] font-medium text-warm-500 uppercase tracking-wider">Transaction ID</th>
+                      <th className="px-2 py-2 text-[11px] font-medium text-warm-500 uppercase tracking-wider">거래일</th>
+                      <th className="px-2 py-2 text-[11px] font-medium text-warm-500 uppercase tracking-wider">거래 설명</th>
+                      <th className="px-2 py-2 text-[11px] font-medium text-warm-500 uppercase tracking-wider">추가 정보</th>
+                      <th className="px-2 py-2 text-[11px] font-medium text-warm-500 uppercase tracking-wider">업로드된 파일</th>
+                      {!viewOnly && <th className="text-center px-1.5 py-2 text-[11px] font-medium text-warm-500 uppercase tracking-wider">업로드</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {items.map((item, index) => {
                       const additionalRows = getAdditionalInfoRows(item)
+                      const isDraggingOver = dragOverItemId === item.id
 
                       return (
                         <tr
                           key={item.id}
+                          onDragOver={event => handleDragOver(event, item.id)}
+                          onDragLeave={event => handleDragLeave(event, item.id)}
+                          onDrop={event => handleDrop(event, item.id)}
                           className={clsx(
-                            'align-top border-b border-warm-100',
-                            index % 2 === 0 ? 'bg-white' : 'bg-warm-50/70'
+                            'align-top border-b border-warm-100 transition-colors',
+                            isDraggingOver
+                              ? 'bg-brand-50 ring-2 ring-brand-400 ring-inset'
+                              : index % 2 === 0
+                                ? 'bg-white'
+                                : 'bg-warm-50/70'
                           )}
                         >
-                          <td className="text-center text-xs text-warm-400 pt-4">{index + 1}</td>
-                          <td className="pt-3">
-                            <div className="rounded-xl border border-warm-200 bg-white px-3 py-3 text-xs font-mono text-brand-700 break-all whitespace-normal">
+                          <td className="text-center text-[11px] text-warm-400 align-top pt-3 px-1">{index + 1}</td>
+                          <td className="align-top py-2 px-1.5">
+                            <div className="rounded-lg border border-brand-100 bg-brand-50/40 px-2 py-2 text-[11px] font-mono text-brand-800 break-all whitespace-normal font-semibold">
+                              {item.unique_key_2 ?? '-'}
+                            </div>
+                          </td>
+                          <td className="align-top py-2 px-1.5">
+                            <div className="rounded-lg border border-warm-200 bg-white px-2 py-2 text-[11px] font-mono text-brand-700 break-all whitespace-normal">
                               {item.transaction_id ?? '-'}
                             </div>
                           </td>
-                          <td className="pt-3">
-                            <div className="rounded-xl border border-warm-200 bg-white px-3 py-3 text-xs text-brand-700 whitespace-nowrap">
+                          <td className="align-top py-2 px-1.5">
+                            <div className="rounded-lg border border-warm-200 bg-white px-2 py-2 text-[11px] text-brand-700 whitespace-nowrap">
                               {item.transaction_date ?? '-'}
                             </div>
                           </td>
-                          <td className="pt-3">
-                            <div className="rounded-xl border border-warm-200 bg-white px-3 py-3 text-xs text-brand-700 whitespace-normal break-words leading-5">
+                          <td className="align-top py-2 px-1.5">
+                            <div className="rounded-lg border border-warm-200 bg-white px-2 py-2 text-[11px] text-brand-700 whitespace-normal break-words leading-5">
                               {item.description ?? '-'}
                             </div>
                           </td>
-                          <td className="pt-3">
-                            <div className="rounded-xl border border-warm-200 bg-white px-3 py-3 min-h-[74px]">
+                          <td className="align-top py-2 px-1.5">
+                            <div className="rounded-lg border border-warm-200 bg-white px-2 py-2 min-h-[64px]">
                               {additionalRows.length === 0 ? (
-                                <span className="text-xs text-warm-400">-</span>
+                                <span className="text-[11px] text-warm-400">-</span>
                               ) : (
-                                <div className="space-y-2">
+                                <div className="space-y-1.5">
                                   {additionalRows.map(row => (
-                                    <div key={row.label} className="rounded-lg bg-warm-50 border border-warm-100 px-2.5 py-2">
-                                      <p className="text-[11px] font-semibold text-warm-500">{row.label}</p>
-                                      <p className="text-xs font-medium text-brand-800 break-words">{row.value}</p>
+                                    <div key={row.label} className="rounded-md bg-warm-50 border border-warm-100 px-1.5 py-1">
+                                      <p className="text-[10px] font-semibold text-warm-500">{row.label}</p>
+                                      <p className="text-[11px] font-medium text-brand-800 break-words">{row.value}</p>
                                     </div>
                                   ))}
                                 </div>
                               )}
                             </div>
                           </td>
-                          <td className="pt-3">
-                            <div className="rounded-xl border border-warm-200 bg-white px-3 py-3 min-h-[74px]">
+                          <td className="align-top py-2 px-1.5">
+                            <div className="rounded-lg border border-warm-200 bg-white px-2 py-2 min-h-[64px]">
                               {item.uploads.length === 0 ? (
-                                <span className="text-xs text-warm-400">파일 없음</span>
+                                <div className="text-[11px] text-warm-400">
+                                  {!viewOnly && isDraggingOver ? (
+                                    <span className="text-brand-600 font-medium">여기에 파일을 놓으세요</span>
+                                  ) : (
+                                    <>
+                                      <div>파일 없음</div>
+                                      {!viewOnly && (
+                                        <div className="text-[10px] text-warm-300 mt-1 leading-tight">
+                                          업로드 시 <span className="text-brand-500">다운로드·교체·삭제</span> 버튼 표시
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
                               ) : (
-                                <div className="space-y-2">
+                                <div className="space-y-1.5">
                                   {item.uploads.map((upload, uploadIndex) => (
                                     <div
                                       key={`${upload.file_name}-${uploadIndex}`}
                                       className={clsx(
-                                        'flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs border',
+                                        'px-2 py-1.5 rounded-md text-[11px] border',
                                         upload.isNew
                                           ? 'bg-warm-50 border-brand-100'
                                           : 'bg-warm-50 border-warm-100'
                                       )}
                                     >
-                                      <FileText size={12} className={upload.isNew ? 'text-brand-500' : 'text-warm-400'} />
-                                      <div className="min-w-0 flex-1">
-                                        <p className="text-brand-700 break-all whitespace-normal">{upload.file_name}</p>
-                                        {upload.file_size ? (
-                                          <p className="text-[11px] text-warm-400 mt-0.5">{formatFileSize(upload.file_size)}</p>
-                                        ) : null}
+                                      <div className="flex items-start gap-1.5">
+                                        <FileText size={12} className={clsx('mt-0.5 shrink-0', upload.isNew ? 'text-brand-500' : 'text-warm-400')} />
+                                        <div className="min-w-0 flex-1">
+                                          <p className="text-brand-700 break-all whitespace-normal leading-tight">{upload.file_name}</p>
+                                          {upload.file_size ? (
+                                            <p className="text-[10px] text-warm-400 mt-0.5">{formatFileSize(upload.file_size)}</p>
+                                          ) : null}
+                                        </div>
                                       </div>
 
                                       {upload.isNew && !viewOnly ? (
-                                        <button
-                                          onClick={() => removeFile(item.id, upload.file_name)}
-                                          className="text-warm-400 hover:text-red-500 transition-colors"
-                                          title="제거"
-                                        >
-                                          <Trash2 size={12} />
-                                        </button>
+                                        <div className="mt-1.5 flex">
+                                          <button
+                                            onClick={() => removeFile(item.id, upload.file_name)}
+                                            className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 hover:border-red-200 transition-colors"
+                                            title="제거"
+                                          >
+                                            <Trash2 size={12} />
+                                            <span>제거</span>
+                                          </button>
+                                        </div>
                                       ) : null}
 
                                       {!upload.isNew && upload.file_path ? (
-                                        <div className="flex items-center gap-1">
+                                        <div className="mt-1.5 flex flex-wrap items-center gap-1">
                                           <FileDownloadBtn path={upload.file_path} name={upload.file_name} />
                                           {!viewOnly && upload.id && (
                                             <>
@@ -788,17 +843,19 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                                               />
                                               <button
                                                 onClick={() => replaceInputRefs.current[upload.id!]?.click()}
-                                                className="text-warm-400 hover:text-brand-600 transition-colors"
+                                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-brand-700 bg-brand-50 border border-brand-100 hover:bg-brand-100 hover:border-brand-200 transition-colors"
                                                 title="교체"
                                               >
                                                 <RefreshCw size={12} />
+                                                <span>교체</span>
                                               </button>
                                               <button
                                                 onClick={() => handleDeletePersisted(upload.id!, upload.file_path)}
-                                                className="text-warm-400 hover:text-red-500 transition-colors"
+                                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 hover:border-red-200 transition-colors"
                                                 title="삭제"
                                               >
                                                 <Trash2 size={12} />
+                                                <span>삭제</span>
                                               </button>
                                             </>
                                           )}
@@ -811,7 +868,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                             </div>
                           </td>
                           {!viewOnly && (
-                            <td className="text-center pt-3">
+                            <td className="text-center align-top py-2 px-1">
                               <input
                                 type="file"
                                 multiple
@@ -822,11 +879,17 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                               />
                               <button
                                 onClick={() => fileInputRefs.current[item.id]?.click()}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-warm-200 text-warm-600 rounded-lg text-xs font-medium hover:border-brand-300 hover:text-brand-700 hover:bg-warm-50 transition-all"
+                                className={clsx(
+                                  'inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[11px] font-medium border transition-all',
+                                  isDraggingOver
+                                    ? 'bg-brand-600 border-brand-600 text-white'
+                                    : 'bg-white border-warm-200 text-warm-600 hover:border-brand-300 hover:text-brand-700 hover:bg-warm-50'
+                                )}
                               >
                                 <Upload size={11} />
-                                업로드
+                                {isDraggingOver ? '놓기' : '업로드'}
                               </button>
+                              <p className="text-[9px] text-warm-400 mt-0.5 leading-tight">드래그<br/>가능</p>
                             </td>
                           )}
                         </tr>
@@ -849,6 +912,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
               onClick={() => {
                 const rows = items.map((item, idx) => ({
                   '번호': idx + 1,
+                  '고유키2': item.unique_key_2 ?? '-',
                   'Transaction ID': item.transaction_id ?? '-',
                   '거래일': item.transaction_date ?? '-',
                   '거래설명': item.description ?? '-',
@@ -857,7 +921,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                   '파일명': item.uploads.map(u => u.file_name).join(', ') || '-',
                 }))
                 const ws = XLSX.utils.json_to_sheet(rows)
-                ws['!cols'] = [{ wch: 5 }, { wch: 24 }, { wch: 14 }, { wch: 44 }, { wch: 20 }, { wch: 10 }, { wch: 40 }]
+                ws['!cols'] = [{ wch: 5 }, { wch: 20 }, { wch: 24 }, { wch: 14 }, { wch: 44 }, { wch: 20 }, { wch: 10 }, { wch: 40 }]
                 const wb = XLSX.utils.book_new()
                 XLSX.utils.book_append_sheet(wb, ws, '모집단')
                 XLSX.writeFile(wb, `모집단_${activity.control_code}_${new Date().toISOString().slice(0, 10)}.xlsx`)
@@ -905,8 +969,13 @@ function FileDownloadBtn({ path, name: _name }: { path: string; name: string }) 
   }
 
   return (
-    <button onClick={handleDownload} className="text-warm-400 hover:text-brand-700 transition-colors" title="다운로드">
+    <button
+      onClick={handleDownload}
+      className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-brand-700 bg-warm-50 border border-warm-200 hover:bg-warm-100 hover:border-warm-300 transition-colors"
+      title="다운로드"
+    >
       <Download size={12} />
+      <span>다운로드</span>
     </button>
   )
 }

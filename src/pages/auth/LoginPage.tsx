@@ -48,63 +48,59 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left panel */}
-      <div className="relative hidden overflow-hidden bg-gradient-to-br from-[#1E3A5F] via-brand-800 to-brand-900 p-12 lg:flex lg:w-[55%] lg:flex-col lg:justify-between">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute left-20 top-20 h-64 w-64 rounded-full border border-cyan-400/20" />
-          <div className="absolute left-32 top-32 h-40 w-40 rounded-full border border-cyan-300/15" />
-          <div className="absolute bottom-40 right-20 h-80 w-80 rounded-full border border-cyan-300/15" />
-          <div className="absolute bottom-20 right-32 h-48 w-48 rounded-full border border-cyan-400/20" />
-        </div>
-        <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-cyan-500/15 blur-3xl" />
-        <div className="absolute bottom-0 left-0 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl" />
+      {/* Left panel — brochure image as background, content anchored at bottom */}
+      <div className="relative hidden overflow-hidden bg-brand-900 lg:flex lg:w-[55%] lg:flex-col lg:justify-end">
+        {/* Background image fills entire panel */}
+        <img
+          src="/login_bg.png"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        {/* Dark gradient at bottom for text readability */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
 
-        <div className="relative">
-          <div className="flex items-center gap-4">
-            <img src="/tongyang_ci_en.png" alt="TONGYANG" className="h-12 grayscale brightness-0 invert" />
-          </div>
-        </div>
-
-        <div className="relative">
+        {/* Foreground content — sits at the bottom, leaves the top half of image visible */}
+        <div className="relative z-10 p-12 pb-10 pt-40">
           <div className="mb-6 flex items-center gap-2">
-            <div className="h-0.5 w-8 bg-blue-300/60" />
-            <span className="text-sm font-medium uppercase tracking-widest text-blue-200/80">Internal Controls</span>
+            <div className="h-0.5 w-8 bg-blue-300/70" />
+            <span className="text-sm font-medium uppercase tracking-widest text-blue-100/90 drop-shadow">
+              Internal Controls
+            </span>
           </div>
 
-          <h1 className="mb-4 text-3xl font-bold leading-tight text-white whitespace-nowrap">
+          <h1 className="mb-4 text-3xl font-bold leading-tight text-white whitespace-nowrap drop-shadow-lg">
             내부회계 Portal System
           </h1>
-          <p className="max-w-md text-sm leading-relaxed text-blue-100/70">
+          <p className="max-w-md text-sm leading-relaxed text-blue-50/90 drop-shadow">
             교육관리, 증빙관리 및 결재, KPI관리, 참여형 미디어, 이벤트까지 한 곳에서 운영합니다
           </p>
 
-          <p className="mt-6 text-xs italic text-blue-200/50 tracking-wide">
+          <p className="mt-6 text-xs italic text-blue-100/80 tracking-wide drop-shadow">
             "Through ICFR, clarity in numbers leads to confidence in decisions."
           </p>
 
-          <div className="mt-10 space-y-3">
+          <div className="mt-8 space-y-3">
             <div className="flex items-center gap-3">
-              <div className="h-px flex-1 bg-gradient-to-r from-cyan-400/40 to-transparent" />
-              <span className="text-[10px] font-mono tracking-[0.3em] text-cyan-300/60">SYSTEM ONLINE</span>
-              <div className="h-px flex-1 bg-gradient-to-l from-cyan-400/40 to-transparent" />
+              <div className="h-px flex-1 bg-gradient-to-r from-cyan-300/50 to-transparent" />
+              <span className="text-[10px] font-mono tracking-[0.3em] text-cyan-200/80">SYSTEM ONLINE</span>
+              <div className="h-px flex-1 bg-gradient-to-l from-cyan-300/50 to-transparent" />
             </div>
             <div className="grid grid-cols-12 gap-1">
               {Array.from({ length: 24 }).map((_, i) => (
                 <div
                   key={i}
-                  className="h-1 rounded-full bg-cyan-400/30"
+                  className="h-1 rounded-full bg-cyan-300/50"
                   style={{
-                    opacity: 0.2 + Math.random() * 0.8,
+                    opacity: 0.3 + Math.random() * 0.7,
                     animation: `pulse ${1.5 + Math.random() * 2}s ease-in-out ${Math.random() * 2}s infinite`,
                   }}
                 />
               ))}
             </div>
           </div>
-        </div>
 
-        <div className="relative">
-          <p className="text-xs text-blue-200/40">© 2026 (주)동양 All rights reserved.</p>
+          <p className="mt-8 text-xs text-blue-100/60 drop-shadow">© 2026 (주)동양 All rights reserved.</p>
         </div>
       </div>
 

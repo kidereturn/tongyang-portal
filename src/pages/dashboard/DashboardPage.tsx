@@ -166,8 +166,9 @@ export default function DashboardPage() {
   const [learningStats, setLearningStats] = useState({ total: 10, inProgress: 0, completed: 0 })
 
 
-  const approvalRate = stats.approved + stats.rejected > 0
-    ? Math.round((stats.approved / (stats.approved + stats.rejected)) * 100)
+  // 승인율 = 전체 증빙 중 승인완료 비율 (per user spec #11)
+  const approvalRate = stats.total > 0
+    ? Math.round((stats.approved / stats.total) * 100)
     : 0
 
   const animatedRate = useCountUp(approvalRate, 1000, !loading)
@@ -516,8 +517,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-        {[
+      {(() => {
+        // Admin 홈에서는 '미완료' 카드 제외 (per spec #9)
+        const cards = [
           { icon: FileCheck2, color: 'brand', label: '전체', value: stats.total, unit: '건', to: '/evidence' },
           {
             icon: Clock,
@@ -525,14 +527,32 @@ export default function DashboardPage() {
             label: '결재대기',
             value: stats.pendingApproval,
             unit: '건',
-            to: profile?.role === 'controller' ? '/inbox' : '/evidence',
+            to: profile?.role === 'controller' ? '/inbox' : '/evidence?status=awaiting',
           },
-          { icon: CheckCircle2, color: 'green', label: '승인완료', value: stats.approved, unit: '건', to: '/inbox' },
-          { icon: XCircle, color: 'red', label: '반려', value: stats.rejected, unit: '건', to: '/inbox' },
-        ].map(item => (
-          <StatCard key={item.label} {...item} loaded={!loading} />
-        ))}
-      </div>
+          { icon: CheckCircle2, color: 'green', label: '승인완료', value: stats.approved, unit: '건', to: '/evidence?status=approved' },
+          { icon: XCircle, color: 'red', label: '반려', value: stats.rejected, unit: '건', to: '/evidence?status=rejected' },
+        ]
+        // 비-관리자 홈에는 '미완료' 카드 추가
+        if (profile?.role !== 'admin') {
+          const pendingCount = Math.max(0, stats.total - stats.approved - stats.rejected - stats.pendingApproval)
+          cards.splice(1, 0, {
+            icon: Clock,
+            color: 'amber',
+            label: '미완료',
+            value: pendingCount,
+            unit: '건',
+            to: '/evidence?status=pending',
+          })
+        }
+        const gridCols = cards.length === 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
+        return (
+          <div className={clsx('grid grid-cols-2 sm:grid-cols-2 gap-2 sm:gap-3', gridCols)}>
+            {cards.map(item => (
+              <StatCard key={item.label} {...item} loaded={!loading} />
+            ))}
+          </div>
+        )
+      })()}
 
       {loadError && (
         <div className="card p-4 flex items-center justify-between gap-3 bg-amber-50 border-amber-200">
@@ -694,6 +714,41 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* 팀별 승인율 (관리자 전용) — per spec #12 */}
+      {!loading && profile?.role === 'admin' && deptStats.length > 0 && (
+        <div className="card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Users size={15} className="text-brand-500" />
+            <p className="font-bold text-brand-900 text-sm">팀별 승인율</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {deptStats
+              .slice()
+              .sort((a, b) => b.total - a.total)
+              .map(dept => {
+                const ratePct = dept.total > 0 ? Math.round((dept.approved / dept.total) * 100) : 0
+                return (
+                  <div key={dept.name} className="rounded-lg border border-warm-100 bg-warm-50/50 px-3 py-2.5">
+                    <div className="mb-1.5 flex items-start justify-between gap-2">
+                      <p className="text-xs font-semibold text-brand-800 truncate" title={dept.name}>{dept.name}</p>
+                      <p className="shrink-0 text-sm font-bold text-brand-700">{ratePct}%</p>
+                    </div>
+                    <div className="mb-1 h-1.5 w-full overflow-hidden rounded-full bg-warm-200">
+                      <div
+                        className="h-full bg-gradient-to-r from-brand-500 to-emerald-500 transition-all duration-700"
+                        style={{ width: `${ratePct}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-warm-500">
+                      {dept.approved.toLocaleString()}/{dept.total.toLocaleString()}건
+                    </p>
+                  </div>
+                )
+              })}
+          </div>
+        </div>
+      )}
 
       {/* 부서별 현황 + 일별 활동 추이 */}
       {!loading && (

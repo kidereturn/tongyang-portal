@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Download, Loader2, Search, Package, Filter, CheckCircle2, Clock, AlertCircle, FileCheck2 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { type FileRow } from '../adminShared'
+import { useToast } from '../../../components/Toast'
 import clsx from 'clsx'
 import JSZip from 'jszip'
 
@@ -19,6 +20,7 @@ const STATUS_OPTIONS = [
 ] as const
 
 export default function FilesTab() {
+  const toast = useToast()
   const [files, setFiles] = useState<FileRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -74,13 +76,107 @@ export default function FilesTab() {
     load()
   }, [])
 
-  async function downloadFile(path: string, name: string) {
-    const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 3600)
-    if (!data?.signedUrl) return
+  async function downloadBlobAsFile(blob: Blob, name: string) {
+    const objectUrl = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
-    anchor.href = data.signedUrl
+    anchor.href = objectUrl
     anchor.download = name
+    anchor.rel = 'noopener'
+    document.body.appendChild(anchor)
     anchor.click()
+    document.body.removeChild(anchor)
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 2000)
+  }
+
+  async function downloadFile(path: string, name: string, clickedFile?: FileRow) {
+    // If the clicked file shares its unique_key with other files, auto-merge them into a ZIP.
+    // Per spec #7: 유니크 키 1개에 증빙파일이 여러개면 다운로드시 자동으로 병합되어 다운로드.
+    try {
+      if (clickedFile) {
+        const uk = getFileUniqueKey(clickedFile)
+        if (uk) {
+          const sameKeyFiles = files.filter(f => getFileUniqueKey(f) === uk)
+          if (sameKeyFiles.length > 1) {
+            await downloadFilesAsMergedZip(sameKeyFiles, uk)
+            return
+          }
+        }
+      }
+
+      // Fallback: single-file download via blob to prevent browsers from auto-opening PDF/image.
+      const { data, error } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 3600)
+      if (error || !data?.signedUrl) {
+        toast.error('다운로드 실패', error?.message ?? '파일 URL 생성 실패')
+        return
+      }
+      const response = await fetch(data.signedUrl)
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const blob = await response.blob()
+      await downloadBlobAsFile(blob, name)
+      toast.success('다운로드 시작', name)
+    } catch (err) {
+      toast.error('다운로드 실패', err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  async function downloadFilesAsMergedZip(groupFiles: FileRow[], uniqueKey: string) {
+    const toastId = toast.loading(
+      '병합 다운로드 준비 중...',
+      `고유키 "${uniqueKey}"의 ${groupFiles.length.toLocaleString()}개 파일을 ZIP으로 병합`,
+    )
+    try {
+      const zip = new JSZip()
+      const nameCount: Record<string, number> = {}
+      let failed = 0
+
+      for (const file of groupFiles) {
+        try {
+          const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(file.file_path, 3600)
+          if (!data?.signedUrl) throw new Error('URL 생성 실패')
+          const response = await fetch(data.signedUrl)
+          if (!response.ok) throw new Error(`HTTP ${response.status}`)
+          const blob = await response.blob()
+
+          let name = file.original_file_name ?? file.file_name
+          if (nameCount[name]) {
+            nameCount[name]++
+            const ext = name.lastIndexOf('.')
+            if (ext > 0) name = `${name.slice(0, ext)}_(${nameCount[name]})${name.slice(ext)}`
+            else name = `${name}_(${nameCount[name]})`
+          } else {
+            nameCount[name] = 1
+          }
+          zip.file(name, blob)
+        } catch {
+          failed++
+        }
+      }
+
+      const content = await zip.generateAsync({ type: 'blob' })
+      const zipName = `${uniqueKey}_증빙파일_${new Date().toISOString().slice(0, 10)}.zip`
+      await downloadBlobAsFile(content, zipName)
+
+      const sizeLabel = `${(content.size / (1024 * 1024)).toFixed(1)}MB`
+      if (failed === 0) {
+        toast.update(toastId, {
+          kind: 'success',
+          title: '병합 다운로드 완료',
+          description: `${zipName}\n${groupFiles.length.toLocaleString()}개 파일 · ${sizeLabel}`,
+        })
+      } else {
+        toast.update(toastId, {
+          kind: 'info',
+          title: '병합 다운로드 부분 완료',
+          description: `성공 ${(groupFiles.length - failed).toLocaleString()} · 실패 ${failed.toLocaleString()}`,
+        })
+      }
+    } catch (err) {
+      toast.update(toastId, {
+        kind: 'error',
+        title: '병합 다운로드 실패',
+        description: err instanceof Error ? err.message : String(err),
+      })
+    }
   }
 
   function getFileUniqueKey(file: FileRow): string {
@@ -125,10 +221,19 @@ export default function FilesTab() {
     setDownloading(true)
     setDownloadProgress(`0/${filtered.length} 파일 준비 중...`)
 
+    const toastId = toast.loading(
+      '일괄 다운로드 준비 중...',
+      `총 ${filtered.length.toLocaleString()}개 파일을 ZIP으로 압축합니다`,
+    )
+
+    let completed = 0
+    let failed = 0
+    const failureReasons: string[] = []
+
     try {
       const zip = new JSZip()
-      const nameCount: Record<string, number> = {}
-      let completed = 0
+      // Per-folder duplicate counter so same filename under different unique_keys doesn't collide.
+      const nameCountByFolder: Record<string, Record<string, number>> = {}
 
       // Download files in batches of 5
       const batchSize = 5
@@ -139,33 +244,51 @@ export default function FilesTab() {
             const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(file.file_path, 3600)
             if (!data?.signedUrl) throw new Error('URL 생성 실패')
             const response = await fetch(data.signedUrl)
-            if (!response.ok) throw new Error(`다운로드 실패: ${response.status}`)
+            if (!response.ok) throw new Error(`HTTP ${response.status}`)
             const blob = await response.blob()
 
-            // Build filename with UNIQUE KEY prefix
-            let downloadName = buildDownloadName(file)
-            // Handle duplicates
-            if (nameCount[downloadName]) {
-              nameCount[downloadName]++
-              const ext = downloadName.lastIndexOf('.')
+            // Per spec #7: group files by unique_key into a sub-folder, using original filename inside.
+            const uk = getFileUniqueKey(file) || '_no_key'
+            const safeFolder = uk.replace(/[\\/:*?"<>|]/g, '_')
+            const originalName = file.original_file_name ?? file.file_name
+
+            const folderMap = nameCountByFolder[safeFolder] ?? (nameCountByFolder[safeFolder] = {})
+            let finalName = originalName
+            if (folderMap[finalName]) {
+              folderMap[finalName]++
+              const ext = finalName.lastIndexOf('.')
               if (ext > 0) {
-                downloadName = `${downloadName.slice(0, ext)}_(${nameCount[downloadName]})${downloadName.slice(ext)}`
+                finalName = `${finalName.slice(0, ext)}_(${folderMap[finalName]})${finalName.slice(ext)}`
               } else {
-                downloadName = `${downloadName}_(${nameCount[downloadName]})`
+                finalName = `${finalName}_(${folderMap[finalName]})`
               }
             } else {
-              nameCount[downloadName] = 1
+              folderMap[finalName] = 1
             }
-
-            zip.file(downloadName, blob)
+            zip.file(`${safeFolder}/${finalName}`, blob)
           })
         )
 
-        completed += results.filter(r => r.status === 'fulfilled').length
-        setDownloadProgress(`${completed}/${filtered.length} 파일 완료`)
+        results.forEach((r, idx) => {
+          if (r.status === 'fulfilled') {
+            completed += 1
+          } else {
+            failed += 1
+            const f = batch[idx]
+            const reason = r.reason instanceof Error ? r.reason.message : String(r.reason)
+            failureReasons.push(`${buildDownloadName(f)}: ${reason}`)
+          }
+        })
+        setDownloadProgress(`${completed}/${filtered.length} 파일 완료${failed > 0 ? ` (실패 ${failed})` : ''}`)
+        toast.update(toastId, {
+          kind: 'loading',
+          title: '일괄 다운로드 진행 중...',
+          description: `${completed.toLocaleString()}/${filtered.length.toLocaleString()} 완료${failed > 0 ? ` · 실패 ${failed}건` : ''}`,
+        })
       }
 
       setDownloadProgress('ZIP 파일 생성 중...')
+      toast.update(toastId, { kind: 'loading', title: 'ZIP 압축 중...', description: `${completed.toLocaleString()}개 파일 압축` })
       const content = await zip.generateAsync({ type: 'blob' })
 
       // Trigger download
@@ -180,9 +303,30 @@ export default function FilesTab() {
       a.download = fileName
       a.click()
       URL.revokeObjectURL(url)
+
+      // Final status toast
+      const sizeLabel = `${(content.size / (1024 * 1024)).toFixed(1)}MB`
+      if (failed === 0) {
+        toast.update(toastId, {
+          kind: 'success',
+          title: '일괄 다운로드 완료',
+          description: `${fileName}\n${completed.toLocaleString()}개 파일 · ${sizeLabel}`,
+        })
+      } else {
+        toast.update(toastId, {
+          kind: 'info',
+          title: '일괄 다운로드 부분 완료',
+          description: `성공 ${completed.toLocaleString()} · 실패 ${failed.toLocaleString()} · ${sizeLabel}\n(실패 파일은 개별 다운로드 시도 권장)`,
+        })
+        console.warn('[FilesTab] Bulk download failures:', failureReasons)
+      }
     } catch (err) {
       console.error('Bulk download error:', err)
-      alert('일괄 다운로드 중 오류가 발생했습니다.')
+      toast.update(toastId, {
+        kind: 'error',
+        title: '일괄 다운로드 실패',
+        description: err instanceof Error ? err.message : '알 수 없는 오류 — 파일 수가 많을 경우 상태 필터로 나눠서 시도해보세요',
+      })
     } finally {
       setDownloading(false)
       setDownloadProgress('')
@@ -309,7 +453,7 @@ export default function FilesTab() {
                     </td>
                     <td className="text-center">
                       <button
-                        onClick={() => downloadFile(file.file_path, buildDownloadName(file))}
+                        onClick={() => downloadFile(file.file_path, buildDownloadName(file), file)}
                         className="inline-flex items-center gap-1 rounded-lg bg-warm-50 px-2 py-1 text-xs text-brand-700 transition-all hover:bg-brand-100"
                       >
                         <Download size={11} />

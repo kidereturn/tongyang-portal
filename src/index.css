@@ -16,6 +16,8 @@
     letter-spacing: -0.008em;
     font-size: 100%;
     line-height: 1.7;
+    /* Global 120% zoom — matches Chrome browser zoom at 120% */
+    zoom: 1.2;
   }
   body {
     @apply bg-warm-50 text-brand-900;
@@ -169,6 +171,12 @@
   to   { transform: translateY(0);    opacity: 1; }
 }
 .animate-in { animation: slideUp 0.3s ease-out forwards; }
+
+/* ─── Toast slide-in animation ─── */
+@keyframes toastSlide {
+  from { transform: translateX(16px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
 
 /* ─── Mobile touch highlight ─── */
 @media (max-width: 1023px) {

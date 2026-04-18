@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Loader2, Search } from 'lucide-react'
+import { Loader2, Search, Download } from 'lucide-react'
+import * as XLSX from 'xlsx'
 import { supabase } from '../../../lib/supabase'
 import { type ActivityRow, SUBMISSION_BADGES } from '../adminShared'
+import { useToast } from '../../../components/Toast'
 
 export default function ActivitiesTab({ refreshKey }: { refreshKey: number }) {
+  const toast = useToast()
   const [activities, setActivities] = useState<ActivityRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -50,17 +53,53 @@ export default function ActivitiesTab({ refreshKey }: { refreshKey: number }) {
     )
   }
 
+  async function exportToExcel() {
+    // Re-fetch with ALL columns for complete export
+    const db = supabase as any
+    const { data: fullRows } = await db.from('activities').select('*').order('control_code').order('department')
+    const sourceRows = fullRows ?? filtered
+    const rows = sourceRows.map((item: any, index: number) => ({
+      번호: index + 1,
+      통제번호: item.control_code ?? '',
+      고유키: item.unique_key ?? '',
+      담당자: item.owner_name ?? '',
+      담당자사번: item.owner_employee_id ?? '',
+      관련부서: item.department ?? '',
+      통제활동명: item.title ?? '',
+      '제출 증빙 설명': item.description ?? '',
+      승인자: item.controller_name ?? '',
+      승인자사번: item.controller_employee_id ?? '',
+      상신상태: item.submission_status ?? '',
+      주기: item.cycle ?? '',
+      '핵심/비핵심': item.key_control ? '핵심' : '비핵심',
+      '수동/자동': item.manual_control ? '수동' : '자동',
+      배점: item.base_score ?? '',
+      환산점수: item.converted_score ?? '',
+      활성: item.active ? 'Y' : 'N',
+    }))
+    const worksheet = XLSX.utils.json_to_sheet(rows)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'RCM')
+    XLSX.writeFile(workbook, `RCM_${new Date().toISOString().slice(0, 10)}.xlsx`)
+    toast.success('엑셀 다운로드 완료', `RCM ${rows.length.toLocaleString()}건 내보내기`)
+  }
+
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-400" />
-        <input
-          type="text"
-          value={search}
-          onChange={event => setSearch(event.target.value)}
-          placeholder="통제번호, 담당자, 부서 검색..."
-          className="form-input pl-9 text-sm"
-        />
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={event => setSearch(event.target.value)}
+            placeholder="통제번호, 담당자, 부서 검색..."
+            className="form-input pl-9 text-sm"
+          />
+        </div>
+        <button onClick={exportToExcel} className="btn-secondary text-xs px-3 py-2 shrink-0">
+          <Download size={14} />엑셀 다운로드
+        </button>
       </div>
 
       <div className="card overflow-hidden">

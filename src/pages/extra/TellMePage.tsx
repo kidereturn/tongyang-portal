@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { MessageCircle, Plus, Send, User, X } from 'lucide-react'
+import { MessageCircle, Plus, Send, User, X, Trash2, EyeOff, Eye, ExternalLink } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
@@ -14,6 +14,7 @@ type Post = {
   content: string
   created_at: string
   author_id: string
+  is_hidden?: boolean
 }
 
 const CATEGORIES = [
@@ -47,11 +48,16 @@ export default function TellMePage() {
   async function fetchPosts() {
     setLoading(true)
     try {
-      const { data } = await (supabase as any)
+      let query = (supabase as any)
         .from('tellme_posts')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(100)
+      // Non-admin users don't see hidden posts
+      if (profile?.role !== 'admin') {
+        query = query.eq('is_hidden', false)
+      }
+      const { data } = await query
       setPosts(data ?? [])
     } catch {
       setPosts([])
@@ -59,6 +65,36 @@ export default function TellMePage() {
       setLoading(false)
     }
   }
+
+  async function handleDelete(postId: string) {
+    if (!window.confirm('이 글을 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.')) return
+    try {
+      await (supabase as any).from('tellme_posts').delete().eq('id', postId)
+      await fetchPosts()
+    } catch {
+      alert('삭제 중 오류가 발생했습니다.')
+    }
+  }
+
+  async function handleToggleHide(post: Post) {
+    const next = !post.is_hidden
+    try {
+      await (supabase as any).from('tellme_posts').update({ is_hidden: next }).eq('id', post.id)
+      await fetchPosts()
+    } catch {
+      alert('처리 중 오류가 발생했습니다.')
+    }
+  }
+
+  function openInNewTab(postId: string) {
+    // Open current /tellme URL with ?post=<id> in a new tab — the page will render a single post detail.
+    const url = `${window.location.origin}/tellme?post=${postId}`
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  // Detail view when URL has ?post=<id>
+  const detailPostId = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('post') : null
+  const detailPost = detailPostId ? posts.find(p => p.id === detailPostId) : null
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -158,7 +194,13 @@ export default function TellMePage() {
       ) : (
         <div className="space-y-3">
           {filtered.map(post => (
-            <div key={post.id} className="card p-5 hover:shadow-md transition-shadow">
+            <div
+              key={post.id}
+              className={clsx(
+                'card p-5 hover:shadow-md transition-shadow group relative',
+                post.is_hidden && 'opacity-60 border-dashed border-warm-300'
+              )}
+            >
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-warm-100 to-warm-100 text-brand-600 shrink-0">
                   <User size={18} />
@@ -168,7 +210,18 @@ export default function TellMePage() {
                     <span className={clsx('px-2 py-0.5 rounded-full text-[11px] font-semibold', catColor(post.category))}>
                       {post.category}
                     </span>
-                    <span className="text-sm font-bold text-brand-900">{post.title}</span>
+                    <button
+                      type="button"
+                      onClick={() => openInNewTab(post.id)}
+                      className="text-left text-sm font-bold text-brand-900 hover:text-brand-600 transition-colors inline-flex items-center gap-1 group/title"
+                      title="새창에서 전체 내용 보기"
+                    >
+                      {post.title}
+                      <ExternalLink size={12} className="text-warm-400 opacity-0 group-hover/title:opacity-100 transition-opacity" />
+                    </button>
+                    {post.is_hidden && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-warm-100 text-warm-500 border border-warm-200">가림</span>
+                    )}
                   </div>
                   <p className="text-sm text-warm-600 leading-relaxed whitespace-pre-wrap">{post.content}</p>
                   <div className="flex items-center gap-3 mt-2 text-xs text-warm-400">
@@ -179,9 +232,70 @@ export default function TellMePage() {
                     <span>{new Date(post.created_at).toLocaleString('ko-KR')}</span>
                   </div>
                 </div>
+
+                {/* Admin actions (hide/delete) */}
+                {profile?.role === 'admin' && (
+                  <div className="flex flex-col gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleHide(post)}
+                      className={clsx(
+                        'inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition',
+                        post.is_hidden
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                          : 'border-warm-200 bg-warm-50 text-warm-600 hover:bg-warm-100'
+                      )}
+                      title={post.is_hidden ? '일반 사용자에게 다시 보이게 하기' : '일반 사용자에게 가리기'}
+                    >
+                      {post.is_hidden ? <Eye size={12} /> : <EyeOff size={12} />}
+                      {post.is_hidden ? '표시' : '가리기'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(post.id)}
+                      className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-medium text-red-700 transition hover:bg-red-100"
+                      title="이 글을 완전히 삭제"
+                    >
+                      <Trash2 size={12} />
+                      삭제
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Detail overlay — shown when URL has ?post=<id> (새창으로 연 경우) */}
+      {detailPost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+          <div className="w-full max-w-2xl rounded-lg bg-white shadow-2xl max-h-[90vh] overflow-auto">
+            <div className="flex items-start justify-between gap-4 border-b border-warm-100 bg-warm-50 px-6 py-4">
+              <div className="min-w-0 flex-1">
+                <span className={clsx('px-2 py-0.5 rounded-full text-[11px] font-semibold inline-block mb-2', catColor(detailPost.category))}>
+                  {detailPost.category}
+                </span>
+                <h2 className="text-lg font-bold text-brand-900 break-words">{detailPost.title}</h2>
+                <p className="mt-1 text-xs text-warm-500">
+                  {detailPost.is_anonymous ? '익명' : (detailPost.author_name ?? '알 수 없음')}
+                  {!detailPost.is_anonymous && detailPost.author_department ? ` · ${detailPost.author_department}` : ''}
+                  {' · '}
+                  {new Date(detailPost.created_at).toLocaleString('ko-KR')}
+                </p>
+              </div>
+              <button
+                onClick={() => window.close()}
+                className="shrink-0 rounded-lg p-1.5 text-warm-400 hover:bg-warm-100 hover:text-warm-600 transition"
+                title="창 닫기"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="px-6 py-5">
+              <p className="text-sm text-brand-800 leading-relaxed whitespace-pre-wrap">{detailPost.content}</p>
+            </div>
+          </div>
         </div>
       )}
 

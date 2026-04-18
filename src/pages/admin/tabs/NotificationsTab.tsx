@@ -4,7 +4,13 @@ import clsx from 'clsx'
 import { supabase } from '../../../lib/supabase'
 import { ROLE_LABELS, ROLE_BADGES } from '../adminShared'
 
-type ProfileOption = { id: string; full_name: string | null; employee_id: string | null; role: string }
+type ProfileOption = {
+  id: string
+  full_name: string | null
+  employee_id: string | null
+  department: string | null
+  role: string
+}
 
 export default function NotificationsTab() {
   const [recipients, setRecipients] = useState<ProfileOption[]>([])
@@ -19,8 +25,9 @@ export default function NotificationsTab() {
   useEffect(() => {
     supabase
       .from('profiles')
-      .select('id, full_name, employee_id, role')
+      .select('id, full_name, employee_id, department, role')
       .eq('is_active', true)
+      .order('department')
       .order('full_name')
       .then(({ data }) => {
         if (data) setRecipients(data as ProfileOption[])
@@ -31,7 +38,11 @@ export default function NotificationsTab() {
     if (roleFilter !== 'all' && p.role !== roleFilter) return false
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
-      return (p.full_name ?? '').toLowerCase().includes(q) || (p.employee_id ?? '').includes(q)
+      return (
+        (p.full_name ?? '').toLowerCase().includes(q) ||
+        (p.employee_id ?? '').toLowerCase().includes(q) ||
+        (p.department ?? '').toLowerCase().includes(q)
+      )
     }
     return true
   })
@@ -117,7 +128,12 @@ export default function NotificationsTab() {
           </div>
           <div className="relative flex-1">
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-warm-400" />
-            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="form-input pl-8 text-xs" placeholder="이름 또는 사번 검색" />
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="form-input pl-8 text-xs"
+              placeholder="이름 / 사번 / 소속팀 검색"
+            />
           </div>
           <button
             onClick={() => toggleAll(selectedIds.size < filtered.length)}
@@ -140,10 +156,16 @@ export default function NotificationsTab() {
                 selectedIds.has(p.id) && 'bg-warm-50/40'
               )}
             >
-              <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => toggleOne(p.id)} className="h-4 w-4 rounded border-warm-300 text-brand-700" />
-              <span className="text-sm text-brand-900">{p.full_name ?? '-'}</span>
-              <span className="text-xs text-warm-400">{p.employee_id ?? ''}</span>
-              <span className={clsx('badge ml-auto text-[10px]', ROLE_BADGES[p.role] ?? 'badge-gray')}>
+              <input
+                type="checkbox"
+                checked={selectedIds.has(p.id)}
+                onChange={() => toggleOne(p.id)}
+                className="h-4 w-4 rounded border-warm-300 text-brand-700"
+              />
+              <span className="text-sm font-semibold text-brand-900 min-w-[72px]">{p.full_name ?? '-'}</span>
+              <span className="font-mono text-[11px] text-warm-500 min-w-[62px]">{p.employee_id ?? '-'}</span>
+              <span className="text-[11px] text-warm-600 flex-1 truncate">{p.department ?? '-'}</span>
+              <span className={clsx('badge shrink-0 text-[10px]', ROLE_BADGES[p.role] ?? 'badge-gray')}>
                 {ROLE_LABELS[p.role] ?? p.role}
               </span>
             </label>

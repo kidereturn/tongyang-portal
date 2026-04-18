@@ -107,11 +107,13 @@ export default function NewsPage() {
     loadFeed({ name: result.corp_name, code: result.corp_code, stock: result.stock_code })
   }
 
-  /* 계열사 정보 (corp_code, stock_code 포함) - 상장 3사 우선 */
+  /* 계열사 정보 (corp_code, stock_code 포함) - 상장사 우선 */
   const AFFILIATES: { name: string; corp_code: string; stock_code: string }[] = [
     { name: '동양', corp_code: '00117337', stock_code: '001520' },
-    { name: '유진기업㈜', corp_code: '00184667', stock_code: '023410' },
-    { name: '유진투자증권', corp_code: '00130608', stock_code: '001200' },
+    { name: '유진기업', corp_code: '00184667', stock_code: '023410' },
+    { name: '유진증권', corp_code: '00130608', stock_code: '001200' },
+    { name: 'YTN', corp_code: '00200275', stock_code: '040300' },
+    { name: '티엑스알로보틱스', corp_code: '01458161', stock_code: '484810' },
     { name: '한일합섬', corp_code: '01569856', stock_code: '' },
     { name: '유진홈센터', corp_code: '00856931', stock_code: '' },
     { name: '금왕에프원', corp_code: '01718540', stock_code: '' },

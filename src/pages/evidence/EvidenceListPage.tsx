@@ -25,6 +25,14 @@ interface Activity {
   controller_id: string | null
   owner_email: string | null
   controller_email: string | null
+  review_status?: string | null
+}
+
+const REVIEW_STATUSES = ['미검토', '검토중', '완료'] as const
+const REVIEW_BADGE_STYLES: Record<string, string> = {
+  '미검토': 'bg-warm-100 text-warm-600 border-warm-200',
+  '검토중': 'bg-blue-50 text-blue-700 border-blue-200',
+  '완료': 'bg-emerald-50 text-emerald-700 border-emerald-200',
 }
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
@@ -45,6 +53,7 @@ export default function EvidenceListPage() {
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [evidenceCounts, setEvidenceCounts] = useState<Record<string, number>>({})
+  const [populationTotals, setPopulationTotals] = useState<Record<string, number>>({})
   const [approvalStatuses, setApprovalStatuses] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -63,7 +72,7 @@ export default function EvidenceListPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
     try {
-      let q = db.from('activities').select('id, control_code, owner_name, department, title, description, controller_name, kpi_score, submission_status, unique_key, owner_id, controller_id, owner_email, controller_email, owner_employee_id, controller_employee_id').eq('active', true)
+      let q = db.from('activities').select('id, control_code, owner_name, department, title, description, controller_name, kpi_score, submission_status, review_status, unique_key, owner_id, controller_id, owner_email, controller_email, owner_employee_id, controller_employee_id').eq('active', true)
       if (profile.role === 'owner') {
         if (profile.employee_id) q = q.eq('owner_employee_id', profile.employee_id)
         else if (profile.full_name) q = q.eq('owner_name', profile.full_name)
@@ -84,18 +93,33 @@ export default function EvidenceListPage() {
       setActivities(rows)
       setFiltered(rows)
 
-      // Load evidence counts and approval statuses in parallel
+      // Load evidence counts, population totals, and approval statuses in parallel
       const activityIds = rows.map((r: Activity) => r.id)
+      const uniqueKeys = rows.map((r: Activity) => r.unique_key).filter(Boolean) as string[]
       if (activityIds.length > 0) {
-        const [uploadsRes, approvalsRes] = await Promise.all([
+        const [uploadsRes, approvalsRes, populationRes] = await Promise.all([
           db.from('evidence_uploads').select('activity_id').in('activity_id', activityIds),
           db.from('approval_requests').select('activity_id, status').in('activity_id', activityIds),
+          uniqueKeys.length > 0
+            ? db.from('population_items').select('unique_key').in('unique_key', uniqueKeys)
+            : Promise.resolve({ data: [] as { unique_key: string }[] }),
         ])
         const counts: Record<string, number> = {}
         for (const u of uploadsRes.data ?? []) {
           counts[u.activity_id] = (counts[u.activity_id] ?? 0) + 1
         }
         setEvidenceCounts(counts)
+
+        // Count population rows per unique_key, then map to activity_id
+        const popByKey: Record<string, number> = {}
+        for (const p of (populationRes.data ?? []) as { unique_key: string }[]) {
+          if (p.unique_key) popByKey[p.unique_key] = (popByKey[p.unique_key] ?? 0) + 1
+        }
+        const popTotals: Record<string, number> = {}
+        for (const r of rows) {
+          if (r.unique_key) popTotals[r.id] = popByKey[r.unique_key] ?? 0
+        }
+        setPopulationTotals(popTotals)
 
         const statuses: Record<string, string> = {}
         for (const a of approvalsRes.data ?? []) {
@@ -114,6 +138,23 @@ export default function EvidenceListPage() {
 
   useEffect(() => { fetchActivities() }, [fetchActivities])
 
+  // URL query param support: /evidence?status=pending|complete|approved|rejected|awaiting
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('status')
+    if (q && q !== statusFilter) {
+      const map: Record<string, string> = {
+        all: 'all',
+        pending: '미완료',
+        complete: '완료',
+        approved: '승인',
+        rejected: '반려',
+        awaiting: 'awaiting', // 결재대기
+      }
+      if (map[q]) setStatusFilter(map[q])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   useEffect(() => {
     let r = activities
     if (search) {
@@ -125,21 +166,42 @@ export default function EvidenceListPage() {
         a.owner_name?.toLowerCase().includes(s)
       )
     }
-    if (statusFilter !== 'all') r = r.filter(a => a.submission_status === statusFilter)
+    if (statusFilter === 'awaiting') {
+      // 결재대기 = 상신완료되었으나 아직 승인/반려 결정 전 (approval_requests.status='submitted')
+      r = r.filter(a => approvalStatuses[a.id] === 'submitted')
+    } else if (statusFilter !== 'all') {
+      r = r.filter(a => a.submission_status === statusFilter)
+    }
     setFiltered(r)
-  }, [search, statusFilter, activities])
+  }, [search, statusFilter, activities, approvalStatuses])
 
+  const awaitingCount = activities.filter(a => approvalStatuses[a.id] === 'submitted').length
   const stats = {
     total:    activities.length,
     pending:  activities.filter(a => a.submission_status === '미완료').length,
     complete: activities.filter(a => a.submission_status === '완료').length,
     approved: activities.filter(a => a.submission_status === '승인').length,
     rejected: activities.filter(a => a.submission_status === '반려').length,
+    awaiting: awaitingCount,
   }
-  const rate = stats.total > 0 ? Math.round((stats.complete + stats.approved) / stats.total * 100) : 0
+  // 승인율 = 전체 증빙 중 승인자의 승인이 완료된 비율 (per user spec #11)
+  const rate = stats.total > 0 ? Math.round(stats.approved / stats.total * 100) : 0
 
   function openUploadModal(act: Activity) { setSelectedActivity(act); setModalOpen(true) }
   function handleClose(refresh?: boolean) { setModalOpen(false); setSelectedActivity(null); if (refresh) fetchActivities() }
+
+  async function updateReviewStatus(activityId: string, newStatus: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+    // Optimistic update
+    setActivities(prev => prev.map(a => a.id === activityId ? { ...a, review_status: newStatus } : a))
+    const { error } = await db.from('activities').update({ review_status: newStatus }).eq('id', activityId)
+    if (error) {
+      // Revert on failure
+      setActivities(prev => prev.map(a => a.id === activityId ? { ...a, review_status: prev.find(x => x.id === activityId)?.review_status ?? '미검토' } : a))
+      window.alert(`검토결과 저장 실패: ${error.message}`)
+    }
+  }
 
   function downloadExcel() {
     const rows = filtered.map((a, i) => ({
@@ -223,21 +285,24 @@ export default function EvidenceListPage() {
         </div>
       </div>
 
-      {/* KPI 통계 */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {/* KPI 통계 — 6 states including 결재대기 */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
-          { icon: FileCheck2,   color: 'brand', label: '전체',   value: stats.total,    unit: '건' },
-          { icon: Clock,        color: 'amber', label: '미완료',  value: stats.pending,  unit: '건' },
-          { icon: Upload,       color: 'blue',  label: '상신완료', value: stats.complete, unit: '건' },
-          { icon: CheckCircle2, color: 'green', label: '승인완료', value: stats.approved, unit: '건' },
-          { icon: AlertCircle,  color: 'red',   label: '반려',    value: stats.rejected, unit: '건' },
+          { icon: FileCheck2,   color: 'brand',  label: '전체',     value: stats.total,     unit: '건' },
+          { icon: Clock,        color: 'amber',  label: '미완료',   value: stats.pending,   unit: '건' },
+          { icon: Upload,       color: 'blue',   label: '상신완료', value: stats.complete,  unit: '건' },
+          { icon: CheckCircle2, color: 'green',  label: '승인완료', value: stats.approved,  unit: '건' },
+          { icon: Clock,        color: 'purple', label: '결재대기', value: stats.awaiting,  unit: '건' },
+          { icon: AlertCircle,  color: 'red',    label: '반려',     value: stats.rejected,  unit: '건' },
         ].map(s => (
           <div key={s.label} className="card p-4">
             <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center mb-2',
-              s.color === 'brand' ? 'bg-warm-50 text-brand-700' :
-              s.color === 'amber' ? 'bg-amber-50 text-amber-600' :
-              s.color === 'blue'  ? 'bg-blue-50 text-blue-600' :
-              s.color === 'green' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
+              s.color === 'brand'  ? 'bg-warm-50 text-brand-700' :
+              s.color === 'amber'  ? 'bg-amber-50 text-amber-600' :
+              s.color === 'blue'   ? 'bg-blue-50 text-blue-600' :
+              s.color === 'green'  ? 'bg-emerald-50 text-emerald-600' :
+              s.color === 'purple' ? 'bg-purple-50 text-purple-600' :
+              'bg-red-50 text-red-600'
             )}>
               <s.icon size={16} />
             </div>
@@ -247,10 +312,10 @@ export default function EvidenceListPage() {
         ))}
       </div>
 
-      {/* 완료율 바 */}
+      {/* 승인율 바 — 전체 증빙 중 승인 완료된 비율 */}
       <div className="card p-4">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-semibold text-brand-700">전체 완료율</p>
+          <p className="text-sm font-semibold text-brand-700">전체 승인율</p>
           <p className="text-sm font-bold text-brand-700">{rate}%</p>
         </div>
         <div className="bg-warm-100 rounded-full h-2">
@@ -260,7 +325,7 @@ export default function EvidenceListPage() {
           />
         </div>
         <p className="text-xs text-warm-400 mt-1.5">
-          완료 {stats.complete + stats.approved}건 / 전체 {stats.total}건
+          승인 {stats.approved}건 / 전체 {stats.total}건
         </p>
       </div>
 
@@ -290,6 +355,7 @@ export default function EvidenceListPage() {
               { key: '미완료', label: '미완료' },
               { key: '완료', label: '상신완료' },
               { key: '승인', label: '승인완료' },
+              { key: 'awaiting', label: '결재대기' },
               { key: '반려', label: '반려' },
             ].map(f => (
               <button
@@ -333,6 +399,7 @@ export default function EvidenceListPage() {
                   <th className="text-center whitespace-nowrap">KPI점수</th>
                   <th className="text-center whitespace-nowrap">상신여부</th>
                   <th className="text-center whitespace-nowrap">승인상태</th>
+                  {profile?.role === 'admin' && <th className="text-center whitespace-nowrap">검토결과</th>}
                   <th className="w-6"></th>
                 </tr>
               </thead>
@@ -383,9 +450,20 @@ export default function EvidenceListPage() {
                         )}
                       </td>
                       <td className="text-center py-2.5 whitespace-nowrap">
-                        <span className={clsx('text-xs font-bold', (evidenceCounts[act.id] ?? 0) > 0 ? 'text-brand-700' : 'text-warm-300')}>
-                          {evidenceCounts[act.id] ?? 0}
-                        </span>
+                        {(() => {
+                          const uploaded = evidenceCounts[act.id] ?? 0
+                          const total = populationTotals[act.id] ?? 0
+                          const hasUploaded = uploaded > 0
+                          const isComplete = total > 0 && uploaded >= total
+                          return (
+                            <span className={clsx(
+                              'text-xs font-bold',
+                              isComplete ? 'text-emerald-600' : hasUploaded ? 'text-brand-700' : 'text-warm-300'
+                            )}>
+                              {uploaded}/{total}
+                            </span>
+                          )
+                        })()}
                       </td>
                       {profile?.role === 'admin' && (
                         <td className="text-xs text-warm-600 py-2.5 whitespace-nowrap">{act.controller_name ?? '-'}</td>
@@ -407,6 +485,23 @@ export default function EvidenceListPage() {
                           <span className="text-xs text-warm-300">-</span>
                         )}
                       </td>
+                      {profile?.role === 'admin' && (
+                        <td className="text-center py-2.5 whitespace-nowrap">
+                          <select
+                            value={act.review_status ?? '미검토'}
+                            onChange={e => updateReviewStatus(act.id, e.target.value)}
+                            onClick={e => e.stopPropagation()}
+                            className={clsx(
+                              'inline-block rounded-md border px-2 py-1 text-[11px] font-semibold cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-400/40 transition',
+                              REVIEW_BADGE_STYLES[act.review_status ?? '미검토']
+                            )}
+                          >
+                            {REVIEW_STATUSES.map(s => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
+                        </td>
+                      )}
                       <td className="py-2.5">
                         <ChevronRight size={12} className="text-warm-200 group-hover:text-warm-400 transition-colors" />
                       </td>
@@ -418,7 +513,14 @@ export default function EvidenceListPage() {
           </div>
         )}
         <div className="px-4 py-2.5 border-t border-warm-50 flex justify-between text-xs text-warm-400">
-          <span>총 <b className="text-warm-600">{filtered.length}</b>건{filtered.length !== activities.length ? ` (전체 ${activities.length}건 중)` : ''}</span>
+          <span>
+            증빙 <b className="text-warm-600">
+              {filtered.reduce((sum, a) => sum + (evidenceCounts[a.id] ?? 0), 0)}
+              /
+              {filtered.reduce((sum, a) => sum + (populationTotals[a.id] ?? 0), 0)}
+            </b>{' '}· 통제활동 <b className="text-warm-600">{filtered.length}</b>건
+            {filtered.length !== activities.length ? ` (전체 ${activities.length}건 중)` : ''}
+          </span>
           <span>페이지 로드 시 자동 새로고침</span>
         </div>
       </div>
