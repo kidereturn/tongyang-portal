@@ -364,6 +364,20 @@ export default function CourseDetailPage() {
   const rating = selectedVideo?.rating ?? 4.8
   const ratingCount = selectedVideo?.rating_count ?? 182
 
+  // Hooks that depend on videos — must be called BEFORE any early return
+  const chapters = useMemo(() => {
+    const list = videos.slice()
+    const out: { ch: number; title: string; items: VideoRow[] }[] = []
+    for (let i = 0; i < list.length; i += 3) {
+      out.push({
+        ch: Math.floor(i / 3) + 1,
+        title: i === 0 ? '오리엔테이션' : i === 3 ? '내부통제의 정의' : i === 6 ? '통제환경 · CONTROL ENVIRONMENT' : i === 9 ? '위험평가 · RISK ASSESSMENT' : `Chapter ${Math.floor(i / 3) + 1}`,
+        items: list.slice(i, i + 3),
+      })
+    }
+    return out
+  }, [videos])
+
   const pageHeader = (
     <div className="pg-head">
       <div className="pg-head-row">
@@ -412,21 +426,6 @@ export default function CourseDetailPage() {
       </>
     )
   }
-
-  // Curriculum — real video list as chapters (group by category/chapter number)
-  const chapters = useMemo(() => {
-    // Fallback: group every 3 videos into one chapter
-    const list = videos.slice()
-    const out: { ch: number; title: string; items: VideoRow[] }[] = []
-    for (let i = 0; i < list.length; i += 3) {
-      out.push({
-        ch: Math.floor(i / 3) + 1,
-        title: i === 0 ? '오리엔테이션' : i === 3 ? '내부통제의 정의' : i === 6 ? '통제환경 · CONTROL ENVIRONMENT' : i === 9 ? '위험평가 · RISK ASSESSMENT' : `Chapter ${Math.floor(i / 3) + 1}`,
-        items: list.slice(i, i + 3),
-      })
-    }
-    return out
-  }, [videos])
 
   // Sample Q&A data (future: fetch from course_qa table)
   const qaSample = [
