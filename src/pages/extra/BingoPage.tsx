@@ -1,9 +1,40 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Gamepad2, Gift, RefreshCw, Sparkles, Trophy } from 'lucide-react'
+import { Gift, RefreshCw, Trophy } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { type QuizQuestion, ALL_QUESTIONS } from '../../data/quizQuestions'
+
+// ────────────────────────────────────────────
+// Static cell templates (emoji + label + points) — 25 cells
+// ────────────────────────────────────────────
+const BINGO_CELL_TEMPLATES: Array<{ emoji: string; label: string; points: number }> = [
+  { emoji: '📚', label: 'ESG 교육 수료', points: 10 },
+  { emoji: '📝', label: '4월 설문 응답', points: 15 },
+  { emoji: '👀', label: '공지 5개 확인', points: 10 },
+  { emoji: '🎯', label: 'RCM 퀴즈 만점', points: 20 },
+  { emoji: '💬', label: '말씀 3건 투표', points: 15 },
+  { emoji: '📖', label: '주간 뉴스 읽기', points: 10 },
+  { emoji: '🏆', label: '증빙 10건 제출', points: 20 },
+  { emoji: '⭐', label: 'FREE', points: 0 },
+  { emoji: '💭', label: '말씀하세요 작성', points: 10 },
+  { emoji: '📊', label: 'KPI 대시보드 확인', points: 15 },
+  { emoji: '👋', label: '동료 칭찬 1건', points: 10 },
+  { emoji: '🎓', label: 'COSO 강좌 50%', points: 15 },
+  { emoji: '✅', label: '내 승인함 처리', points: 20 },
+  { emoji: '📁', label: '파일 공유 1건', points: 15 },
+  { emoji: '🎨', label: '웹툰 4편 완주', points: 20 },
+  { emoji: '📅', label: '교육 신청', points: 15 },
+  { emoji: '🔎', label: '모집단 확인', points: 10 },
+  { emoji: '🚀', label: '사업장 방문 리포트', points: 20 },
+  { emoji: '🧩', label: '내부통제 용어 퀴즈', points: 15 },
+  { emoji: '🎁', label: '복지몰 방문', points: 10 },
+  { emoji: '🏅', label: '월간 TOP 10 달성', points: 20 },
+  { emoji: '🎤', label: '세미나 참석', points: 15 },
+  { emoji: '📈', label: 'KPI 3개 지표 갱신', points: 20 },
+  { emoji: '🎃', label: '이벤트 참여', points: 15 },
+  { emoji: '💎', label: '월간 달인 뱃지', points: 25 },
+]
 
 // ────────────────────────────────────────────
 // 25문제를 랜덤 배치, 주관식 위치도 매번 랜덤
@@ -288,9 +319,10 @@ export default function BingoPage() {
   }
 
   const activeQuestion = activeIdx !== null ? questions[activeIdx] : null
+  const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase()
 
   return (
-    <div className="space-y-6">
+    <>
       {/* CSS for bomb animation */}
       <style>{`
         @keyframes bombShake {
@@ -342,184 +374,268 @@ export default function BingoPage() {
         .hurry-flash { animation: hurryFlash 0.4s ease-in-out infinite; }
       `}</style>
 
-      {/* Header — compact */}
-      <div className="rounded-lg bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 px-5 py-5 text-white shadow-md">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex-1 min-w-0">
-            <h1 className="flex items-center gap-2 text-xl font-bold">
-              <Gamepad2 size={22} className="text-brand-200" />
-              빙고퀴즈 5x5
-            </h1>
-            <p className="mt-1 text-xs text-brand-50/80">
-              25칸 빙고판 · 문제당 <b className="text-yellow-300">10초</b> · 하루 <b className="text-yellow-300">{MAX_DAILY_PLAYS}회</b> 도전 · 주관식은 랜덤 위치!
+      {/* Toss pg-head */}
+      <div className="pg-head">
+        <div className="pg-head-row">
+          <div>
+            <div className="eyebrow">이벤트<span className="sep" />월 빙고퀴즈</div>
+            <h1>빙고. <span className="soft">한 줄이면 커피, 네 줄이면 전설.</span></h1>
+            <p className="lead">
+              이번 달 25개 미션. 완료하면 포인트가 적립되고, 가로·세로·대각선 3줄 이상이면 기프티콘이 지급됩니다.
+              문제당 <b>10초</b> · 하루 <b>{MAX_DAILY_PLAYS}회</b> 도전.
             </p>
           </div>
-          <div className="gift-flash inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-red-500 border border-amber-400/30 px-4 py-2 shadow-md">
-            <Gift size={18} className="text-white" />
-            <span className="text-sm font-bold text-white drop-shadow-md">3줄 완성 기프티콘 증정!</span>
-            <span className="text-lg">🎁</span>
+          <div className="actions">
+            <button className="btn-compact" disabled={!canPlay} onClick={resetGame}>
+              <RefreshCw size={13} />새 게임
+            </button>
+            <button className="btn-compact primary">
+              <Gift size={13} />내 리워드
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Bingo status */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 rounded-lg border border-warm-200 bg-white px-4 py-2 shadow-sm">
-          <Sparkles size={16} className="text-accent-600" />
-          <span className="text-sm font-bold text-brand-900">빙고 {bingoCount}줄</span>
-          <span className="text-xs text-warm-400">/ 3줄 목표</span>
-        </div>
-        <div className="flex items-center gap-2 rounded-lg border border-warm-200 bg-white px-4 py-2 shadow-sm">
-          <span className="text-sm text-warm-600">정답 <b className="text-emerald-600">{correctSet.size}</b></span>
-          <span className="text-sm text-warm-400">/ 25</span>
-        </div>
-        <div className={clsx(
-          'flex items-center gap-1.5 rounded-lg border px-4 py-2 shadow-sm',
-          canPlay ? 'border-amber-200 bg-amber-50' : 'border-red-200 bg-red-50'
-        )}>
-          <span className="text-xs font-semibold text-warm-600">오늘 도전</span>
-          <span className={clsx('text-sm font-bold', canPlay ? 'text-amber-600' : 'text-red-500')}>
-            {dailyPlays}/{MAX_DAILY_PLAYS}
-          </span>
-          <span className="text-xs text-warm-400">
-            {canPlay ? `(${remainingPlays}회 남음)` : '(소진)'}
-          </span>
-        </div>
-        {canPlay ? (
-          <button onClick={resetGame} className="ml-auto btn-ghost text-xs">
-            <RefreshCw size={14} /> 새 게임
-          </button>
-        ) : (
-          <span className="ml-auto text-xs text-red-500 font-semibold">
-            오늘의 도전 기회를 모두 사용했습니다. 내일 다시 도전하세요!
-          </span>
-        )}
-      </div>
-
-      {/* Bingo Board + Question side by side */}
-      <div className="grid gap-4 xl:grid-cols-[280px_1fr]">
-      <div>
-        <div className="grid grid-cols-5 gap-1 sm:gap-1.5 max-w-[280px]">
-          {questions.map((_q, idx) => {
-            const answered = answers[idx]
-            const isActive = activeIdx === idx
-            const isBingoLine = bingoIndices.has(idx)
-            const cellNum = idx + 1
-            return (
-              <button
-                key={idx}
-                onClick={() => openCell(idx)}
-                disabled={answered !== undefined || activeIdx !== null}
-                className={clsx(
-                  'relative aspect-square rounded-lg sm:rounded-xl border-2 text-sm sm:text-base font-bold transition-all duration-200',
-                  answered === undefined && activeIdx === null && 'hover:scale-105 hover:shadow-md cursor-pointer',
-                  answered === undefined && !isActive && 'bg-white border-warm-200 text-brand-700',
-                  answered?.correct && isBingoLine && 'bg-gradient-to-br from-amber-400 to-yellow-500 border-amber-500 text-white shadow-md ring-2 ring-amber-300',
-                  answered?.correct && !isBingoLine && 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-600 text-white',
-                  answered && !answered.correct && 'bg-warm-100 border-warm-200 text-warm-300 line-through',
-                  isActive && 'ring-4 ring-brand-600 border-brand-500 bg-warm-50',
-                  answered !== undefined && 'cursor-default',
-                )}
-              >
-                {cellNum}
-                {answered?.correct && (
-                  <span className="absolute inset-0 flex items-center justify-center text-lg sm:text-xl opacity-30">O</span>
-                )}
-                {answered && !answered.correct && (
-                  <span className="absolute inset-0 flex items-center justify-center text-lg sm:text-xl opacity-30">X</span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Right column: Question panel */}
-      <div className="space-y-4">
-      {/* Last message */}
-      {lastMessage && !activeQuestion && (
-        <div className={clsx(
-          'card p-4 text-sm font-medium',
-          lastMessage.correct ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-red-50 border-red-100 text-red-700'
-        )}>
-          {lastMessage.text}
-        </div>
-      )}
-
-      {/* Active question panel */}
-      {activeQuestion && activeIdx !== null ? (
-        <div className="card overflow-hidden border-2 border-brand-200 shadow-md">
-          {/* Timer bar */}
-          <div className="relative h-2 bg-warm-100">
-            <div
-              className={clsx(
-                'h-full transition-all duration-1000 rounded-r-full',
-                timer > 5 ? 'bg-emerald-500' : timer > 2 ? 'bg-amber-500' : 'bg-red-500'
-              )}
-              style={{ width: `${(timer / 10) * 100}%` }}
-            />
-          </div>
-
-          <div className="p-5 sm:p-6">
-            {/* Timer + bomb */}
-            <div className="flex items-center justify-between mb-4">
-              <span className="badge badge-blue">문제 {activeIdx + 1} / 25</span>
-              <div className="flex items-center gap-2">
-                {timer <= 5 && timer > 0 && (
-                  <span className="hurry-flash text-lg font-bold mr-1">HURRY UP!!!</span>
-                )}
-                <span className={clsx('text-3xl bomb-anim', timer <= 3 && 'fuse-glow')}>
-                  💣
-                </span>
-                <span className={clsx(
-                  'text-2xl font-bold tabular-nums',
-                  timer > 5 ? 'text-brand-700' : timer > 2 ? 'text-amber-600' : 'text-red-600'
-                )}>
-                  {timer}
-                </span>
+      <div className="pg-body">
+        <div className="at-grid at-g-2-1" style={{ gap: 28, alignItems: 'start' }}>
+          {/* ─── Bingo board (left, larger) ─── */}
+          <div className="at-card" style={{ padding: 32, background: 'var(--at-paper)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <div>
+                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                  MY BINGO · {currentMonth}
+                </div>
+                <div style={{ fontFamily: 'var(--f-display)', fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em', marginTop: 4 }}>
+                  {correctSet.size}/25 완료 · <span style={{ color: 'var(--at-blue)' }}>{bingoCount}줄 달성</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <span className="at-tag blue">오늘 도전 {dailyPlays}/{MAX_DAILY_PLAYS}</span>
               </div>
             </div>
 
-            {/* Question */}
-            <p className="text-base font-bold text-brand-900 leading-7 mb-5">
-              {activeQuestion.question}
-            </p>
+            {/* 5×5 grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
+              {questions.map((_q, idx) => {
+                const tpl = BINGO_CELL_TEMPLATES[idx]
+                const answered = answers[idx]
+                const isBingoLine = bingoIndices.has(idx)
+                const isFree = tpl?.label === 'FREE'
+                const isCorrect = answered?.correct
+                const isWrong = answered && !answered.correct
 
-            {/* Choices or input */}
-            {activeQuestion.type === 'multiple' && activeQuestion.choices ? (
-              <div className="space-y-2 mb-5">
-                {activeQuestion.choices.map((choice, ci) => (
+                let cellStyle: React.CSSProperties = {
+                  aspectRatio: '1',
+                  borderRadius: 12,
+                  padding: 14,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  border: '1px solid transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }
+
+                if (isFree) {
+                  cellStyle.background = 'var(--at-ink)'
+                  cellStyle.color = 'var(--at-white)'
+                } else if (isCorrect) {
+                  cellStyle.background = isBingoLine
+                    ? 'linear-gradient(135deg, #F59E0B, #EAB308)'
+                    : 'linear-gradient(135deg, var(--at-blue), var(--at-blue-soft))'
+                  cellStyle.color = 'var(--at-white)'
+                  if (isBingoLine) cellStyle.boxShadow = '0 6px 16px -4px rgba(245,158,11,0.4)'
+                } else if (isWrong) {
+                  cellStyle.background = '#F2F4F6'
+                  cellStyle.border = '1px solid var(--at-ink-hair)'
+                  cellStyle.color = 'var(--at-ink-faint)'
+                } else {
+                  cellStyle.background = 'var(--at-white)'
+                  cellStyle.border = '1px solid var(--at-ink-hair)'
+                  cellStyle.color = 'var(--at-ink)'
+                }
+
+                const disabled = answered !== undefined || activeIdx !== null
+                if (disabled) cellStyle.cursor = 'default'
+
+                return (
                   <button
-                    key={ci}
-                    onClick={() => setSelectedChoice(choice)}
-                    className={clsx(
-                      'w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all',
-                      selectedChoice === choice
-                        ? 'border-brand-500 bg-warm-50 text-brand-700'
-                        : 'border-warm-200 bg-white text-brand-700 hover:border-warm-300 hover:bg-warm-50'
-                    )}
+                    key={idx}
+                    onClick={() => openCell(idx)}
+                    disabled={disabled}
+                    style={cellStyle}
+                    onMouseEnter={e => { if (!disabled && !isFree) e.currentTarget.style.transform = 'translateY(-2px)' }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
                   >
-                    <span className="mr-2 text-xs text-warm-400">{String.fromCharCode(65 + ci)}.</span>
-                    {choice}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="mb-5">
-                <input
-                  type="text"
-                  value={subjectiveAnswer}
-                  onChange={e => setSubjectiveAnswer(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') submitAnswer() }}
-                  placeholder="정답을 입력하세요..."
-                  className="form-input text-base"
-                  autoFocus
-                />
-              </div>
-            )}
+                    {/* Checkmark badge (top-right) when correct */}
+                    {isCorrect && !isFree && (
+                      <div style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'grid', placeItems: 'center' }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3}><path d="M20 6 9 17l-5-5" /></svg>
+                      </div>
+                    )}
+                    {isWrong && (
+                      <div style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: '#FCA5A5', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 11, fontWeight: 700 }}>×</div>
+                    )}
 
-            {/* Action buttons — 취소 없음, 반드시 답변해야 함 */}
-            <div className="flex gap-3">
+                    <div style={{ fontSize: 24, lineHeight: 1 }}>{tpl?.emoji ?? '⭐'}</div>
+                    <div>
+                      <div style={{ fontSize: 11, lineHeight: 1.3, fontWeight: isFree || isCorrect ? 600 : 500, textAlign: isFree ? 'center' : 'left' }}>
+                        {tpl?.label ?? `#${idx + 1}`}
+                      </div>
+                      {!isFree && tpl?.points && tpl.points > 0 && (
+                        <div style={{ fontFamily: 'var(--f-mono)', fontSize: 9, letterSpacing: '0.14em', marginTop: 4, opacity: isCorrect ? 0.85 : 0.6 }}>
+                          {tpl.points}P
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Line indicators */}
+            <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+              <div style={{ padding: '14px 16px', background: 'var(--at-white)', borderRadius: 10, border: '1px solid var(--at-ink-hair)' }}>
+                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>달성한 줄</div>
+                <div style={{ fontFamily: 'var(--f-display)', fontSize: 20, fontWeight: 600 }}>{bingoCount}줄</div>
+                <div style={{ fontSize: 11, color: 'var(--at-ink-mute)' }}>정답 {correctSet.size}/25</div>
+              </div>
+              <div style={{ padding: '14px 16px', background: 'var(--at-white)', borderRadius: 10, border: '1px solid var(--at-ink-hair)' }}>
+                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>다음 줄까지</div>
+                <div style={{ fontFamily: 'var(--f-display)', fontSize: 20, fontWeight: 600, color: 'var(--at-blue)' }}>
+                  {bingoCount >= 5 ? '완료!' : `${5 - (correctSet.size % 5)}칸`}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--at-ink-mute)' }}>정답 맞히기</div>
+              </div>
+              <div style={{ padding: '14px 16px', background: 'var(--at-ink)', color: 'var(--at-white)', borderRadius: 10 }}>
+                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-dark-mute)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>BONUS</div>
+                <div style={{ fontFamily: 'var(--f-display)', fontSize: 20, fontWeight: 600 }}>3줄 달성 시</div>
+                <div style={{ fontSize: 11, color: 'var(--at-ink-dark-soft)' }}>스타벅스 아메리카노</div>
+              </div>
+            </div>
+          </div>
+
+          {/* ─── Sidebar ─── */}
+          <div>
+            <div className="at-card" style={{ padding: 24, marginBottom: 16 }}>
+              <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>LEADERBOARD</div>
+              <div style={{ fontFamily: 'var(--f-display)', fontSize: 16, fontWeight: 600, marginBottom: 16 }}>이달의 빙고왕</div>
+              {/* TODO: 실제 데이터 연동. 임시 placeholder */}
+              <div style={{ fontSize: 12, color: 'var(--at-ink-mute)', padding: '20px 0', textAlign: 'center' }}>
+                아직 이달 랭킹 데이터가 수집되지 않았습니다.
+              </div>
+            </div>
+
+            <div className="at-card" style={{ padding: 24 }}>
+              <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>REWARDS</div>
+              <div style={{ fontFamily: 'var(--f-display)', fontSize: 16, fontWeight: 600, marginBottom: 16 }}>리워드</div>
+              <div style={{ display: 'flex', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--at-ink-hair)', alignItems: 'center' }}>
+                <div style={{ fontSize: 28, width: 36, textAlign: 'center' }}>🥉</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: 'var(--f-display)', fontSize: 14, fontWeight: 600 }}>3줄</div>
+                  <div style={{ fontSize: 12, color: 'var(--at-ink-mute)' }}>스타벅스 아메리카노</div>
+                </div>
+                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--at-blue)', fontWeight: 500, letterSpacing: '0.08em' }}>+100P</div>
+              </div>
+              <div style={{ display: 'flex', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--at-ink-hair)', alignItems: 'center' }}>
+                <div style={{ fontSize: 28, width: 36, textAlign: 'center' }}>🥈</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: 'var(--f-display)', fontSize: 14, fontWeight: 600 }}>4줄</div>
+                  <div style={{ fontSize: 12, color: 'var(--at-ink-mute)' }}>치킨 세트 교환권</div>
+                </div>
+                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--at-blue)', fontWeight: 500, letterSpacing: '0.08em' }}>+200P</div>
+              </div>
+              <div style={{ display: 'flex', gap: 14, padding: '14px 0', alignItems: 'center' }}>
+                <div style={{ fontSize: 28, width: 36, textAlign: 'center' }}>🥇</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: 'var(--f-display)', fontSize: 14, fontWeight: 600 }}>5줄 (풀 빙고)</div>
+                  <div style={{ fontSize: 12, color: 'var(--at-ink-mute)' }}>상품권 10만원</div>
+                </div>
+                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--at-blue)', fontWeight: 500, letterSpacing: '0.08em' }}>+500P</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ──────── Quiz popup modal ──────── */}
+      {activeQuestion && activeIdx !== null && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(11,13,18,0.5)', backdropFilter: 'blur(4px)', padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 20, maxWidth: 560, width: '100%', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 24px 48px -16px rgba(0,0,0,0.25)' }}>
+            {/* Timer bar */}
+            <div style={{ height: 4, background: '#F2F4F6', position: 'relative', borderRadius: '20px 20px 0 0', overflow: 'hidden' }}>
+              <div
+                style={{
+                  height: '100%',
+                  width: `${(timer / 10) * 100}%`,
+                  background: timer > 5 ? 'var(--at-green)' : timer > 2 ? 'var(--at-amber)' : 'var(--at-red)',
+                  transition: 'all 1s linear, background-color 0.3s',
+                }}
+              />
+            </div>
+
+            <div style={{ padding: '24px 28px 28px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <span className="at-tag blue">문제 {activeIdx + 1} / 25 · {BINGO_CELL_TEMPLATES[activeIdx]?.label ?? ''}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {timer <= 5 && timer > 0 && (
+                    <span className="hurry-flash" style={{ fontSize: 13, fontWeight: 700, marginRight: 4 }}>HURRY!</span>
+                  )}
+                  <span className={clsx('bomb-anim', timer <= 3 && 'fuse-glow')} style={{ fontSize: 28 }}>💣</span>
+                  <span style={{
+                    fontSize: 24, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                    color: timer > 5 ? 'var(--at-ink)' : timer > 2 ? 'var(--at-amber)' : 'var(--at-red)',
+                  }}>{timer}</span>
+                </div>
+              </div>
+
+              <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--at-ink)', lineHeight: 1.5, marginBottom: 20 }}>
+                {activeQuestion.question}
+              </p>
+
+              {activeQuestion.type === 'multiple' && activeQuestion.choices ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+                  {activeQuestion.choices.map((choice, ci) => (
+                    <button
+                      key={ci}
+                      onClick={() => setSelectedChoice(choice)}
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '12px 16px',
+                        borderRadius: 12,
+                        border: `2px solid ${selectedChoice === choice ? 'var(--at-blue)' : 'var(--at-ink-hair)'}`,
+                        background: selectedChoice === choice ? 'var(--at-blue-pale)' : '#fff',
+                        color: selectedChoice === choice ? 'var(--at-blue-deep)' : 'var(--at-ink)',
+                        fontSize: 14, fontWeight: 500,
+                        cursor: 'pointer', transition: 'all 0.15s',
+                      }}
+                    >
+                      <span style={{ marginRight: 8, fontSize: 12, color: 'var(--at-ink-faint)' }}>{String.fromCharCode(65 + ci)}.</span>
+                      {choice}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ marginBottom: 20 }}>
+                  <input
+                    type="text"
+                    value={subjectiveAnswer}
+                    onChange={e => setSubjectiveAnswer(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') submitAnswer() }}
+                    placeholder="정답을 입력하세요..."
+                    autoFocus
+                    style={{
+                      width: '100%', padding: '14px 16px',
+                      borderRadius: 12, border: '2px solid var(--at-ink-line)',
+                      fontSize: 15, fontFamily: 'inherit', outline: 'none',
+                    }}
+                  />
+                </div>
+              )}
+
               <button
                 onClick={submitAnswer}
                 disabled={
@@ -527,42 +643,43 @@ export default function BingoPage() {
                     ? !subjectiveAnswer.trim()
                     : !selectedChoice
                 }
-                className="btn-primary flex-1"
+                style={{
+                  width: '100%',
+                  padding: '14px 20px',
+                  borderRadius: 12,
+                  background: 'var(--at-ink)',
+                  color: '#fff',
+                  fontSize: 15, fontWeight: 700,
+                  border: 'none', cursor: 'pointer',
+                  opacity: (activeQuestion.type === 'subjective' ? subjectiveAnswer.trim() : selectedChoice) ? 1 : 0.4,
+                }}
               >
                 제출
               </button>
             </div>
           </div>
         </div>
-      ) : (
-        <div className="card p-6 text-center text-sm text-warm-400">
-          <p className="text-lg mb-2">👈</p>
-          <p>왼쪽 빙고판에서 번호를 클릭하세요</p>
-        </div>
       )}
 
-      {/* Answer history (collapsed) */}
-      {Object.keys(answers).length > 0 && (
-        <details className="card overflow-hidden">
-          <summary className="cursor-pointer px-5 py-3 text-sm font-bold text-brand-700 hover:bg-warm-50">
-            풀이 내역 ({Object.keys(answers).length}/25)
-          </summary>
-          <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
-            {Object.entries(answers).sort(([a], [b]) => Number(a) - Number(b)).map(([idx, ans]) => (
-              <div key={idx} className={clsx('px-5 py-3 text-sm', ans.correct ? 'bg-emerald-50/40' : 'bg-red-50/40')}>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={clsx('font-bold', ans.correct ? 'text-emerald-600' : 'text-red-500')}>
-                    {ans.correct ? 'O' : 'X'} 문제 {Number(idx) + 1}
-                  </span>
-                </div>
-                <p className="text-xs text-warm-500">{ans.explanation}</p>
-              </div>
-            ))}
-          </div>
-        </details>
+      {/* Last message toast (after modal closes) */}
+      {lastMessage && !activeQuestion && (
+        <div style={{
+          position: 'fixed',
+          left: '50%', bottom: 32,
+          transform: 'translateX(-50%)',
+          zIndex: 40,
+          padding: '14px 24px',
+          borderRadius: 14,
+          background: lastMessage.correct ? 'var(--at-green)' : 'var(--at-red)',
+          color: '#fff',
+          fontSize: 14, fontWeight: 600,
+          boxShadow: '0 16px 32px -8px rgba(0,0,0,0.25)',
+        }}
+          onAnimationEnd={() => setLastMessage(null)}
+        >
+          {lastMessage.text}
+        </div>
       )}
-      </div>{/* end right column */}
-      </div>{/* end grid */}
 
       {/* Explosion overlay */}
       {showExplosion && (
@@ -623,6 +740,6 @@ export default function BingoPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
