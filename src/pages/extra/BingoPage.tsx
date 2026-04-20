@@ -414,8 +414,8 @@ export default function BingoPage() {
               </div>
             </div>
 
-            {/* 5×5 grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
+            {/* 5×5 grid — 30% smaller with sky-blue cells */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 8, maxWidth: 560, margin: '0 auto' }}>
               {questions.map((_q, idx) => {
                 const tpl = BINGO_CELL_TEMPLATES[idx]
                 const answered = answers[idx]
@@ -427,7 +427,7 @@ export default function BingoPage() {
                 let cellStyle: React.CSSProperties = {
                   aspectRatio: '1',
                   borderRadius: 12,
-                  padding: 14,
+                  padding: 10,
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
@@ -444,16 +444,17 @@ export default function BingoPage() {
                 } else if (isCorrect) {
                   cellStyle.background = isBingoLine
                     ? 'linear-gradient(135deg, #F59E0B, #EAB308)'
-                    : 'linear-gradient(135deg, var(--at-blue), var(--at-blue-soft))'
+                    : 'linear-gradient(135deg, #3182F6, #4B93F7)'
                   cellStyle.color = 'var(--at-white)'
                   if (isBingoLine) cellStyle.boxShadow = '0 6px 16px -4px rgba(245,158,11,0.4)'
                 } else if (isWrong) {
-                  cellStyle.background = '#F2F4F6'
-                  cellStyle.border = '1px solid var(--at-ink-hair)'
+                  cellStyle.background = '#EEF4FE'
+                  cellStyle.border = '1px solid #C9DDFF'
                   cellStyle.color = 'var(--at-ink-faint)'
                 } else {
-                  cellStyle.background = 'var(--at-white)'
-                  cellStyle.border = '1px solid var(--at-ink-hair)'
+                  // Light sky blue for untouched cells (per 2nd reference screenshot)
+                  cellStyle.background = '#EEF4FE'
+                  cellStyle.border = '1px solid #DCE8FB'
                   cellStyle.color = 'var(--at-ink)'
                 }
 
@@ -479,13 +480,13 @@ export default function BingoPage() {
                       <div style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: '#FCA5A5', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 11, fontWeight: 700 }}>×</div>
                     )}
 
-                    <div style={{ fontSize: 24, lineHeight: 1 }}>{tpl?.emoji ?? '⭐'}</div>
+                    <div style={{ fontSize: 18, lineHeight: 1 }}>{tpl?.emoji ?? '⭐'}</div>
                     <div>
-                      <div style={{ fontSize: 11, lineHeight: 1.3, fontWeight: isFree || isCorrect ? 600 : 500, textAlign: isFree ? 'center' : 'left' }}>
+                      <div style={{ fontSize: 10, lineHeight: 1.25, fontWeight: isFree || isCorrect ? 600 : 500, textAlign: isFree ? 'center' : 'left' }}>
                         {tpl?.label ?? `#${idx + 1}`}
                       </div>
                       {!isFree && tpl?.points && tpl.points > 0 && (
-                        <div style={{ fontFamily: 'var(--f-mono)', fontSize: 9, letterSpacing: '0.14em', marginTop: 4, opacity: isCorrect ? 0.85 : 0.6 }}>
+                        <div style={{ fontFamily: 'var(--f-mono)', fontSize: 8, letterSpacing: '0.14em', marginTop: 3, opacity: isCorrect ? 0.85 : 0.6 }}>
                           {tpl.points}P
                         </div>
                       )}

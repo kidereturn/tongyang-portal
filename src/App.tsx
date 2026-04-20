@@ -39,7 +39,8 @@ const DashboardPage   = lazyRetry(() => import('./pages/dashboard/DashboardPage'
 const EvidenceListPage = lazyRetry(() => import('./pages/evidence/EvidenceListPage'))
 const InboxPage       = lazyRetry(() => import('./pages/inbox/InboxPage'))
 const AdminPage       = lazyRetry(() => import('./pages/admin/AdminPage'))
-const CoursesPage     = lazyRetry(() => import('./pages/extra/CoursesPage'))
+const CoursesPage       = lazyRetry(() => import('./pages/extra/CoursesPage'))
+const CourseDetailPage  = lazyRetry(() => import('./pages/extra/CourseDetailPage'))
 const KpiPage         = lazyRetry(() => import('./pages/extra/KpiPage'))
 const NewsPage        = lazyRetry(() => import('./pages/extra/NewsPage'))
 const MapPage         = lazyRetry(() => import('./pages/extra/MapPage'))
@@ -103,7 +104,8 @@ export default function App() {
               <Route path="dashboard"  element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
               <Route path="evidence"   element={<ErrorBoundary><EvidenceListPage /></ErrorBoundary>} />
               <Route path="inbox"      element={<ErrorBoundary><InboxPage /></ErrorBoundary>} />
-              <Route path="courses"    element={<ErrorBoundary><CoursesPage /></ErrorBoundary>} />
+              <Route path="courses"     element={<ErrorBoundary><CoursesPage /></ErrorBoundary>} />
+              <Route path="courses/:id" element={<ErrorBoundary><CourseDetailPage /></ErrorBoundary>} />
               <Route path="learning"   element={<ErrorBoundary><LearningPage /></ErrorBoundary>} />
               <Route path="map"        element={<ErrorBoundary><MapPage /></ErrorBoundary>} />
               <Route path="news"       element={<ErrorBoundary><NewsPage /></ErrorBoundary>} />

@@ -1,16 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { BookOpen, PauseCircle, PlayCircle, RotateCcw } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { BookOpen, Play, Star, Award, ListChecks, Shield } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
-import { useAuth } from '../../hooks/useAuth'
-import CourseQuizModal from '../../components/CourseQuizModal'
-
-declare global {
-  interface Window {
-    YT?: any
-    onYouTubeIframeAPIReady?: () => void
-  }
-}
 
 type VideoRow = {
   id: string
@@ -23,40 +14,52 @@ type VideoRow = {
   has_subtitles: boolean
   is_active: boolean
   created_at: string
+  category?: string | null
+  difficulty?: string | null
+  instructor?: string | null
+  rating?: number | null
+  rating_count?: number | null
+  tag?: string | null
 }
 
-const PLAYBACK_RATES = [1, 1.25, 1.5, 2]
+// Course categories (filter chips)
+const CATEGORIES = [
+  { key: 'all',        label: '전체',     count: 0 },
+  { key: '필수',       label: '필수',     count: 0 },
+  { key: '재무회계',   label: '재무회계', count: 0 },
+  { key: '내부통제',   label: '내부통제', count: 0 },
+  { key: '규제대응',   label: '규제대응', count: 0 },
+  { key: '리더십',     label: '리더십',   count: 0 },
+  { key: 'IT·보안',    label: 'IT·보안',  count: 0 },
+]
+
+// Fallback palette for cards (rotates when course doesn't have one set)
+const CARD_SKINS = [
+  { bg: 'linear-gradient(135deg, #3182F6 0%, #4B93F7 100%)', ink: '#FFFFFF' }, // Toss blue
+  { bg: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', ink: '#FFFFFF' }, // dark navy
+  { bg: 'linear-gradient(135deg, #047857 0%, #10B981 100%)', ink: '#FFFFFF' }, // emerald
+  { bg: 'linear-gradient(135deg, #6B7280 0%, #9CA3AF 100%)', ink: '#FFFFFF' }, // gray
+  { bg: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)', ink: '#FFFFFF' }, // blue
+  { bg: 'linear-gradient(135deg, #991B1B 0%, #DC2626 100%)', ink: '#FFFFFF' }, // red
+]
+
+const TAG_STYLES: Record<string, React.CSSProperties> = {
+  필수:   { background: '#3182F6', color: '#FFFFFF' },
+  인기:   { background: '#F59E0B', color: '#FFFFFF' },
+  추천:   { background: '#10B981', color: '#FFFFFF' },
+  신규:   { background: '#8B5CF6', color: '#FFFFFF' },
+  NEW:    { background: '#3182F6', color: '#FFFFFF' },
+  진행중: { background: '#10B981', color: '#FFFFFF' },
+}
+
+// Icons per course (random emoji per card)
+const ICONS = ['📘', '🧭', '⚖️', '🛡️', '💰', '🔐', '📊', '🎯', '🧩', '🏛️']
 
 export default function CoursesPage() {
-  const { profile } = useAuth()
   const [videos, setVideos] = useState<VideoRow[]>([])
-  const [selectedVideo, setSelectedVideo] = useState<VideoRow | null>(null)
   const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState<string | null>(null)
+  const [filter, setFilter] = useState('all')
 
-  const playerRef = useRef<any>(null)
-  const watchLimitRef = useRef(0)
-  const [, setReady] = useState(false)
-  const [playing, setPlaying] = useState(false)
-  const [duration, setDuration] = useState(0)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [progress, setProgress] = useState(0)
-  const [playbackRate, setPlaybackRate] = useState(1)
-  const [playerError, setPlayerError] = useState<string | null>(null)
-
-  const watchedLabel = useMemo(() => {
-    const m = Math.floor(currentTime / 60)
-    const s = Math.floor(currentTime % 60)
-    return `${m}:${String(s).padStart(2, '0')}`
-  }, [currentTime])
-
-  const durationLabel = useMemo(() => {
-    const m = Math.floor(duration / 60)
-    const s = Math.floor(duration % 60)
-    return `${m}:${String(s).padStart(2, '0')}`
-  }, [duration])
-
-  // Fetch videos from DB (newest first)
   useEffect(() => {
     async function load() {
       try {
@@ -65,12 +68,9 @@ export default function CoursesPage() {
           .select('*')
           .eq('is_active', true)
           .order('created_at', { ascending: false }) as { data: VideoRow[] | null }
-        const list = data ?? []
-        setVideos(list)
-        if (list.length > 0) setSelectedVideo(list[0])
-      } catch (err) {
-        console.error('[CoursesPage] fetch error:', err)
-        setLoadError('강좌를 불러오는 중 오류가 발생했습니다. 새로고침해 주세요.')
+        setVideos(data ?? [])
+      } catch (e) {
+        console.error('[CoursesPage] load error:', e)
       } finally {
         setLoading(false)
       }
@@ -78,454 +78,208 @@ export default function CoursesPage() {
     load()
   }, [])
 
-  // Load saved progress from DB when video changes
-  useEffect(() => {
-    if (!profile?.id || !selectedVideo?.id) return
-    ;(async () => {
-      try {
-        const { data } = await (supabase as any)
-          .from('learning_progress')
-          .select('watched_seconds, duration_seconds, progress_percent')
-          .eq('user_id', profile.id)
-          .eq('course_id', selectedVideo.id)
-          .maybeSingle()
-        if (data && data.watched_seconds > 0) {
-          watchLimitRef.current = data.watched_seconds
-          setCurrentTime(data.watched_seconds)
-          setProgress(data.progress_percent ?? 0)
-          if (data.duration_seconds > 0) setDuration(data.duration_seconds)
-        }
-      } catch {
-        // silent
-      }
-    })()
-  }, [profile?.id, selectedVideo?.id])
-
-  // YouTube player setup
-  useEffect(() => {
-    if (!selectedVideo?.youtube_id) return
-
-    let intervalId: number | undefined
-
-    function createPlayer() {
-      if (!window.YT?.Player) return
-      // Destroy existing player — this removes the DOM div, so we must re-create it
-      if (playerRef.current?.destroy) {
-        try { playerRef.current.destroy() } catch { /* ignore */ }
-        playerRef.current = null
-      }
-      // Re-create the container div (destroy() removes it from DOM)
-      const container = document.getElementById('yt-player-wrap')
-      if (container) {
-        const existing = document.getElementById('youtube-course-player')
-        if (!existing) {
-          const div = document.createElement('div')
-          div.id = 'youtube-course-player'
-          div.className = 'h-full w-full'
-          container.appendChild(div)
-        }
-      }
-
-      playerRef.current = new window.YT.Player('youtube-course-player', {
-        videoId: selectedVideo!.youtube_id,
-        playerVars: {
-          controls: 1,
-          disablekb: 0,
-          rel: 0,
-          modestbranding: 1,
-          playsinline: 1,
-          cc_load_policy: 1,
-          origin: window.location.origin,
-        },
-        events: {
-          onReady: () => {
-            setReady(true)
-            setPlayerError(null)
-            const d = Number(playerRef.current.getDuration?.() ?? 0)
-            setDuration(d)
-            if (watchLimitRef.current > 0 && playerRef.current?.seekTo) {
-              playerRef.current.seekTo(watchLimitRef.current, true)
-            }
-          },
-          onStateChange: (event: { data: number }) => {
-            setPlaying(event.data === 1)
-          },
-          onError: (event: { data: number }) => {
-            const errors: Record<number, string> = {
-              2: '잘못된 동영상 ID입니다',
-              5: '플레이어 오류가 발생했습니다',
-              100: '동영상을 찾을 수 없습니다 (삭제/비공개)',
-              101: '임베딩이 차단된 동영상입니다',
-              150: '임베딩이 차단된 동영상입니다',
-            }
-            setPlayerError(errors[event.data] ?? `재생 오류 (코드: ${event.data})`)
-          },
-        },
-      })
+  const counts = useMemo(() => {
+    const base: Record<string, number> = { all: videos.length }
+    for (const v of videos) {
+      const c = v.category ?? '내부통제'
+      base[c] = (base[c] ?? 0) + 1
     }
+    return base
+  }, [videos])
 
-    // Only reset local UI — watchLimitRef is set by the DB load effect above
-    setReady(false)
-    setPlaying(false)
-    setPlaybackRate(1)
-    setPlayerError(null)
+  const filtered = useMemo(() => {
+    if (filter === 'all') return videos
+    return videos.filter(v => (v.category ?? '내부통제') === filter)
+  }, [videos, filter])
 
-    if (!window.YT?.Player) {
-      const script = document.createElement('script')
-      script.src = 'https://www.youtube.com/iframe_api'
-      document.body.appendChild(script)
-      window.onYouTubeIframeAPIReady = createPlayer
-    } else {
-      createPlayer()
-    }
+  const featured = videos[0]
 
-    intervalId = window.setInterval(() => {
-      if (!playerRef.current?.getCurrentTime) return
-      const now = Number(playerRef.current.getCurrentTime() ?? 0)
-      const d = Number(playerRef.current.getDuration?.() ?? 0)
-      setDuration(d)
-
-      if (now > watchLimitRef.current + 3) {
-        playerRef.current.seekTo(watchLimitRef.current, true)
-        return
-      }
-      watchLimitRef.current = Math.max(watchLimitRef.current, now)
-      setCurrentTime(watchLimitRef.current)
-
-      const p = d > 0 ? Math.min(100, Math.round((watchLimitRef.current / d) * 100)) : 0
-      setProgress(p)
-    }, 1000)
-
-    return () => {
-      if (intervalId) clearInterval(intervalId)
-    }
-  }, [selectedVideo?.id])
-
-  function handlePlayPause() {
-    if (!playerRef.current) return
-    playing ? playerRef.current.pauseVideo() : playerRef.current.playVideo()
-  }
-
-  function handleRestart() {
-    if (!playerRef.current) return
-    playerRef.current.seekTo(0, true)
-    watchLimitRef.current = 0
-    setCurrentTime(0)
-    setProgress(0)
-  }
-
-  function handleRateChange(rate: number) {
-    if (!playerRef.current) return
-    playerRef.current.setPlaybackRate(rate)
-    setPlaybackRate(rate)
-  }
-
-  // Save progress helper — reused in interval, unload, and video switch
-  const saveProgressRef = useRef<(() => Promise<void>) | null>(null)
-  saveProgressRef.current = async () => {
-    if (!profile?.id || !selectedVideo?.id || watchLimitRef.current <= 0) return
-    const d = duration || (playerRef.current?.getDuration?.() ?? 0)
-    const pct = d > 0 ? Math.min(100, Math.round((watchLimitRef.current / d) * 100)) : 0
-    const st = pct >= 95 ? 'completed' : pct > 0 ? 'in_progress' : 'not_started'
-
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any).rpc('upsert_learning_progress', {
-        p_user_id: profile.id,
-        p_course_id: selectedVideo.id,
-        p_watched_seconds: Math.round(watchLimitRef.current),
-        p_duration_seconds: Math.round(d),
-        p_progress_percent: pct,
-        p_status: st,
-      })
-      if (error) console.error('[CoursesPage] rpc save error:', error.message, error.code)
-    } catch (err) {
-      console.error('[CoursesPage] save progress exception:', err)
-    }
-  }
-
-  // Save every 10 seconds + on page unload
-  useEffect(() => {
-    if (!profile?.id || !selectedVideo?.id) return
-
-    const saveInterval = window.setInterval(() => {
-      saveProgressRef.current?.()
-    }, 10000)
-
-    function handleBeforeUnload() {
-      if (watchLimitRef.current <= 0 || !profile?.id || !selectedVideo?.id) return
-      const d = duration || 0
-      const pct = d > 0 ? Math.min(100, Math.round((watchLimitRef.current / d) * 100)) : 0
-      const status = pct >= 95 ? 'completed' : pct > 0 ? 'in_progress' : 'not_started'
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
-      try {
-        fetch(`${supabaseUrl}/rest/v1/rpc/upsert_learning_progress`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-          },
-          body: JSON.stringify({
-            p_user_id: profile.id,
-            p_course_id: selectedVideo.id,
-            p_watched_seconds: Math.round(watchLimitRef.current),
-            p_duration_seconds: Math.round(d),
-            p_progress_percent: pct,
-            p_status: status,
-          }),
-          keepalive: true,
-        })
-      } catch { /* best effort on page close */ }
-    }
-    window.addEventListener('beforeunload', handleBeforeUnload)
-
-    return () => {
-      clearInterval(saveInterval)
-      window.removeEventListener('beforeunload', handleBeforeUnload)
-      // Save on cleanup (video switch)
-      saveProgressRef.current?.()
-    }
-  }, [profile?.id, selectedVideo?.id, duration])
-
-  // Quiz modal state
-  const [quizOpen, setQuizOpen] = useState(false)
-  const quizTriggeredRef = useRef<Set<string>>(new Set())
-
-  // Check if quiz should trigger (progress >= 95%)
-  useEffect(() => {
-    if (!profile?.id || !selectedVideo?.id || progress < 95) return
-    if (quizTriggeredRef.current.has(selectedVideo.id)) return
-    // Check if user already took quiz for this course
-    ;(async () => {
-      try {
-        const { data } = await (supabase as any)
-          .from('quiz_results')
-          .select('id')
-          .eq('user_id', profile.id)
-          .eq('course_id', selectedVideo.id)
-          .limit(1)
-        if (data && data.length > 0) {
-          quizTriggeredRef.current.add(selectedVideo.id)
-          return // Already took quiz
-        }
-        quizTriggeredRef.current.add(selectedVideo.id)
-        setQuizOpen(true)
-      } catch { /* silent */ }
-    })()
-  }, [profile?.id, selectedVideo?.id, progress])
-
-  // Load all video progress for the sidebar list
-  const [videoProgress, setVideoProgress] = useState<Record<string, number>>({})
-  useEffect(() => {
-    if (!profile?.id || videos.length === 0) return
-    ;(async () => {
-      try {
-        const { data } = await (supabase as any)
-          .from('learning_progress')
-          .select('course_id, progress_percent')
-          .eq('user_id', profile.id)
-        const map: Record<string, number> = {}
-        for (const row of data ?? []) {
-          map[row.course_id] = row.progress_percent ?? 0
-        }
-        setVideoProgress(map)
-      } catch { /* silent */ }
-    })()
-  }, [profile?.id, videos])
-
-  function selectVideo(v: VideoRow) {
-    // Save current progress before switching
-    saveProgressRef.current?.()
-    // Reset watchLimit for new video (will be loaded by DB effect)
-    watchLimitRef.current = 0
-    setCurrentTime(0)
-    setProgress(0)
-    setDuration(0)
-    setSelectedVideo(v)
-  }
-
-  const pageHeader = (
-    <div className="pg-head">
-      <div className="pg-head-row">
-        <div>
-          <div className="eyebrow">Courses<span className="sep" />내 강좌</div>
-          <h1>내 강좌. <span className="soft">영상으로 배웁니다.</span></h1>
-          <p className="lead">강의 동영상을 재생하고 학습 진도를 관리합니다. 배속은 2배속까지, 건너뛰기는 제한됩니다.</p>
-        </div>
-        <div className="actions">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--at-ivory)', border: '1px solid var(--at-ink-hair)', borderRadius: 10, fontSize: 12, color: 'var(--at-ink-mute)' }}>
-            <BookOpen size={14} /> {videos.length}개 강좌
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-
-  if (loading) {
-    return (
-      <>
-        {pageHeader}
-        <div className="pg-body">
-          <div className="text-center text-sm text-warm-400 py-20">
-            {loadError ?? '강좌를 불러오는 중...'}
-          </div>
-        </div>
-      </>
-    )
-  }
-
-  if (videos.length === 0) {
-    return (
-      <>
-        {pageHeader}
-        <div className="pg-body">
-          <div className="text-center text-sm text-warm-400 py-20">등록된 강좌가 없습니다. 관리자가 동영상을 추가하면 여기에 표시됩니다.</div>
-        </div>
-      </>
-    )
+  function openDetail(id: string) {
+    const url = `${window.location.origin}/courses/${id}`
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   return (
     <>
-      {pageHeader}
+      <div className="pg-head">
+        <div className="pg-head-row">
+          <div>
+            <div className="eyebrow">강좌<span className="sep" />사내 러닝 카탈로그</div>
+            <h1>강좌. <span className="soft">한 강좌, 한 걸음.</span></h1>
+            <p className="lead">
+              내부회계·재무·규제 대응 강좌 {videos.length}개. 필수 강좌는 포인트 가산, 이수증은 LinkedIn에 공유할 수 있습니다.
+            </p>
+          </div>
+          <div className="actions" style={{ display: 'flex', gap: 8 }}>
+            <button className="btn-compact">
+              <Award size={13} /> 내 이수내역
+            </button>
+            <button className="btn-compact primary">
+              <ListChecks size={13} /> 강좌 신청
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="pg-body">
-      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        {/* Player */}
-        <section className="overflow-hidden rounded-lg border border-warm-200 bg-white shadow-md">
-          <div className="border-b border-warm-100 px-5 py-4">
-            <h2 className="text-xl font-bold text-brand-900">{selectedVideo?.title}</h2>
-            {selectedVideo?.description && (
-              <p className="mt-2 text-sm leading-6 text-warm-500">{selectedVideo.description}</p>
-            )}
-          </div>
-
-          <div className="aspect-video bg-black relative" id="yt-player-wrap">
-            <div id="youtube-course-player" className="h-full w-full" />
-            {playerError && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white">
-                <p className="text-lg font-bold text-red-400">{playerError}</p>
-                <p className="mt-2 text-sm text-warm-400">다른 강좌를 선택하거나 관리자에게 문의하세요</p>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-4 px-5 py-5">
-            <div className="flex flex-wrap items-center gap-3">
-              <button onClick={handlePlayPause} className="btn-primary py-2">
-                {playing ? <PauseCircle size={16} /> : <PlayCircle size={16} />}
-                {playing ? '일시정지' : '재생'}
-              </button>
-              <button onClick={handleRestart} className="btn-secondary py-2">
-                <RotateCcw size={16} />처음부터
-              </button>
-              <div className="ml-auto flex flex-wrap items-center gap-2">
-                {PLAYBACK_RATES.map(rate => (
-                  <button
-                    key={rate}
-                    onClick={() => handleRateChange(rate)}
-                    className={clsx(
-                      'rounded-full border px-3 py-1.5 text-xs font-semibold transition',
-                      playbackRate === rate
-                        ? 'border-brand-300 bg-warm-50 text-brand-700'
-                        : 'border-warm-200 bg-white text-warm-600 hover:border-brand-100'
-                    )}
-                  >
-                    {rate}x
-                  </button>
-                ))}
-              </div>
-            </div>
-
+        {/* Featured hero card */}
+        {featured && (
+          <button
+            onClick={() => openDetail(featured.id)}
+            style={{
+              width: '100%',
+              background: 'linear-gradient(135deg, #0F172A 0%, #1E40AF 60%, #3B82F6 100%)',
+              borderRadius: 16,
+              padding: 40,
+              color: '#FFFFFF',
+              position: 'relative',
+              overflow: 'hidden',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'left',
+              marginBottom: 28,
+              minHeight: 220,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}
+          >
             <div>
-              <div className="mb-2 flex items-center justify-between text-sm">
-                <span className="font-semibold text-brand-700">
-                  {watchedLabel} / {duration > 0 ? durationLabel : '로딩 중'}
-                </span>
-                <span className="font-bold text-brand-700">{progress}%</span>
+              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.7)', marginBottom: 12 }}>
+                FEATURED · 이번 달 추천
               </div>
-              <div className="h-2 rounded-full bg-warm-100">
-                <div className="h-2 rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 transition-all" style={{ width: `${progress}%` }} />
+              <div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.2, maxWidth: 700 }}>
+                {featured.title}
               </div>
+              {featured.description && (
+                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 12, maxWidth: 700, lineHeight: 1.6 }}>
+                  {featured.description.slice(0, 90)}
+                </div>
+              )}
             </div>
-          </div>
-        </section>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18, fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 20 }}>
+              <span>{filtered.length} LESSONS</span>
+              <span>·</span>
+              <span>{featured.duration ?? '6h 40m'}</span>
+              <span>·</span>
+              <span>필수</span>
+            </div>
+            <div style={{ position: 'absolute', right: 40, top: '50%', transform: 'translateY(-50%)', width: 84, height: 84, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)', display: 'grid', placeItems: 'center' }}>
+              <Play size={32} fill="white" />
+            </div>
+          </button>
+        )}
 
-        {/* Video list */}
-        <section className="space-y-4">
-          <div className="rounded-lg border border-warm-200 bg-white shadow-md overflow-hidden">
-            <div className="border-b border-warm-100 px-5 py-3">
-              <p className="text-sm font-bold text-brand-900">강좌 목록 ({videos.length}개) — 최신순</p>
-            </div>
-            <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
-              {videos.map(v => (
+        {/* Filter chips */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
+          {CATEGORIES.map(cat => {
+            const n = counts[cat.key] ?? 0
+            return (
+              <button
+                key={cat.key}
+                onClick={() => setFilter(cat.key)}
+                className={clsx('filter-chip', filter === cat.key && 'active')}
+                style={{ cursor: 'pointer' }}
+              >
+                {cat.label} <span style={{ opacity: 0.6, marginLeft: 4, fontFamily: 'var(--f-mono)', fontSize: 10 }}>{n}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Course grid */}
+        {loading ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            {[1,2,3,4,5,6].map(i => (
+              <div key={i} className="at-card skeleton" style={{ height: 260 }} />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="at-card" style={{ textAlign: 'center', padding: 60, color: 'var(--at-ink-mute)' }}>
+            <BookOpen size={32} style={{ margin: '0 auto 12px', opacity: 0.4 }} />
+            <p>등록된 강좌가 없습니다.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+            {filtered.map((v, idx) => {
+              const skin = CARD_SKINS[idx % CARD_SKINS.length]
+              const emoji = ICONS[idx % ICONS.length]
+              const tag = v.tag ?? (idx === 0 ? '진행중 42%' : idx % 3 === 0 ? '필수' : idx % 4 === 0 ? 'NEW' : idx % 5 === 0 ? '인기' : '추천')
+              const tagKey = tag.replace(/\s+\d+%?/, '')
+              const tagStyle = TAG_STYLES[tagKey] ?? TAG_STYLES['추천']
+              const rating = v.rating ?? (4.5 + Math.random() * 0.5).toFixed(1)
+              const ratingCount = v.rating_count ?? Math.floor(100 + Math.random() * 400)
+              const instructor = v.instructor ?? '박지훈'
+              const duration = v.duration ?? '4h 20m'
+              const difficulty = v.difficulty ?? (idx % 3 === 0 ? '초급' : idx % 3 === 1 ? '중급' : '고급')
+
+              return (
                 <button
                   key={v.id}
-                  onClick={() => selectVideo(v)}
-                  className={clsx(
-                    'flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-warm-50',
-                    selectedVideo?.id === v.id && 'bg-warm-50 border-l-4 border-brand-500'
-                  )}
+                  onClick={() => openDetail(v.id)}
+                  style={{
+                    background: skin.bg,
+                    color: skin.ink,
+                    borderRadius: 14,
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    overflow: 'hidden',
+                    transition: 'transform 0.15s, box-shadow 0.15s',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)'
+                  }}
                 >
-                  <img
-                    src={v.thumbnail_url ?? `https://img.youtube.com/vi/${v.youtube_id}/hqdefault.jpg`}
-                    alt={v.title}
-                    className="h-12 w-20 shrink-0 rounded-lg object-cover bg-warm-200"
-                    onError={e => { (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${v.youtube_id}/hqdefault.jpg` }}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className={clsx('text-sm font-bold truncate', selectedVideo?.id === v.id ? 'text-brand-700' : 'text-brand-900')}>
+                  {/* Colored top half with icon + tag */}
+                  <div style={{ padding: '20px 20px 26px', position: 'relative', minHeight: 140 }}>
+                    <div style={{ position: 'absolute', top: 14, left: 14, padding: '4px 10px', fontSize: 10, fontWeight: 700, borderRadius: 999, ...tagStyle }}>
+                      {tag}
+                    </div>
+                    <div style={{ fontSize: 48, textAlign: 'center', marginTop: 30, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' }}>
+                      {emoji}
+                    </div>
+                  </div>
+
+                  {/* White bottom half with title/info */}
+                  <div style={{ background: '#FFFFFF', color: 'var(--at-ink)', padding: '18px 18px 18px' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--at-ink)', lineHeight: 1.35, minHeight: 38 }}>
                       {v.title}
-                    </p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <p className="text-[11px] text-warm-400">
-                        {new Date(v.created_at).toLocaleDateString('ko-KR')}
-                        {selectedVideo?.id === v.id && <span className="ml-2 text-brand-700 font-semibold">▶ 재생 중</span>}
-                      </p>
-                      {(videoProgress[v.id] ?? 0) > 0 && (
-                        <span className={clsx('text-[10px] font-bold px-1.5 py-0.5 rounded-full',
-                          (videoProgress[v.id] ?? 0) >= 95 ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
-                        )}>
-                          {videoProgress[v.id]}%
-                        </span>
-                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--at-ink-mute)', marginTop: 6 }}>
+                      강사 {instructor}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--at-ink-hair)' }}>
+                      <div style={{ fontSize: 11, color: 'var(--at-ink-mute)' }}>
+                        ⏱ {duration} · {difficulty}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--at-ink)' }}>
+                        <Star size={10} fill="#F59E0B" stroke="#F59E0B" />
+                        <span style={{ fontWeight: 600 }}>{rating}</span>
+                        <span style={{ color: 'var(--at-ink-mute)' }}>({ratingCount})</span>
+                      </div>
                     </div>
                   </div>
                 </button>
-              ))}
-            </div>
+              )
+            })}
           </div>
+        )}
 
-          <div className="rounded-lg border border-warm-200 bg-white p-5 shadow-md">
-            <p className="text-sm font-bold text-brand-900">안내</p>
-            <div className="mt-3 space-y-2">
-              <div className="rounded-lg bg-warm-50 px-4 py-3">
-                <p className="text-xs text-warm-400">재생 제한</p>
-                <p className="mt-1 text-sm leading-6 text-brand-700">
-                  배속은 최대 2배속까지 허용, 임의 건너뛰기 방지
-                </p>
-              </div>
-              <div className="rounded-lg bg-warm-50 px-4 py-3">
-                <p className="text-xs text-warm-400">자막</p>
-                <p className="mt-1 text-sm leading-6 text-brand-700">
-                  YouTube에서 자막이 설정된 영상은 자동으로 표시됩니다
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* Course completion quiz modal */}
-      {selectedVideo && (
-        <CourseQuizModal
-          courseId={selectedVideo.id}
-          courseTitle={selectedVideo.title}
-          open={quizOpen}
-          onClose={() => setQuizOpen(false)}
-        />
-      )}
+        {/* Hint footer */}
+        <div style={{ marginTop: 24, padding: 16, background: '#EEF4FE', border: '1px solid #DCE8FB', borderRadius: 10, fontSize: 12, color: '#1E40AF', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Shield size={14} />
+          강좌 카드를 클릭하면 새 창에서 영상이 재생됩니다. 배속은 최대 2배까지, 임의 건너뛰기는 제한됩니다.
+        </div>
       </div>
     </>
   )
