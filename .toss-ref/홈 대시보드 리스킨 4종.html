@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Home Dashboard Reskin — 4 directions</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+KR:wght@300;400;500;600&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="reskin-1-2.css">
+<link rel="stylesheet" href="reskin-3-4.css">
+<style>
+  html, body { margin: 0; padding: 0; background: #f4f5f7; }
+  body { font-family: 'Pretendard', sans-serif; color: #0f172a; }
+
+  .step-header {
+    padding: 32px 32px 20px;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .step-eyebrow { font-size: 12px; color: #64748b; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 6px; }
+  .step-title { font-size: 28px; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 14px; }
+  .step-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .step-tab {
+    padding: 10px 18px; font-size: 14px; font-weight: 600;
+    background: #f4f5f7; color: #475569; border: 1px solid transparent;
+    border-radius: 8px; cursor: pointer;
+  }
+  .step-tab:hover { background: #e5e7eb; }
+  .step-tab.active { background: #0f172a; color: #fff; }
+  .step-tab .num { font-weight: 700; margin-right: 6px; opacity: 0.7; }
+
+  .pane { display: none; padding: 0 0 60px; }
+  .pane.active { display: block; }
+
+  .confirm-block {
+    max-width: 1440px; margin: 40px auto; padding: 24px 28px;
+    background: #fff; border-radius: 12px; border: 1px solid #e5e7eb;
+    font-family: 'Pretendard', sans-serif;
+  }
+  .confirm-block h3 { font-size: 17px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.02em; }
+  .confirm-block p { font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 8px; }
+  .confirm-block .hint { font-size: 13px; color: #94a3b8; margin-top: 14px; padding-top: 14px; border-top: 1px dashed #e5e7eb; }
+</style>
+</head>
+<body>
+
+<div class="step-header">
+  <div class="step-eyebrow">STEP 1 · Home Dashboard (Admin) — Reskin Only</div>
+  <div class="step-title">내부회계 PORTAL · 홈 대시보드 4가지 방향</div>
+  <div class="step-tabs">
+    <div class="step-tab active" data-tab="1A"><span class="num">1-A</span>SaaS B2B · Linear/Notion</div>
+    <div class="step-tab" data-tab="1B"><span class="num">1-B</span>Toss Fintech</div>
+    <div class="step-tab" data-tab="1C"><span class="num">1-C</span>Scandinavian · Artek</div>
+    <div class="step-tab" data-tab="1D"><span class="num">1-D</span>Government Portal</div>
+  </div>
+</div>
+
+<!-- =============================== -->
+<!-- 1-A · SaaS B2B / Linear-Notion -->
+<!-- =============================== -->
+<div class="pane active" id="pane-1A" data-screen-label="1-A Home · SaaS">
+
+<div class="design-description d1">
+  <div class="badge">1-A · SaaS B2B</div>
+  <div>
+    <h2>Linear · Notion · Vercel 감성</h2>
+    <p>Pretendard 기반 타이포그래피 우선, 얇은 1px 테두리와 넉넉한 여백, 중성 그레이스케일에 코발트 인디고 포인트 하나. 그림자 최소화 · 정보 밀도는 유지하되 레이어를 얇게.</p>
+  </div>
+</div>
+
+<div class="rs-frame">
+  <div class="rs-browser-bar">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <div class="url">https://portal.tongyanginc.co.kr</div>
+  </div>
+  <div class="rs-container saas" data-screen-label="Home · SaaS">
+    <nav class="saas-nav">
+      <div class="saas-logo">
+        <div class="saas-logo-mark">T</div>
+        <div class="saas-logo-text">TONGYANG <span class="muted">· Internal Controls</span></div>
+      </div>
+      <div class="saas-nav-items">
+        <div class="saas-nav-item active">Home</div>
+        <div class="saas-nav-item">증빙관리</div>
+        <div class="saas-nav-item">내승인함</div>
+        <div class="saas-nav-item">내강좌</div>
+        <div class="saas-nav-item">강좌관리</div>
+        <div class="saas-nav-item">지도</div>
+        <div class="saas-nav-item">회사소식</div>
+        <div class="saas-nav-item">KPI결과</div>
+        <div class="saas-nav-item">빙고퀴즈</div>
+      </div>
+      <div class="saas-nav-right">
+        <div class="saas-bell">🔔</div>
+        <div class="saas-user"><span>최종헌</span><span class="role">관리자</span><span class="avatar">최</span></div>
+      </div>
+    </nav>
+
+    <div class="saas-main">
+      <div class="saas-header">
+        <div>
+          <div class="saas-eyebrow">Dashboard · Admin</div>
+          <div class="saas-h1">좋은 오후예요, 최종헌님</div>
+          <div class="saas-sub">내부회계 관리제도 운영 현황을 한눈에 확인하세요.</div>
+        </div>
+        <div class="saas-date-chip">2026년 4월 19일 · 일요일</div>
+      </div>
+
+      <!-- Top: notices + ranking -->
+      <div class="saas-grid-top">
+        <div class="saas-card">
+          <h3>공지사항 · 이벤트 <span class="link">전체보기 →</span></h3>
+          <div class="saas-notice-row">
+            <span class="saas-tag urgent">필독</span>
+            <span class="saas-notice-title">2026년 2분기 내부회계 운영보고서 제출 안내</span>
+            <span class="saas-notice-date">04-18</span>
+          </div>
+          <div class="saas-notice-row">
+            <span class="saas-tag important">중요</span>
+            <span class="saas-notice-title">전사 RCM 개정(Rev.4) 반영 완료 — 담당자 확인 요청</span>
+            <span class="saas-notice-date">04-17</span>
+          </div>
+          <div class="saas-notice-row">
+            <span class="saas-tag notice">공지</span>
+            <span class="saas-notice-title">2026년 하반기 내부회계 교육 일정 사전 안내</span>
+            <span class="saas-notice-date">04-15</span>
+          </div>
+          <div class="saas-notice-row">
+            <span class="saas-tag event">이벤트</span>
+            <span class="saas-notice-title">4월 빙고퀴즈 — 3줄 완성 시 기프티콘 증정</span>
+            <span class="saas-notice-date">04-12</span>
+          </div>
+          <div class="saas-notice-row">
+            <span class="saas-tag edu">교육</span>
+            <span class="saas-notice-title">신규 강좌 4건 오픈 — ESG·COSO·리스크관리</span>
+            <span class="saas-notice-date">04-10</span>
+          </div>
+        </div>
+
+        <div class="saas-card">
+          <h3>실시간 랭킹 <span class="link">더보기 →</span></h3>
+          <div class="saas-rank-row"><div class="saas-rank-left"><div class="saas-rank-num">1</div><div class="saas-rank-name">박민준</div></div><div class="saas-rank-score">450<span class="unit">P</span></div></div>
+          <div class="saas-rank-row"><div class="saas-rank-left"><div class="saas-rank-num">2</div><div class="saas-rank-name">이수연</div></div><div class="saas-rank-score">210<span class="unit">P</span></div></div>
+          <div class="saas-rank-row"><div class="saas-rank-left"><div class="saas-rank-num">3</div><div class="saas-rank-name">김상훈</div></div><div class="saas-rank-score">90<span class="unit">P</span></div></div>
+          <div class="saas-rank-row"><div class="saas-rank-left"><div class="saas-rank-num">4</div><div class="saas-rank-name">정하영</div></div><div class="saas-rank-score">60<span class="unit">P</span></div></div>
+          <div class="saas-rank-row"><div class="saas-rank-left"><div class="saas-rank-num">5</div><div class="saas-rank-name">최우진</div></div><div class="saas-rank-score">45<span class="unit">P</span></div></div>
+        </div>
+      </div>
+
+      <!-- Stat strip -->
+      <div class="saas-stats">
+        <div class="saas-stat"><div class="saas-stat-label">● 전체 통제활동</div><div class="saas-stat-value">424</div></div>
+        <div class="saas-stat"><div class="saas-stat-label" style="color:#16a34a;">● 완료</div><div class="saas-stat-value">0</div><div class="saas-stat-delta">0% 달성</div></div>
+        <div class="saas-stat"><div class="saas-stat-label" style="color:#d97706;">● 미완료</div><div class="saas-stat-value">0</div></div>
+        <div class="saas-stat"><div class="saas-stat-label" style="color:#dc2626;">● 반려</div><div class="saas-stat-value">0</div></div>
+        <div class="saas-stat"><div class="saas-stat-label">총 구성원</div><div class="saas-stat-value">477</div><div class="saas-stat-delta">+12 이번달</div></div>
+        <div class="saas-stat"><div class="saas-stat-label">승인율</div><div class="saas-stat-value">0%</div><div class="saas-stat-delta down">지표 없음</div></div>
+      </div>
+
+      <!-- Team + chart -->
+      <div class="saas-grid-mid">
+        <div class="saas-card">
+          <h3>팀별 완료율 <span class="link">· 8개 팀</span></h3>
+          <div class="saas-team-list">
+            <div class="saas-team-row"><div>생산팀</div><div class="saas-team-bar"><div style="width:0%"></div></div><div class="saas-team-pct">0%</div></div>
+            <div class="saas-team-row"><div>기획팀</div><div class="saas-team-bar"><div style="width:0%"></div></div><div class="saas-team-pct">0%</div></div>
+            <div class="saas-team-row"><div>관리팀</div><div class="saas-team-bar"><div style="width:0%"></div></div><div class="saas-team-pct">0%</div></div>
+            <div class="saas-team-row"><div>시설팀</div><div class="saas-team-bar"><div style="width:0%"></div></div><div class="saas-team-pct">0%</div></div>
+            <div class="saas-team-row"><div>인사팀</div><div class="saas-team-bar"><div style="width:0%"></div></div><div class="saas-team-pct">0%</div></div>
+            <div class="saas-team-row"><div>사업팀</div><div class="saas-team-bar"><div style="width:0%"></div></div><div class="saas-team-pct">0%</div></div>
+            <div class="saas-team-row"><div>에너지환경팀</div><div class="saas-team-bar"><div style="width:0%"></div></div><div class="saas-team-pct">0%</div></div>
+            <div class="saas-team-row"><div>자금팀</div><div class="saas-team-bar"><div style="width:0%"></div></div><div class="saas-team-pct">0%</div></div>
+          </div>
+        </div>
+
+        <div class="saas-card">
+          <h3>월별 완료 추이 <span class="link">최근 14개월</span></h3>
+          <div class="saas-chart-wrap">
+            <svg viewBox="0 0 400 180" preserveAspectRatio="none">
+              <!-- grid -->
+              <line x1="0" y1="30" x2="400" y2="30" stroke="#f1f2f5" stroke-width="1"/>
+              <line x1="0" y1="75" x2="400" y2="75" stroke="#f1f2f5" stroke-width="1"/>
+              <line x1="0" y1="120" x2="400" y2="120" stroke="#f1f2f5" stroke-width="1"/>
+              <line x1="0" y1="165" x2="400" y2="165" stroke="#e5e7eb" stroke-width="1"/>
+              <!-- sparkline line: flat baseline with peak at center -->
+              <path d="M 0 160 L 30 158 L 60 159 L 90 157 L 120 155 L 150 150 L 180 120 L 210 65 L 240 110 L 270 148 L 300 155 L 330 157 L 360 158 L 400 159"
+                fill="none" stroke="#6366f1" stroke-width="1.5" stroke-linejoin="round" />
+              <!-- dots -->
+              <circle cx="210" cy="65" r="3" fill="#6366f1"/>
+              <text x="210" y="55" text-anchor="middle" font-size="10" fill="#475569" font-family="Inter">58</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rings + CA + quick -->
+      <div class="saas-grid-bot">
+        <div class="saas-card">
+          <h3>성과 분포 · 상중하</h3>
+          <div class="saas-ring-group" style="display:flex; justify-content:space-around;">
+            <div class="saas-ring">
+              <svg viewBox="0 0 88 88"><circle cx="44" cy="44" r="36" fill="none" stroke="#f1f2f5" stroke-width="6"/><circle cx="44" cy="44" r="36" fill="none" stroke="#16a34a" stroke-width="6" stroke-dasharray="226" stroke-dashoffset="226" stroke-linecap="round" transform="rotate(-90 44 44)"/><text x="44" y="48" text-anchor="middle" font-size="16" font-weight="600" fill="#0f172a" font-family="Inter">0%</text></svg>
+              <div class="saas-ring-label">최우수 (상)</div>
+            </div>
+            <div class="saas-ring">
+              <svg viewBox="0 0 88 88"><circle cx="44" cy="44" r="36" fill="none" stroke="#f1f2f5" stroke-width="6"/><circle cx="44" cy="44" r="36" fill="none" stroke="#6366f1" stroke-width="6" stroke-dasharray="226" stroke-dashoffset="226" stroke-linecap="round" transform="rotate(-90 44 44)"/><text x="44" y="48" text-anchor="middle" font-size="16" font-weight="600" fill="#0f172a" font-family="Inter">0%</text></svg>
+              <div class="saas-ring-label">양호 (중)</div>
+            </div>
+            <div class="saas-ring">
+              <svg viewBox="0 0 88 88"><circle cx="44" cy="44" r="36" fill="none" stroke="#f1f2f5" stroke-width="6"/><circle cx="44" cy="44" r="36" fill="none" stroke="#f59e0b" stroke-width="6" stroke-dasharray="226" stroke-dashoffset="226" stroke-linecap="round" transform="rotate(-90 44 44)"/><text x="44" y="48" text-anchor="middle" font-size="16" font-weight="600" fill="#0f172a" font-family="Inter">0%</text></svg>
+              <div class="saas-ring-label">미흡 (하)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="saas-card" style="grid-column: span 2;">
+          <h3>통제활동별 상세 현황 <span class="link">최근 5건</span></h3>
+          <div class="saas-ca-row">
+            <div><span class="saas-ca-pill">BASE1.A1.C4</span> <span style="margin-left:8px;">품질관리 리뷰 · 생산팀</span></div>
+            <div><span style="color:#94a3b8;">97건</span> <span class="saas-ca-pill pending" style="margin-left:8px;">대기</span></div>
+          </div>
+          <div class="saas-ca-row">
+            <div><span class="saas-ca-pill">CO1.01.W1.C1</span> <span style="margin-left:8px;">생산량과 출하량에 대한 검토 및 승인</span></div>
+            <div><span style="color:#94a3b8;">28건</span> <span class="saas-ca-pill pending" style="margin-left:8px;">대기</span></div>
+          </div>
+          <div class="saas-ca-row">
+            <div><span class="saas-ca-pill">CO2.01.W2.C1</span> <span style="margin-left:8px;">월말 결산 데이터 점검 · 관리팀</span></div>
+            <div><span style="color:#94a3b8;">18건</span> <span class="saas-ca-pill pending" style="margin-left:8px;">대기</span></div>
+          </div>
+          <div class="saas-ca-row">
+            <div><span class="saas-ca-pill">CO2.03.W1.C1</span> <span style="margin-left:8px;">계약 품의서에 대한 검토 및 승인</span></div>
+            <div><span style="color:#94a3b8;">12건</span> <span class="saas-ca-pill done" style="margin-left:8px;">완료</span></div>
+          </div>
+          <div class="saas-ca-row">
+            <div><span class="saas-ca-pill">TR.05.W1.C1</span> <span style="margin-left:8px;">신규 자금 조달 검토 및 승인</span></div>
+            <div><span style="color:#94a3b8;">8건</span> <span class="saas-ca-pill done" style="margin-left:8px;">완료</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="saas-quick">
+        <div class="saas-quick-btn"><div class="icon">⚡</div><div><div>RCM 자동 업데이트</div><div class="sub">1시간 전 실행</div></div></div>
+        <div class="saas-quick-btn"><div class="icon">📊</div><div><div>모집단 업로드</div><div class="sub">엑셀 파일 업로드</div></div></div>
+        <div class="saas-quick-btn"><div class="icon">📬</div><div><div>알림 발송</div><div class="sub">담당자에게 일괄</div></div></div>
+        <div class="saas-quick-btn"><div class="icon">🗺️</div><div><div>사업장 지도</div><div class="sub">28개 사업장</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- =============================== -->
+<!-- 1-B · Toss Fintech -->
+<!-- =============================== -->
+<div class="pane" id="pane-1B" data-screen-label="1-B Home · Toss">
+
+<div class="design-description d2">
+  <div class="badge">1-B · Toss Fintech</div>
+  <div>
+    <h2>친근한 핀테크 · Toss 스타일</h2>
+    <p>큰 라운드(20px+), Toss 블루(#3182F6) + 네이비 조합, 과장된 숫자 타이포그래피와 부드러운 드롭섀도우. 카드 간 여백이 넓고 친근한 일러스트 포인트.</p>
+  </div>
+</div>
+
+<div class="rs-frame">
+  <div class="rs-browser-bar">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <div class="url">https://portal.tongyanginc.co.kr</div>
+  </div>
+  <div class="rs-container toss" data-screen-label="Home · Toss">
+    <nav class="toss-nav">
+      <div class="toss-logo">
+        <div class="toss-logo-mark">T</div>
+        <div class="toss-logo-text">내부회계 포털</div>
+      </div>
+      <div class="toss-nav-items">
+        <div class="toss-nav-item active">홈</div>
+        <div class="toss-nav-item">증빙관리</div>
+        <div class="toss-nav-item">내승인함</div>
+        <div class="toss-nav-item">내강좌</div>
+        <div class="toss-nav-item">강좌관리</div>
+        <div class="toss-nav-item">지도</div>
+        <div class="toss-nav-item">회사소식</div>
+        <div class="toss-nav-item">KPI결과</div>
+        <div class="toss-nav-item">빙고퀴즈</div>
+      </div>
+      <div class="toss-user"><span>최종헌</span><span class="avatar">최</span></div>
+    </nav>
+
+    <div class="toss-main">
+
+      <!-- Hero -->
+      <div class="toss-hero">
+        <div>
+          <div class="toss-hero-greeting">좋은 오후예요 👋</div>
+          <div class="toss-hero-name">최종헌님,<br>오늘도 <span class="accent">든든한</span> 하루!</div>
+          <div class="toss-hero-date">2026년 4월 19일 · 내부회계 포털</div>
+          <div class="toss-hero-stats">
+            <div class="toss-hero-stat">
+              <div class="toss-hero-stat-label">전체 통제활동</div>
+              <div class="toss-hero-stat-value">424<span class="unit">개</span></div>
+            </div>
+            <div class="toss-hero-stat">
+              <div class="toss-hero-stat-label">구성원</div>
+              <div class="toss-hero-stat-value">477<span class="unit">명</span></div>
+            </div>
+            <div class="toss-hero-stat">
+              <div class="toss-hero-stat-label">사업장</div>
+              <div class="toss-hero-stat-value">28<span class="unit">곳</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="toss-rank-box">
+          <div class="toss-rank-title">실시간 랭킹 <span class="chip">이달</span></div>
+          <div class="toss-rank-item"><div class="toss-rank-medal gold">1</div><div class="toss-rank-name">박민준</div><div class="toss-rank-pts">450P</div></div>
+          <div class="toss-rank-item"><div class="toss-rank-medal silver">2</div><div class="toss-rank-name">이수연</div><div class="toss-rank-pts">210P</div></div>
+          <div class="toss-rank-item"><div class="toss-rank-medal bronze">3</div><div class="toss-rank-name">김상훈</div><div class="toss-rank-pts">90P</div></div>
+          <div class="toss-rank-item"><div class="toss-rank-medal">4</div><div class="toss-rank-name">정하영</div><div class="toss-rank-pts">60P</div></div>
+          <div class="toss-rank-item"><div class="toss-rank-medal">5</div><div class="toss-rank-name">최우진</div><div class="toss-rank-pts">45P</div></div>
+        </div>
+      </div>
+
+      <!-- Big stats -->
+      <div class="toss-big-stats">
+        <div class="toss-big-stat">
+          <div class="toss-big-stat-label"><span class="toss-big-stat-dot"></span>전체</div>
+          <div class="toss-big-stat-value">424</div>
+          <div class="toss-big-stat-sub">통제활동 건수</div>
+        </div>
+        <div class="toss-big-stat">
+          <div class="toss-big-stat-label"><span class="toss-big-stat-dot green"></span>완료</div>
+          <div class="toss-big-stat-value" style="color:#22C55E;">0</div>
+          <div class="toss-big-stat-sub">달성률 0%</div>
+        </div>
+        <div class="toss-big-stat">
+          <div class="toss-big-stat-label"><span class="toss-big-stat-dot yellow"></span>미완료</div>
+          <div class="toss-big-stat-value" style="color:#F59E0B;">0</div>
+          <div class="toss-big-stat-sub">대기 중</div>
+        </div>
+        <div class="toss-big-stat">
+          <div class="toss-big-stat-label"><span class="toss-big-stat-dot red"></span>반려</div>
+          <div class="toss-big-stat-value" style="color:#EF4444;">0</div>
+          <div class="toss-big-stat-sub">재작업 필요</div>
+        </div>
+      </div>
+
+      <!-- Notice + team -->
+      <div class="toss-row-2">
+        <div class="toss-card">
+          <div class="toss-card-head"><div class="toss-card-title">📢 공지 · 이벤트</div><div class="toss-card-link">전체보기</div></div>
+          <div class="saas-notice-row" style="border-color:#F2F4F6;"><span class="saas-tag urgent">필독</span><span class="saas-notice-title" style="color:#191F28;font-weight:600;">2026년 2분기 내부회계 운영보고서 제출</span><span class="saas-notice-date">04-18</span></div>
+          <div class="saas-notice-row" style="border-color:#F2F4F6;"><span class="saas-tag important">중요</span><span class="saas-notice-title" style="color:#191F28;font-weight:600;">전사 RCM 개정(Rev.4) 반영 완료</span><span class="saas-notice-date">04-17</span></div>
+          <div class="saas-notice-row" style="border-color:#F2F4F6;"><span class="saas-tag event">이벤트</span><span class="saas-notice-title" style="color:#191F28;font-weight:600;">4월 빙고퀴즈 — 3줄 완성 기프티콘</span><span class="saas-notice-date">04-12</span></div>
+          <div class="saas-notice-row" style="border-color:#F2F4F6;"><span class="saas-tag edu">교육</span><span class="saas-notice-title" style="color:#191F28;font-weight:600;">신규 강좌 4건 — ESG · COSO · 리스크관리</span><span class="saas-notice-date">04-10</span></div>
+        </div>
+
+        <div class="toss-card">
+          <div class="toss-card-head"><div class="toss-card-title">🏆 팀별 완료율</div><div class="toss-card-link">상세</div></div>
+          <div class="toss-team-row"><div class="toss-team-name">생산팀</div><div class="toss-team-bar"><div style="width:0%"></div></div><div class="toss-team-pct">0%</div></div>
+          <div class="toss-team-row"><div class="toss-team-name">기획팀</div><div class="toss-team-bar"><div style="width:0%"></div></div><div class="toss-team-pct">0%</div></div>
+          <div class="toss-team-row"><div class="toss-team-name">관리팀</div><div class="toss-team-bar"><div style="width:0%"></div></div><div class="toss-team-pct">0%</div></div>
+          <div class="toss-team-row"><div class="toss-team-name">시설팀</div><div class="toss-team-bar"><div style="width:0%"></div></div><div class="toss-team-pct">0%</div></div>
+          <div class="toss-team-row"><div class="toss-team-name">인사팀</div><div class="toss-team-bar"><div style="width:0%"></div></div><div class="toss-team-pct">0%</div></div>
+          <div class="toss-team-row"><div class="toss-team-name">사업팀</div><div class="toss-team-bar"><div style="width:0%"></div></div><div class="toss-team-pct">0%</div></div>
+          <div class="toss-team-row"><div class="toss-team-name">에너지환경팀</div><div class="toss-team-bar"><div style="width:0%"></div></div><div class="toss-team-pct">0%</div></div>
+          <div class="toss-team-row"><div class="toss-team-name">자금팀</div><div class="toss-team-bar"><div style="width:0%"></div></div><div class="toss-team-pct">0%</div></div>
+        </div>
+      </div>
+
+      <!-- Rings + CA -->
+      <div class="toss-row-3">
+        <div class="toss-card">
+          <div class="toss-card-head"><div class="toss-card-title">성과 분포</div></div>
+          <div class="toss-ring-group">
+            <div class="toss-ring-item"><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="32" fill="none" stroke="#F2F4F6" stroke-width="8"/><circle cx="40" cy="40" r="32" fill="none" stroke="#22C55E" stroke-width="8" stroke-dasharray="201" stroke-dashoffset="201" stroke-linecap="round" transform="rotate(-90 40 40)"/><text x="40" y="45" text-anchor="middle" font-size="16" font-weight="800" fill="#191F28">0%</text></svg><div class="toss-ring-label">상</div></div>
+            <div class="toss-ring-item"><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="32" fill="none" stroke="#F2F4F6" stroke-width="8"/><circle cx="40" cy="40" r="32" fill="none" stroke="#3182F6" stroke-width="8" stroke-dasharray="201" stroke-dashoffset="201" stroke-linecap="round" transform="rotate(-90 40 40)"/><text x="40" y="45" text-anchor="middle" font-size="16" font-weight="800" fill="#191F28">0%</text></svg><div class="toss-ring-label">중</div></div>
+            <div class="toss-ring-item"><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="32" fill="none" stroke="#F2F4F6" stroke-width="8"/><circle cx="40" cy="40" r="32" fill="none" stroke="#F59E0B" stroke-width="8" stroke-dasharray="201" stroke-dashoffset="201" stroke-linecap="round" transform="rotate(-90 40 40)"/><text x="40" y="45" text-anchor="middle" font-size="16" font-weight="800" fill="#191F28">0%</text></svg><div class="toss-ring-label">하</div></div>
+          </div>
+        </div>
+
+        <div class="toss-card" style="grid-column: span 2;">
+          <div class="toss-card-head"><div class="toss-card-title">통제활동 현황</div><div class="toss-card-link">전체보기</div></div>
+          <div class="toss-ca-row"><div><span class="toss-ca-code">BASE1.A1.C4</span><span class="toss-ca-name">품질관리 리뷰</span></div><span class="toss-ca-badge">대기 97</span></div>
+          <div class="toss-ca-row"><div><span class="toss-ca-code">CO1.01.W1.C1</span><span class="toss-ca-name">생산량과 출하량 검토</span></div><span class="toss-ca-badge">대기 28</span></div>
+          <div class="toss-ca-row"><div><span class="toss-ca-code">CO2.01.W2.C1</span><span class="toss-ca-name">월말 결산 데이터 점검</span></div><span class="toss-ca-badge">대기 18</span></div>
+          <div class="toss-ca-row"><div><span class="toss-ca-code">CO2.03.W1.C1</span><span class="toss-ca-name">계약 품의서 검토</span></div><span class="toss-ca-badge done">완료 12</span></div>
+          <div class="toss-ca-row"><div><span class="toss-ca-code">TR.05.W1.C1</span><span class="toss-ca-name">신규 자금 조달 검토</span></div><span class="toss-ca-badge done">완료 8</span></div>
+        </div>
+      </div>
+
+      <!-- Quick -->
+      <div class="toss-quick" style="margin-top:16px;">
+        <div class="toss-quick-tile"><div class="icon">⚡</div><div class="toss-quick-title">RCM 자동 업데이트</div><div class="toss-quick-sub">1시간 전 실행됨</div></div>
+        <div class="toss-quick-tile"><div class="icon green">📊</div><div class="toss-quick-title">모집단 업로드</div><div class="toss-quick-sub">엑셀 파일 업로드</div></div>
+        <div class="toss-quick-tile"><div class="icon yellow">📬</div><div class="toss-quick-title">알림 발송</div><div class="toss-quick-sub">담당자 일괄 알림</div></div>
+        <div class="toss-quick-tile"><div class="icon purple">🗺️</div><div class="toss-quick-title">사업장 지도</div><div class="toss-quick-sub">28개 사업장 조회</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- =============================== -->
+<!-- 1-C · Scandinavian / Artek -->
+<!-- =============================== -->
+<div class="pane" id="pane-1C" data-screen-label="1-C Home · Scandinavian">
+
+<div class="design-description d3">
+  <div class="badge">1-C · Scandinavian</div>
+  <div>
+    <h2>Artek · Kinfolk 에디토리얼 미니멀</h2>
+    <p>베이지/아이보리 배경, 세리프(Noto Serif KR) 헤드라인 + 산세리프 본문, 머스타드 포인트, 아주 얇은 구분선. 인쇄물 같은 차분한 밀도감.</p>
+  </div>
+</div>
+
+<div class="rs-frame">
+  <div class="rs-browser-bar">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <div class="url">https://portal.tongyanginc.co.kr</div>
+  </div>
+  <div class="rs-container scandi" data-screen-label="Home · Scandinavian">
+    <nav class="scandi-nav">
+      <div class="scandi-logo">동양 내부회계<span class="sub">Internal Controls</span></div>
+      <div class="scandi-nav-items">
+        <div class="scandi-nav-item active">Home</div>
+        <div class="scandi-nav-item">증빙</div>
+        <div class="scandi-nav-item">승인함</div>
+        <div class="scandi-nav-item">강좌</div>
+        <div class="scandi-nav-item">강좌관리</div>
+        <div class="scandi-nav-item">지도</div>
+        <div class="scandi-nav-item">소식</div>
+        <div class="scandi-nav-item">KPI</div>
+        <div class="scandi-nav-item">빙고</div>
+      </div>
+      <div class="scandi-user"><span>최종헌</span><span class="avatar">최</span></div>
+    </nav>
+
+    <div class="scandi-main">
+      <div class="scandi-header">
+        <div>
+          <div class="scandi-eyebrow">Issue No. 47 · Internal Controls Daily</div>
+          <div class="scandi-h1">좋은 오후예요, <span class="italic">최종헌</span>님.</div>
+          <div class="scandi-sub">오늘의 내부회계 운영보고서입니다. 공지사항과 팀별 달성률, 이달의 통제활동 현황을 한 페이지에서 확인하세요.</div>
+        </div>
+        <div class="scandi-date">19 · April · 2026</div>
+      </div>
+
+      <div class="scandi-grid-top">
+        <div>
+          <div class="scandi-col-title">Dispatches <span class="nr">No. 04</span></div>
+          <div class="scandi-notice">
+            <div class="scandi-notice-meta">Urgent<span class="dot"></span>2026 · 04 · 18</div>
+            <div class="scandi-notice-title">2026년 2분기 내부회계 운영보고서 제출 안내</div>
+          </div>
+          <div class="scandi-notice">
+            <div class="scandi-notice-meta">Important<span class="dot"></span>2026 · 04 · 17</div>
+            <div class="scandi-notice-title">전사 RCM 개정(Rev.4) 반영 완료 — 담당자 확인 요청</div>
+          </div>
+          <div class="scandi-notice">
+            <div class="scandi-notice-meta">Notice<span class="dot"></span>2026 · 04 · 15</div>
+            <div class="scandi-notice-title">2026년 하반기 내부회계 교육 일정 사전 안내</div>
+          </div>
+          <div class="scandi-notice">
+            <div class="scandi-notice-meta">Event<span class="dot"></span>2026 · 04 · 12</div>
+            <div class="scandi-notice-title">4월 빙고퀴즈 이벤트 — 3줄 완성 시 기프티콘 증정</div>
+          </div>
+        </div>
+        <div>
+          <div class="scandi-col-title">Leaderboard <span class="nr">Top 5</span></div>
+          <div class="scandi-rank-row"><div class="scandi-rank-num">01</div><div class="scandi-rank-name">박민준</div><div class="scandi-rank-pts">450<span class="unit">pts</span></div></div>
+          <div class="scandi-rank-row"><div class="scandi-rank-num">02</div><div class="scandi-rank-name">이수연</div><div class="scandi-rank-pts">210<span class="unit">pts</span></div></div>
+          <div class="scandi-rank-row"><div class="scandi-rank-num">03</div><div class="scandi-rank-name">김상훈</div><div class="scandi-rank-pts">90<span class="unit">pts</span></div></div>
+          <div class="scandi-rank-row"><div class="scandi-rank-num">04</div><div class="scandi-rank-name">정하영</div><div class="scandi-rank-pts">60<span class="unit">pts</span></div></div>
+          <div class="scandi-rank-row"><div class="scandi-rank-num">05</div><div class="scandi-rank-name">최우진</div><div class="scandi-rank-pts">45<span class="unit">pts</span></div></div>
+        </div>
+      </div>
+
+      <div class="scandi-stats">
+        <div class="scandi-stat"><div class="scandi-stat-label">Total Controls</div><div class="scandi-stat-value">424</div><div class="scandi-stat-sub">전체 통제활동</div></div>
+        <div class="scandi-stat"><div class="scandi-stat-label">Completion</div><div class="scandi-stat-value">0<span class="unit">%</span></div><div class="scandi-stat-sub">달성률</div></div>
+        <div class="scandi-stat"><div class="scandi-stat-label">Members</div><div class="scandi-stat-value">477</div><div class="scandi-stat-sub">구성원</div></div>
+        <div class="scandi-stat"><div class="scandi-stat-label">Sites</div><div class="scandi-stat-value">28</div><div class="scandi-stat-sub">사업장</div></div>
+      </div>
+
+      <div class="scandi-grid-mid">
+        <div>
+          <div class="scandi-col-title">Team Progress</div>
+          <div class="scandi-team"><div class="scandi-team-name">생산팀</div><div class="scandi-team-bar"><div style="width:0%"></div></div><div class="scandi-team-pct">0%</div></div>
+          <div class="scandi-team"><div class="scandi-team-name">기획팀</div><div class="scandi-team-bar"><div style="width:0%"></div></div><div class="scandi-team-pct">0%</div></div>
+          <div class="scandi-team"><div class="scandi-team-name">관리팀</div><div class="scandi-team-bar"><div style="width:0%"></div></div><div class="scandi-team-pct">0%</div></div>
+          <div class="scandi-team"><div class="scandi-team-name">시설팀</div><div class="scandi-team-bar"><div style="width:0%"></div></div><div class="scandi-team-pct">0%</div></div>
+          <div class="scandi-team"><div class="scandi-team-name">인사팀</div><div class="scandi-team-bar"><div style="width:0%"></div></div><div class="scandi-team-pct">0%</div></div>
+          <div class="scandi-team"><div class="scandi-team-name">사업팀</div><div class="scandi-team-bar"><div style="width:0%"></div></div><div class="scandi-team-pct">0%</div></div>
+          <div class="scandi-team"><div class="scandi-team-name">에너지환경팀</div><div class="scandi-team-bar"><div style="width:0%"></div></div><div class="scandi-team-pct">0%</div></div>
+          <div class="scandi-team"><div class="scandi-team-name">자금팀</div><div class="scandi-team-bar"><div style="width:0%"></div></div><div class="scandi-team-pct">0%</div></div>
+        </div>
+        <div>
+          <div class="scandi-col-title">Monthly Trend</div>
+          <div class="scandi-chart-wrap">
+            <svg viewBox="0 0 400 200" preserveAspectRatio="none">
+              <line x1="0" y1="40" x2="400" y2="40" stroke="#E2DBC5" stroke-width="0.5"/>
+              <line x1="0" y1="100" x2="400" y2="100" stroke="#E2DBC5" stroke-width="0.5"/>
+              <line x1="0" y1="160" x2="400" y2="160" stroke="#E2DBC5" stroke-width="0.5"/>
+              <path d="M 0 180 L 30 178 L 60 179 L 90 177 L 120 174 L 150 170 L 180 140 L 210 80 L 240 135 L 270 170 L 300 176 L 330 178 L 360 179 L 400 180"
+                fill="none" stroke="#8B6F00" stroke-width="1" />
+              <circle cx="210" cy="80" r="2.5" fill="#8B6F00"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="scandi-grid-bot">
+        <div>
+          <div class="scandi-col-title">Distribution</div>
+          <div class="scandi-ring-group">
+            <div class="scandi-ring-item"><svg viewBox="0 0 90 90"><circle cx="45" cy="45" r="38" fill="none" stroke="#E2DBC5" stroke-width="1.5"/><circle cx="45" cy="45" r="38" fill="none" stroke="#8B6F00" stroke-width="1.5" stroke-dasharray="239" stroke-dashoffset="239" transform="rotate(-90 45 45)"/><text x="45" y="50" text-anchor="middle" font-size="16" fill="#1c1c1c" font-family="Noto Serif KR">0%</text></svg><div class="scandi-ring-label">High</div></div>
+            <div class="scandi-ring-item"><svg viewBox="0 0 90 90"><circle cx="45" cy="45" r="38" fill="none" stroke="#E2DBC5" stroke-width="1.5"/><circle cx="45" cy="45" r="38" fill="none" stroke="#3A5A3A" stroke-width="1.5" stroke-dasharray="239" stroke-dashoffset="239" transform="rotate(-90 45 45)"/><text x="45" y="50" text-anchor="middle" font-size="16" fill="#1c1c1c" font-family="Noto Serif KR">0%</text></svg><div class="scandi-ring-label">Mid</div></div>
+            <div class="scandi-ring-item"><svg viewBox="0 0 90 90"><circle cx="45" cy="45" r="38" fill="none" stroke="#E2DBC5" stroke-width="1.5"/><circle cx="45" cy="45" r="38" fill="none" stroke="#1c1c1c" stroke-width="1.5" stroke-dasharray="239" stroke-dashoffset="239" transform="rotate(-90 45 45)"/><text x="45" y="50" text-anchor="middle" font-size="16" fill="#1c1c1c" font-family="Noto Serif KR">0%</text></svg><div class="scandi-ring-label">Low</div></div>
+          </div>
+        </div>
+        <div style="grid-column: span 2;">
+          <div class="scandi-col-title">Control Activities</div>
+          <div class="scandi-ca-row"><div><span class="scandi-ca-code">BASE1.A1.C4</span> &nbsp; <span class="scandi-ca-name">품질관리 리뷰</span></div><span class="scandi-ca-status">Pending · 97</span></div>
+          <div class="scandi-ca-row"><div><span class="scandi-ca-code">CO1.01.W1.C1</span> &nbsp; <span class="scandi-ca-name">생산량·출하량 검토</span></div><span class="scandi-ca-status">Pending · 28</span></div>
+          <div class="scandi-ca-row"><div><span class="scandi-ca-code">CO2.01.W2.C1</span> &nbsp; <span class="scandi-ca-name">월말 결산 데이터 점검</span></div><span class="scandi-ca-status">Pending · 18</span></div>
+          <div class="scandi-ca-row"><div><span class="scandi-ca-code">CO2.03.W1.C1</span> &nbsp; <span class="scandi-ca-name">계약 품의서 검토</span></div><span class="scandi-ca-status done">Approved · 12</span></div>
+          <div class="scandi-ca-row"><div><span class="scandi-ca-code">TR.05.W1.C1</span> &nbsp; <span class="scandi-ca-name">신규 자금 조달 검토</span></div><span class="scandi-ca-status done">Approved · 8</span></div>
+        </div>
+      </div>
+
+      <div class="scandi-quick">
+        <div class="scandi-quick-btn"><div class="num">01</div><div class="name">RCM Update</div><div class="desc">RCM 자동 업데이트 · 1시간 전</div></div>
+        <div class="scandi-quick-btn"><div class="num">02</div><div class="name">Population</div><div class="desc">모집단 업로드 · 엑셀</div></div>
+        <div class="scandi-quick-btn"><div class="num">03</div><div class="name">Alerts</div><div class="desc">담당자 일괄 알림 발송</div></div>
+        <div class="scandi-quick-btn"><div class="num">04</div><div class="name">Sites</div><div class="desc">사업장 지도 · 28곳</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- =============================== -->
+<!-- 1-D · Government Portal -->
+<!-- =============================== -->
+<div class="pane" id="pane-1D" data-screen-label="1-D Home · Government">
+
+<div class="design-description d4">
+  <div class="badge">1-D · Government Portal</div>
+  <div>
+    <h2>정부24 · 홈택스 공공기관 포털</h2>
+    <p>네이비(#003876) + 화이트 + 라이트그레이의 엄격한 하이어라키. 선명한 분리선, 조밀한 테이블, 공식적이고 신뢰감 있는 톤. 정보 밀도 최대.</p>
+  </div>
+</div>
+
+<div class="rs-frame">
+  <div class="rs-browser-bar">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <div class="url">https://portal.tongyanginc.co.kr</div>
+  </div>
+  <div class="rs-container gov" data-screen-label="Home · Government">
+    <div class="gov-topbar">
+      <div class="gov-topbar-left">
+        <a>🏠 홈</a><a>사이트맵</a><a>English</a>
+      </div>
+      <div class="gov-topbar-right">
+        <span>최종헌님(관리자) 로그인 중</span><a>로그아웃</a><a>마이페이지</a>
+      </div>
+    </div>
+
+    <div class="gov-header">
+      <div class="gov-logo">
+        <div class="gov-logo-mark">TY</div>
+        <div class="gov-logo-text">(주)동양 내부회계 포털<span class="en">TONGYANG INTERNAL CONTROLS PORTAL</span></div>
+      </div>
+      <div class="gov-search">
+        <input placeholder="통제활동·담당자·부서 검색...">
+        <button>🔍 검색</button>
+      </div>
+      <div class="gov-header-util">
+        <a>고객센터</a><span class="divider">|</span><a>자료실</a><span class="divider">|</span><a>FAQ</a>
+      </div>
+    </div>
+
+    <nav class="gov-nav">
+      <div class="gov-nav-wrap">
+        <div class="gov-nav-item active">🏠 HOME</div>
+        <div class="gov-nav-item">증빙관리</div>
+        <div class="gov-nav-item">내승인함</div>
+        <div class="gov-nav-item">내강좌</div>
+        <div class="gov-nav-item">강좌관리</div>
+        <div class="gov-nav-item">지도</div>
+        <div class="gov-nav-item">회사소식·뉴스</div>
+        <div class="gov-nav-item">KPI결과</div>
+        <div class="gov-nav-item">빙고퀴즈</div>
+      </div>
+    </nav>
+
+    <div class="gov-breadcrumb">HOME <span class="sep">›</span> <span class="current">통합 대시보드</span></div>
+
+    <div class="gov-main">
+
+      <div class="gov-page-title">
+        <div>
+          <h1>통합 대시보드 · 관리자</h1>
+          <div class="sub">내부회계 관리제도 운영 현황 조회 (2026년 4월 기준)</div>
+        </div>
+        <div class="date">최종 업데이트 : 2026-04-19 14:23</div>
+      </div>
+
+      <div class="gov-notice-box">
+        <span class="label">안내</span>
+        <div class="text">2026년 2분기 내부회계 운영보고서 제출 기한은 <b>5월 31일</b>까지입니다. 부서별 담당자는 일정 내 제출해 주시기 바랍니다.</div>
+      </div>
+
+      <div class="gov-grid-top">
+        <div class="gov-section">
+          <div class="gov-section-head"><h3>공지사항</h3><span class="more">+ 더보기</span></div>
+          <div class="gov-section-body">
+            <table class="gov-table">
+              <tr><td style="width:60px;"><span class="tag notice">필독</span></td><td>2026년 2분기 내부회계 운영보고서 제출 안내</td><td class="col-date">2026-04-18</td></tr>
+              <tr><td><span class="tag important">중요</span></td><td>전사 RCM 개정(Rev.4) 반영 완료 — 담당자 확인 요청</td><td class="col-date">2026-04-17</td></tr>
+              <tr><td><span class="tag general">공지</span></td><td>2026년 하반기 내부회계 교육 일정 사전 안내</td><td class="col-date">2026-04-15</td></tr>
+              <tr><td><span class="tag event">이벤트</span></td><td>4월 빙고퀴즈 이벤트 — 3줄 완성 시 기프티콘</td><td class="col-date">2026-04-12</td></tr>
+              <tr><td><span class="tag general">교육</span></td><td>신규 강좌 4건 오픈 안내</td><td class="col-date">2026-04-10</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="gov-section">
+          <div class="gov-section-head"><h3>실시간 랭킹</h3><span class="more">+ 더보기</span></div>
+          <div class="gov-section-body">
+            <table class="gov-table gov-rank-table">
+              <tr><td class="gov-rank-num top">1</td><td>박민준</td><td class="gov-rank-pts">450<span class="unit">P</span></td></tr>
+              <tr><td class="gov-rank-num">2</td><td>이수연</td><td class="gov-rank-pts">210<span class="unit">P</span></td></tr>
+              <tr><td class="gov-rank-num">3</td><td>김상훈</td><td class="gov-rank-pts">90<span class="unit">P</span></td></tr>
+              <tr><td class="gov-rank-num">4</td><td>정하영</td><td class="gov-rank-pts">60<span class="unit">P</span></td></tr>
+              <tr><td class="gov-rank-num">5</td><td>최우진</td><td class="gov-rank-pts">45<span class="unit">P</span></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="gov-stats">
+        <div class="gov-stat"><div class="gov-stat-icon">📋</div><div><div class="gov-stat-label">전체 통제활동</div><div class="gov-stat-value">424<span class="unit">건</span></div></div></div>
+        <div class="gov-stat"><div class="gov-stat-icon green">✔</div><div><div class="gov-stat-label">완료</div><div class="gov-stat-value">0<span class="unit">건</span></div></div></div>
+        <div class="gov-stat"><div class="gov-stat-icon yellow">⏱</div><div><div class="gov-stat-label">미완료</div><div class="gov-stat-value">0<span class="unit">건</span></div></div></div>
+        <div class="gov-stat"><div class="gov-stat-icon red">✕</div><div><div class="gov-stat-label">반려</div><div class="gov-stat-value">0<span class="unit">건</span></div></div></div>
+      </div>
+
+      <div class="gov-grid-mid">
+        <div class="gov-section">
+          <div class="gov-section-head"><h3>팀별 달성 현황</h3></div>
+          <div class="gov-section-body" style="padding:0;">
+            <table class="gov-team-table">
+              <tr><th style="width:120px;">팀명</th><th>완료율</th><th class="right" style="width:60px;">값</th></tr>
+              <tr><td>생산팀</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div></div></td><td class="bar-val">0%</td></tr>
+              <tr><td>기획팀</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div></div></td><td class="bar-val">0%</td></tr>
+              <tr><td>관리팀</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div></div></td><td class="bar-val">0%</td></tr>
+              <tr><td>시설팀</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div></div></td><td class="bar-val">0%</td></tr>
+              <tr><td>인사팀</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div></div></td><td class="bar-val">0%</td></tr>
+              <tr><td>사업팀</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div></div></td><td class="bar-val">0%</td></tr>
+              <tr><td>에너지환경팀</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div></div></td><td class="bar-val">0%</td></tr>
+              <tr><td>자금팀</td><td><div class="bar"><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div></div></td><td class="bar-val">0%</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="gov-section">
+          <div class="gov-section-head"><h3>월별 완료 추이 (최근 14개월)</h3></div>
+          <div class="gov-chart-wrap">
+            <svg viewBox="0 0 400 200" preserveAspectRatio="none">
+              <line x1="30" y1="170" x2="400" y2="170" stroke="#888" stroke-width="1"/>
+              <line x1="30" y1="170" x2="30" y2="20" stroke="#888" stroke-width="1"/>
+              <line x1="30" y1="130" x2="400" y2="130" stroke="#e5e5e5" stroke-dasharray="2,2"/>
+              <line x1="30" y1="90" x2="400" y2="90" stroke="#e5e5e5" stroke-dasharray="2,2"/>
+              <line x1="30" y1="50" x2="400" y2="50" stroke="#e5e5e5" stroke-dasharray="2,2"/>
+              <path d="M 30 168 L 60 167 L 90 166 L 120 165 L 150 160 L 180 150 L 210 110 L 240 55 L 270 110 L 300 155 L 330 165 L 360 167 L 400 168"
+                fill="none" stroke="#003876" stroke-width="2"/>
+              <circle cx="240" cy="55" r="3" fill="#003876"/>
+              <text x="30" y="190" font-size="10" fill="#666">1월</text>
+              <text x="210" y="190" font-size="10" fill="#666">6월</text>
+              <text x="390" y="190" font-size="10" fill="#666" text-anchor="end">2월</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="gov-grid-bot">
+        <div class="gov-section">
+          <div class="gov-section-head"><h3>성과 분포 (상·중·하)</h3></div>
+          <div class="gov-ring-group">
+            <div class="gov-ring-item"><svg viewBox="0 0 84 84"><circle cx="42" cy="42" r="34" fill="none" stroke="#e5e5e5" stroke-width="8"/><circle cx="42" cy="42" r="34" fill="none" stroke="#2F855A" stroke-width="8" stroke-dasharray="214" stroke-dashoffset="214" transform="rotate(-90 42 42)"/><text x="42" y="47" text-anchor="middle" font-size="14" font-weight="700" fill="#003876">0%</text></svg><div class="gov-ring-label">상(최우수)</div></div>
+            <div class="gov-ring-item"><svg viewBox="0 0 84 84"><circle cx="42" cy="42" r="34" fill="none" stroke="#e5e5e5" stroke-width="8"/><circle cx="42" cy="42" r="34" fill="none" stroke="#003876" stroke-width="8" stroke-dasharray="214" stroke-dashoffset="214" transform="rotate(-90 42 42)"/><text x="42" y="47" text-anchor="middle" font-size="14" font-weight="700" fill="#003876">0%</text></svg><div class="gov-ring-label">중(양호)</div></div>
+            <div class="gov-ring-item"><svg viewBox="0 0 84 84"><circle cx="42" cy="42" r="34" fill="none" stroke="#e5e5e5" stroke-width="8"/><circle cx="42" cy="42" r="34" fill="none" stroke="#D97706" stroke-width="8" stroke-dasharray="214" stroke-dashoffset="214" transform="rotate(-90 42 42)"/><text x="42" y="47" text-anchor="middle" font-size="14" font-weight="700" fill="#003876">0%</text></svg><div class="gov-ring-label">하(미흡)</div></div>
+          </div>
+        </div>
+
+        <div class="gov-section" style="grid-column: span 2;">
+          <div class="gov-section-head"><h3>통제활동별 상세 현황</h3><span class="more">+ 더보기</span></div>
+          <table class="gov-ca-table">
+            <tr><th style="width:140px;">통제번호</th><th>통제활동명</th><th style="width:70px; text-align:right;">건수</th><th style="width:80px; text-align:center;">상태</th></tr>
+            <tr><td><code>BASE1.A1.C4</code></td><td>품질관리 리뷰</td><td style="text-align:right; font-weight:700;">97</td><td style="text-align:center;"><span class="gov-ca-status">대기</span></td></tr>
+            <tr><td><code>CO1.01.W1.C1</code></td><td>생산량과 출하량에 대한 검토 및 승인</td><td style="text-align:right; font-weight:700;">28</td><td style="text-align:center;"><span class="gov-ca-status">대기</span></td></tr>
+            <tr><td><code>CO2.01.W2.C1</code></td><td>월말 결산 데이터 점검</td><td style="text-align:right; font-weight:700;">18</td><td style="text-align:center;"><span class="gov-ca-status">대기</span></td></tr>
+            <tr><td><code>CO2.03.W1.C1</code></td><td>계약 품의서에 대한 검토 및 승인</td><td style="text-align:right; font-weight:700;">12</td><td style="text-align:center;"><span class="gov-ca-status done">완료</span></td></tr>
+            <tr><td><code>TR.05.W1.C1</code></td><td>신규 자금 조달 검토 및 승인</td><td style="text-align:right; font-weight:700;">8</td><td style="text-align:center;"><span class="gov-ca-status done">완료</span></td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="gov-quick" style="margin-top:20px;">
+        <div class="gov-quick-btn"><div class="icon">⚡</div><div><div class="name">RCM 자동 업데이트</div><div class="sub">1시간 전 실행</div></div></div>
+        <div class="gov-quick-btn"><div class="icon">📊</div><div><div class="name">모집단 업로드</div><div class="sub">엑셀 파일</div></div></div>
+        <div class="gov-quick-btn"><div class="icon">📬</div><div><div class="name">알림 발송</div><div class="sub">담당자 일괄</div></div></div>
+        <div class="gov-quick-btn"><div class="icon">🗺️</div><div><div class="name">사업장 지도</div><div class="sub">28개 사업장</div></div></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Confirmation block -->
+<div class="confirm-block">
+  <h3>✅ STEP 1 완료 — Home Dashboard 4가지 방향</h3>
+  <p>위 4개 탭에서 각 방향으로 리스킨한 홈 대시보드를 비교해 보세요. 정보 아키텍처·컴포넌트 위계·기능 레이아웃은 <b>원본 그대로 유지</b>했고, 타이포그래피 · 컬러 · 간격 · 그림자 · 아이콘·전반적 톤만 교체했습니다.</p>
+  <p style="margin-top:12px;"><b>다음 단계:</b> 마음에 드는 방향(하나 또는 복수)을 알려주시면, STEP 2에서 해당 방향으로 로그인 → 증빙리스트 → 업로드모달 → Admin → RCM → 모집단 → 파일다운로드 → 알림 → 승인함 → DART → 빙고 → Tell-me → 챗봇 → KPI → 강좌관리 → 내강좌 → 지도 → 웹툰 → 프로필 → Admin공지 (21개 화면)을 전부 재스타일링해드릴게요.</p>
+  <div class="hint">💡 탭을 눌러 4개 방향을 순서대로(1-A → 1-B → 1-C → 1-D) 확인해 보세요. 현재 선택 상태는 저장됩니다.</div>
+</div>
+
+<script>
+  // Tab switching
+  const tabs = document.querySelectorAll('.step-tab');
+  const panes = document.querySelectorAll('.pane');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const id = tab.dataset.tab;
+      tabs.forEach(t => t.classList.remove('active'));
+      panes.forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('pane-' + id).classList.add('active');
+      localStorage.setItem('home-reskin-tab', id);
+      window.scrollTo({top: 0, behavior: 'instant'});
+    });
+  });
+  const last = localStorage.getItem('home-reskin-tab');
+  if (last) {
+    const t = document.querySelector('.step-tab[data-tab="' + last + '"]');
+    if (t) t.click();
+  }
+</script>
+
+</body>
+</html>

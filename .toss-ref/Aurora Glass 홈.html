@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Aurora Glass · Home Dashboard</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="aurora.css">
+<style>
+  html, body { margin: 0; padding: 0; background: #05081A; color: #E8ECFF; font-family: 'Inter', system-ui, sans-serif; }
+
+  .app-header {
+    padding: 36px 32px 24px;
+    background: linear-gradient(180deg, #04061A 0%, #070B1E 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(20px);
+  }
+  .app-eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: #00E5FF; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .app-eyebrow::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: #00E5FF; box-shadow: 0 0 10px #00E5FF;
+  }
+  .app-title {
+    font-family: 'Space Grotesk', sans-serif; font-size: 30px;
+    font-weight: 400; letter-spacing: -0.025em; color: #E8ECFF;
+    margin-bottom: 6px;
+  }
+  .app-title .accent {
+    background: linear-gradient(135deg, #00E5FF, #B794F6);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; font-style: italic; font-weight: 500;
+  }
+  .app-sub { font-size: 13px; color: #7A84B0; max-width: 720px; line-height: 1.6; margin-bottom: 20px; }
+  .app-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .app-tab {
+    padding: 10px 18px; font-size: 13px; font-weight: 500;
+    font-family: 'Space Grotesk', sans-serif;
+    background: rgba(255,255,255,0.03); color: #B8C2E8;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .app-tab:hover { background: rgba(255,255,255,0.06); color: #E8ECFF; }
+  .app-tab.active {
+    background: rgba(0,229,255,0.1); color: #E8ECFF;
+    border-color: rgba(0,229,255,0.4);
+    box-shadow: 0 0 24px rgba(0,229,255,0.15);
+  }
+  .app-tab .num {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: #00E5FF; letter-spacing: 0.1em;
+  }
+  .app-tab .mood { font-size: 11px; color: #7A84B0; font-weight: 400; }
+  .app-tab.active .mood { color: #B8C2E8; }
+
+  .pane { display: none; }
+  .pane.active { display: block; }
+
+  .confirm-block {
+    max-width: 1440px; margin: 32px auto 60px; padding: 28px 32px;
+    border-radius: 18px;
+    background: rgba(18,22,50,0.4); backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .confirm-block h3 {
+    font-family: 'Space Grotesk', sans-serif; font-size: 18px;
+    color: #E8ECFF; margin-bottom: 12px; font-weight: 500;
+  }
+  .confirm-block p { font-size: 13px; color: #B8C2E8; line-height: 1.7; margin-bottom: 8px; }
+  .confirm-block .hint {
+    margin-top: 16px; padding-top: 16px;
+    border-top: 1px dashed rgba(255,255,255,0.1);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.14em; color: #7A84B0;
+  }
+</style>
+</head>
+<body class="aur-bg">
+
+<div class="aur-stars"></div>
+
+<div class="app-header">
+  <div class="app-eyebrow">STEP 1 · Aurora Glass Exploration</div>
+  <h1 class="app-title">Internal Controls Portal — <span class="accent">Home</span></h1>
+  <p class="app-sub">Studio Ghibli × Blade Runner 2049 × Apple Vision Pro의 교차점. 한 가지 대기(atmosphere)를 세 가지 밀도로 탐색합니다. 정보 아키텍처는 원본 그대로, 표면(surface) 언어만 새롭게.</p>
+  <div class="app-tabs">
+    <div class="app-tab active" data-tab="A">
+      <span class="num">1-A</span>
+      <span>More Glass</span>
+      <span class="mood">· 유리 카드 중심, 차분한 dreamy</span>
+    </div>
+    <div class="app-tab" data-tab="B">
+      <span class="num">1-B</span>
+      <span>More Aurora</span>
+      <span class="mood">· 배경 오로라가 주연, 큰 히어로</span>
+    </div>
+    <div class="app-tab" data-tab="C">
+      <span class="num">1-C</span>
+      <span>More HUD</span>
+      <span class="mood">· 모노스페이스 에디토리얼 그리드</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- Variant A · More Glass                          -->
+<!-- ============================================== -->
+<div class="pane active" id="pane-A" data-screen-label="1-A Home · More Glass">
+
+<div class="rs-frame-dark" style="margin-top: 28px;">
+  <div class="bar">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <div class="url">portal.tongyanginc.co.kr</div>
+  </div>
+
+  <div class="aur-bg" style="min-height: 1400px;" data-screen-label="Home · More Glass">
+    <div class="aur-blob lav" style="width: 500px; height: 500px; top: -100px; left: -80px; opacity: 0.35;"></div>
+    <div class="aur-blob cyan" style="width: 420px; height: 420px; top: 200px; right: -60px; opacity: 0.28;"></div>
+    <div class="aur-blob green" style="width: 380px; height: 380px; bottom: 100px; left: 40%; opacity: 0.22;"></div>
+
+    <nav class="aur-nav">
+      <div class="aur-logo">
+        <div class="aur-logo-mark">T</div>
+        <div class="aur-logo-text">TONGYANG<span class="en">INTERNAL · CONTROLS · PORTAL</span></div>
+      </div>
+      <div class="aur-nav-items">
+        <div class="aur-nav-item active">Home</div>
+        <div class="aur-nav-item">증빙관리</div>
+        <div class="aur-nav-item">내승인함</div>
+        <div class="aur-nav-item">내강좌</div>
+        <div class="aur-nav-item">강좌관리</div>
+        <div class="aur-nav-item">지도</div>
+        <div class="aur-nav-item">회사소식</div>
+        <div class="aur-nav-item">KPI</div>
+        <div class="aur-nav-item">빙고</div>
+      </div>
+      <div class="aur-nav-right">
+        <div class="aur-icon-btn">🔍</div>
+        <div class="aur-icon-btn">🔔<span class="notif-dot"></span></div>
+        <div class="aur-user-chip">
+          <div class="avatar">최</div>
+          <div>
+            <div class="name">최종헌</div>
+            <div class="role">Admin · 40P</div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="va-main">
+
+      <!-- Hero + Rank -->
+      <div class="va-hero">
+        <div class="aur-glass va-hero-main">
+          <div class="aur-eyebrow va-hero-eyebrow">
+            <span class="aur-dot-live"></span> Dashboard<span class="dot-sep"></span>Admin Overview<span class="dot-sep"></span>2026.04.19
+          </div>
+          <h2 class="va-hero-title">좋은 오후예요,<br><span class="accent">최종헌</span>님.</h2>
+          <p class="va-hero-sub">오늘의 내부회계 현황입니다. 전사 424개 통제활동과 477명의 구성원이 연결되어 움직이고 있어요.</p>
+          <div class="va-hero-stats">
+            <div class="va-hero-stat">
+              <div class="label">Controls</div>
+              <div class="value">424<span class="unit">개</span></div>
+            </div>
+            <div class="va-hero-stat">
+              <div class="label">Members</div>
+              <div class="value">477<span class="unit">명</span></div>
+            </div>
+            <div class="va-hero-stat">
+              <div class="label">Sites</div>
+              <div class="value">28<span class="unit">곳</span></div>
+            </div>
+            <div class="va-hero-stat">
+              <div class="label">Bingo</div>
+              <div class="value">5×5<span class="unit">· 3줄</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="aur-glass va-rank-panel">
+          <div class="va-panel-title">
+            <h3>실시간 랭킹</h3>
+            <span class="link">View all →</span>
+          </div>
+          <div class="va-rank-item">
+            <div class="va-rank-num top1">01</div>
+            <div class="va-rank-name">박민준</div>
+            <div class="va-rank-pts">450<span class="unit">P</span></div>
+          </div>
+          <div class="va-rank-item">
+            <div class="va-rank-num top2">02</div>
+            <div class="va-rank-name">이수연</div>
+            <div class="va-rank-pts">210<span class="unit">P</span></div>
+          </div>
+          <div class="va-rank-item">
+            <div class="va-rank-num top3">03</div>
+            <div class="va-rank-name">김상훈</div>
+            <div class="va-rank-pts">90<span class="unit">P</span></div>
+          </div>
+          <div class="va-rank-item">
+            <div class="va-rank-num">04</div>
+            <div class="va-rank-name">정하영</div>
+            <div class="va-rank-pts">60<span class="unit">P</span></div>
+          </div>
+          <div class="va-rank-item">
+            <div class="va-rank-num">05</div>
+            <div class="va-rank-name">최우진</div>
+            <div class="va-rank-pts">45<span class="unit">P</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats strip -->
+      <div class="va-stats">
+        <div class="aur-glass va-stat">
+          <div class="label"><span class="indicator"></span>전체 통제활동</div>
+          <div class="value">424</div>
+          <div class="sub">Total Controls</div>
+        </div>
+        <div class="aur-glass va-stat">
+          <div class="label"><span class="indicator green"></span>완료</div>
+          <div class="value">0</div>
+          <div class="sub">Completion · 0%</div>
+        </div>
+        <div class="aur-glass va-stat">
+          <div class="label"><span class="indicator amber"></span>미완료</div>
+          <div class="value">0</div>
+          <div class="sub">Pending</div>
+        </div>
+        <div class="aur-glass va-stat">
+          <div class="label"><span class="indicator pink"></span>반려</div>
+          <div class="value">0</div>
+          <div class="sub">Rejected</div>
+        </div>
+      </div>
+
+      <!-- Notice + Team -->
+      <div class="va-grid-2">
+        <div class="aur-glass va-card">
+          <div class="va-panel-title">
+            <h3>공지사항 · 이벤트</h3>
+            <span class="link">전체보기 →</span>
+          </div>
+          <div class="va-notice-row">
+            <span class="aur-tag pink">필독</span>
+            <span class="va-notice-title">2026년 2분기 내부회계 운영보고서 제출 안내</span>
+            <span class="va-notice-date">04·18</span>
+          </div>
+          <div class="va-notice-row">
+            <span class="aur-tag amber">중요</span>
+            <span class="va-notice-title">전사 RCM 개정(Rev.4) 반영 — 담당자 확인 요청</span>
+            <span class="va-notice-date">04·17</span>
+          </div>
+          <div class="va-notice-row">
+            <span class="aur-tag cyan">공지</span>
+            <span class="va-notice-title">2026년 하반기 내부회계 교육 일정 사전 안내</span>
+            <span class="va-notice-date">04·15</span>
+          </div>
+          <div class="va-notice-row">
+            <span class="aur-tag green">이벤트</span>
+            <span class="va-notice-title">4월 빙고퀴즈 — 3줄 완성 시 기프티콘 증정</span>
+            <span class="va-notice-date">04·12</span>
+          </div>
+          <div class="va-notice-row">
+            <span class="aur-tag lav">교육</span>
+            <span class="va-notice-title">신규 강좌 4건 오픈 — ESG · COSO · 리스크관리</span>
+            <span class="va-notice-date">04·10</span>
+          </div>
+        </div>
+
+        <div class="aur-glass va-card">
+          <div class="va-panel-title">
+            <h3>팀별 완료율</h3>
+            <span class="link">8개 팀</span>
+          </div>
+          <div class="va-team">
+            <div class="va-team-row"><div class="va-team-name">생산팀</div><div class="va-team-bar"><div class="fill" style="width:72%"></div></div><div class="va-team-pct">72%</div></div>
+            <div class="va-team-row"><div class="va-team-name">기획팀</div><div class="va-team-bar"><div class="fill" style="width:64%"></div></div><div class="va-team-pct">64%</div></div>
+            <div class="va-team-row"><div class="va-team-name">관리팀</div><div class="va-team-bar"><div class="fill" style="width:58%"></div></div><div class="va-team-pct">58%</div></div>
+            <div class="va-team-row"><div class="va-team-name">시설팀</div><div class="va-team-bar"><div class="fill" style="width:51%"></div></div><div class="va-team-pct">51%</div></div>
+            <div class="va-team-row"><div class="va-team-name">인사팀</div><div class="va-team-bar"><div class="fill" style="width:46%"></div></div><div class="va-team-pct">46%</div></div>
+            <div class="va-team-row"><div class="va-team-name">사업팀</div><div class="va-team-bar"><div class="fill" style="width:42%"></div></div><div class="va-team-pct">42%</div></div>
+            <div class="va-team-row"><div class="va-team-name">에너지환경팀</div><div class="va-team-bar"><div class="fill" style="width:38%"></div></div><div class="va-team-pct">38%</div></div>
+            <div class="va-team-row"><div class="va-team-name">자금팀</div><div class="va-team-bar"><div class="fill" style="width:31%"></div></div><div class="va-team-pct">31%</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart + rings -->
+      <div class="va-grid-2">
+        <div class="aur-glass va-card">
+          <div class="va-panel-title">
+            <h3>월별 완료 추이</h3>
+            <span class="link">최근 14개월</span>
+          </div>
+          <div class="va-chart">
+            <svg viewBox="0 0 400 220" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="ag-a" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.35"/>
+                  <stop offset="100%" stop-color="#00E5FF" stop-opacity="0"/>
+                </linearGradient>
+                <filter id="glow-a"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              </defs>
+              <line x1="0" y1="50" x2="400" y2="50" stroke="rgba(255,255,255,0.05)"/>
+              <line x1="0" y1="100" x2="400" y2="100" stroke="rgba(255,255,255,0.05)"/>
+              <line x1="0" y1="150" x2="400" y2="150" stroke="rgba(255,255,255,0.05)"/>
+              <line x1="0" y1="200" x2="400" y2="200" stroke="rgba(255,255,255,0.1)"/>
+              <path d="M 0 200 L 30 195 L 60 198 L 90 190 L 120 180 L 150 165 L 180 110 L 210 45 L 240 95 L 270 155 L 300 185 L 330 192 L 360 195 L 400 197 L 400 220 L 0 220 Z" fill="url(#ag-a)"/>
+              <path d="M 0 200 L 30 195 L 60 198 L 90 190 L 120 180 L 150 165 L 180 110 L 210 45 L 240 95 L 270 155 L 300 185 L 330 192 L 360 195 L 400 197" fill="none" stroke="#00E5FF" stroke-width="1.5" filter="url(#glow-a)"/>
+              <circle cx="210" cy="45" r="4" fill="#00E5FF" filter="url(#glow-a)"/>
+              <text x="210" y="32" text-anchor="middle" font-size="10" fill="#00E5FF" font-family="JetBrains Mono">PEAK · 58</text>
+            </svg>
+          </div>
+        </div>
+        <div class="aur-glass va-card">
+          <div class="va-panel-title">
+            <h3>성과 분포</h3>
+            <span class="link">Rating tiers</span>
+          </div>
+          <div class="va-ring-group">
+            <div class="va-ring-item">
+              <svg viewBox="0 0 88 88">
+                <circle cx="44" cy="44" r="36" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+                <circle cx="44" cy="44" r="36" fill="none" stroke="#7EEBC8" stroke-width="6" stroke-dasharray="226" stroke-dashoffset="75" stroke-linecap="round" transform="rotate(-90 44 44)" style="filter: drop-shadow(0 0 4px #7EEBC8);"/>
+                <text x="44" y="48" text-anchor="middle" font-size="16" font-weight="500" fill="#E8ECFF" font-family="Space Grotesk">67%</text>
+              </svg>
+              <div class="va-ring-label">상 · High</div>
+            </div>
+            <div class="va-ring-item">
+              <svg viewBox="0 0 88 88">
+                <circle cx="44" cy="44" r="36" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+                <circle cx="44" cy="44" r="36" fill="none" stroke="#00E5FF" stroke-width="6" stroke-dasharray="226" stroke-dashoffset="136" stroke-linecap="round" transform="rotate(-90 44 44)" style="filter: drop-shadow(0 0 4px #00E5FF);"/>
+                <text x="44" y="48" text-anchor="middle" font-size="16" font-weight="500" fill="#E8ECFF" font-family="Space Grotesk">40%</text>
+              </svg>
+              <div class="va-ring-label">중 · Mid</div>
+            </div>
+            <div class="va-ring-item">
+              <svg viewBox="0 0 88 88">
+                <circle cx="44" cy="44" r="36" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+                <circle cx="44" cy="44" r="36" fill="none" stroke="#FFD47A" stroke-width="6" stroke-dasharray="226" stroke-dashoffset="181" stroke-linecap="round" transform="rotate(-90 44 44)" style="filter: drop-shadow(0 0 4px #FFD47A);"/>
+                <text x="44" y="48" text-anchor="middle" font-size="16" font-weight="500" fill="#E8ECFF" font-family="Space Grotesk">20%</text>
+              </svg>
+              <div class="va-ring-label">하 · Low</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CA list -->
+      <div class="aur-glass va-card" style="margin-bottom: 20px;">
+        <div class="va-panel-title">
+          <h3>통제활동별 상세 현황</h3>
+          <span class="link">전체 424건 →</span>
+        </div>
+        <div class="va-ca-row">
+          <div class="va-ca-left"><span class="va-ca-code">BASE1.A1.C4</span><span class="va-ca-name">품질관리 리뷰 · 생산팀</span></div>
+          <span class="va-ca-count">97건</span>
+          <span class="aur-tag amber">대기</span>
+        </div>
+        <div class="va-ca-row">
+          <div class="va-ca-left"><span class="va-ca-code">CO1.01.W1.C1</span><span class="va-ca-name">생산량과 출하량에 대한 검토 및 승인</span></div>
+          <span class="va-ca-count">28건</span>
+          <span class="aur-tag amber">대기</span>
+        </div>
+        <div class="va-ca-row">
+          <div class="va-ca-left"><span class="va-ca-code">CO2.01.W2.C1</span><span class="va-ca-name">월말 결산 데이터 점검 · 관리팀</span></div>
+          <span class="va-ca-count">18건</span>
+          <span class="aur-tag amber">대기</span>
+        </div>
+        <div class="va-ca-row">
+          <div class="va-ca-left"><span class="va-ca-code">CO2.03.W1.C1</span><span class="va-ca-name">계약 품의서에 대한 검토 및 승인</span></div>
+          <span class="va-ca-count">12건</span>
+          <span class="aur-tag green">완료</span>
+        </div>
+        <div class="va-ca-row">
+          <div class="va-ca-left"><span class="va-ca-code">TR.05.W1.C1</span><span class="va-ca-name">신규 자금 조달 검토 및 승인</span></div>
+          <span class="va-ca-count">8건</span>
+          <span class="aur-tag green">완료</span>
+        </div>
+      </div>
+
+      <!-- Quick -->
+      <div class="va-quick">
+        <div class="aur-glass va-quick-btn">
+          <div class="va-quick-icon">⚡</div>
+          <div class="va-quick-title">RCM 자동 업데이트</div>
+          <div class="va-quick-sub">Last run · 1h ago</div>
+        </div>
+        <div class="aur-glass va-quick-btn lav">
+          <div class="va-quick-icon">📊</div>
+          <div class="va-quick-title">모집단 업로드</div>
+          <div class="va-quick-sub">Upload Excel</div>
+        </div>
+        <div class="aur-glass va-quick-btn green">
+          <div class="va-quick-icon">📬</div>
+          <div class="va-quick-title">알림 발송</div>
+          <div class="va-quick-sub">Notify assignees</div>
+        </div>
+        <div class="aur-glass va-quick-btn pink">
+          <div class="va-quick-icon">🗺️</div>
+          <div class="va-quick-title">사업장 지도</div>
+          <div class="va-quick-sub">28 sites</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+
+
+<!-- ============================================== -->
+<!-- Variant B · More Aurora                         -->
+<!-- ============================================== -->
+<div class="pane" id="pane-B" data-screen-label="1-B Home · More Aurora">
+
+<div class="rs-frame-dark" style="margin-top: 28px;">
+  <div class="bar">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <div class="url">portal.tongyanginc.co.kr</div>
+  </div>
+
+  <div class="aur-bg" style="min-height: 1500px;" data-screen-label="Home · More Aurora">
+
+    <nav class="aur-nav">
+      <div class="aur-logo">
+        <div class="aur-logo-mark">T</div>
+        <div class="aur-logo-text">TONGYANG<span class="en">INTERNAL · CONTROLS · PORTAL</span></div>
+      </div>
+      <div class="aur-nav-items">
+        <div class="aur-nav-item active">Home</div>
+        <div class="aur-nav-item">증빙관리</div>
+        <div class="aur-nav-item">내승인함</div>
+        <div class="aur-nav-item">내강좌</div>
+        <div class="aur-nav-item">강좌관리</div>
+        <div class="aur-nav-item">지도</div>
+        <div class="aur-nav-item">회사소식</div>
+        <div class="aur-nav-item">KPI</div>
+        <div class="aur-nav-item">빙고</div>
+      </div>
+      <div class="aur-nav-right">
+        <div class="aur-icon-btn">🔍</div>
+        <div class="aur-icon-btn">🔔<span class="notif-dot"></span></div>
+        <div class="aur-user-chip">
+          <div class="avatar">최</div>
+          <div>
+            <div class="name">최종헌</div>
+            <div class="role">Admin · 40P</div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Big hero with aurora blobs -->
+    <div class="vb-hero-wrap">
+      <div class="vb-hero-blob-1"></div>
+      <div class="vb-hero-blob-2"></div>
+      <div class="vb-hero-blob-3"></div>
+      <div class="vb-hero-content">
+        <div class="aur-eyebrow vb-hero-eyebrow">
+          <span class="aur-dot-live"></span> 2026.04.19 · SUN · 14:23 KST
+        </div>
+        <h1 class="vb-hero-title">좋은 오후예요,<br>오늘의 <span class="accent">내부회계</span>는 고요해요.</h1>
+        <p class="vb-hero-sub">424개의 통제활동, 477명의 구성원, 28개 사업장이 하나의 숨으로 이어져 있어요. 아래에서 오늘의 상태를 확인하세요.</p>
+        <div class="vb-quick-inline">
+          <div class="vb-quick-pill"><span class="icon">⚡</span> RCM 자동 업데이트</div>
+          <div class="vb-quick-pill"><span class="icon">📊</span> 모집단 업로드</div>
+          <div class="vb-quick-pill"><span class="icon">📬</span> 알림 발송</div>
+          <div class="vb-quick-pill"><span class="icon">🗺️</span> 사업장 지도</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="vb-main">
+
+      <!-- Big stats strip -->
+      <div class="vb-stats">
+        <div class="vb-stat">
+          <div class="label"><span class="aur-dot-live" style="background:#00E5FF; box-shadow: 0 0 8px #00E5FF;"></span>Controls</div>
+          <div class="value">424</div>
+          <div class="sub">전체 통제활동</div>
+        </div>
+        <div class="vb-stat">
+          <div class="label"><span class="aur-dot-live"></span>Completed</div>
+          <div class="value" style="background: linear-gradient(135deg, #7EEBC8, #00E5FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">0</div>
+          <div class="sub">완료 · 0%</div>
+        </div>
+        <div class="vb-stat">
+          <div class="label"><span class="aur-dot-live" style="background:#FFD47A; box-shadow: 0 0 8px #FFD47A;"></span>Pending</div>
+          <div class="value" style="background: linear-gradient(135deg, #FFD47A, #FF8FB3); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">0</div>
+          <div class="sub">미완료 · 대기 중</div>
+        </div>
+        <div class="vb-stat">
+          <div class="label"><span class="aur-dot-live" style="background:#FF8FB3; box-shadow: 0 0 8px #FF8FB3;"></span>Rejected</div>
+          <div class="value" style="background: linear-gradient(135deg, #FF8FB3, #B794F6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">0</div>
+          <div class="sub">반려 · 재작업</div>
+        </div>
+      </div>
+
+      <!-- Notice + Rank -->
+      <div class="va-grid-2">
+        <div class="aur-glass va-card">
+          <div class="va-panel-title">
+            <h3>공지사항 · 이벤트</h3>
+            <span class="link">전체보기 →</span>
+          </div>
+          <div class="va-notice-row">
+            <span class="aur-tag pink">필독</span>
+            <span class="va-notice-title">2026년 2분기 내부회계 운영보고서 제출 안내</span>
+            <span class="va-notice-date">04·18</span>
+          </div>
+          <div class="va-notice-row">
+            <span class="aur-tag amber">중요</span>
+            <span class="va-notice-title">전사 RCM 개정(Rev.4) 반영 완료</span>
+            <span class="va-notice-date">04·17</span>
+          </div>
+          <div class="va-notice-row">
+            <span class="aur-tag cyan">공지</span>
+            <span class="va-notice-title">2026년 하반기 내부회계 교육 일정 안내</span>
+            <span class="va-notice-date">04·15</span>
+          </div>
+          <div class="va-notice-row">
+            <span class="aur-tag green">이벤트</span>
+            <span class="va-notice-title">4월 빙고퀴즈 — 3줄 완성 기프티콘</span>
+            <span class="va-notice-date">04·12</span>
+          </div>
+        </div>
+
+        <div class="aur-glass va-card">
+          <div class="va-panel-title">
+            <h3>실시간 랭킹</h3>
+            <span class="link">View all →</span>
+          </div>
+          <div class="va-rank-item"><div class="va-rank-num top1">01</div><div class="va-rank-name">박민준</div><div class="va-rank-pts">450<span class="unit">P</span></div></div>
+          <div class="va-rank-item"><div class="va-rank-num top2">02</div><div class="va-rank-name">이수연</div><div class="va-rank-pts">210<span class="unit">P</span></div></div>
+          <div class="va-rank-item"><div class="va-rank-num top3">03</div><div class="va-rank-name">김상훈</div><div class="va-rank-pts">90<span class="unit">P</span></div></div>
+          <div class="va-rank-item"><div class="va-rank-num">04</div><div class="va-rank-name">정하영</div><div class="va-rank-pts">60<span class="unit">P</span></div></div>
+          <div class="va-rank-item"><div class="va-rank-num">05</div><div class="va-rank-name">최우진</div><div class="va-rank-pts">45<span class="unit">P</span></div></div>
+        </div>
+      </div>
+
+      <!-- Team + Chart -->
+      <div class="va-grid-2">
+        <div class="aur-glass va-card">
+          <div class="va-panel-title">
+            <h3>팀별 완료율</h3>
+            <span class="link">8개 팀</span>
+          </div>
+          <div class="va-team">
+            <div class="va-team-row"><div class="va-team-name">생산팀</div><div class="va-team-bar"><div class="fill" style="width:72%"></div></div><div class="va-team-pct">72%</div></div>
+            <div class="va-team-row"><div class="va-team-name">기획팀</div><div class="va-team-bar"><div class="fill" style="width:64%"></div></div><div class="va-team-pct">64%</div></div>
+            <div class="va-team-row"><div class="va-team-name">관리팀</div><div class="va-team-bar"><div class="fill" style="width:58%"></div></div><div class="va-team-pct">58%</div></div>
+            <div class="va-team-row"><div class="va-team-name">시설팀</div><div class="va-team-bar"><div class="fill" style="width:51%"></div></div><div class="va-team-pct">51%</div></div>
+            <div class="va-team-row"><div class="va-team-name">인사팀</div><div class="va-team-bar"><div class="fill" style="width:46%"></div></div><div class="va-team-pct">46%</div></div>
+            <div class="va-team-row"><div class="va-team-name">사업팀</div><div class="va-team-bar"><div class="fill" style="width:42%"></div></div><div class="va-team-pct">42%</div></div>
+            <div class="va-team-row"><div class="va-team-name">에너지환경팀</div><div class="va-team-bar"><div class="fill" style="width:38%"></div></div><div class="va-team-pct">38%</div></div>
+            <div class="va-team-row"><div class="va-team-name">자금팀</div><div class="va-team-bar"><div class="fill" style="width:31%"></div></div><div class="va-team-pct">31%</div></div>
+          </div>
+        </div>
+
+        <div class="aur-glass va-card">
+          <div class="va-panel-title">
+            <h3>월별 완료 추이</h3>
+            <span class="link">최근 14개월</span>
+          </div>
+          <div class="va-chart">
+            <svg viewBox="0 0 400 220" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="ag-b" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#B794F6" stop-opacity="0.4"/>
+                  <stop offset="100%" stop-color="#B794F6" stop-opacity="0"/>
+                </linearGradient>
+                <filter id="glow-b"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              </defs>
+              <line x1="0" y1="50" x2="400" y2="50" stroke="rgba(255,255,255,0.05)"/>
+              <line x1="0" y1="100" x2="400" y2="100" stroke="rgba(255,255,255,0.05)"/>
+              <line x1="0" y1="150" x2="400" y2="150" stroke="rgba(255,255,255,0.05)"/>
+              <line x1="0" y1="200" x2="400" y2="200" stroke="rgba(255,255,255,0.1)"/>
+              <path d="M 0 200 L 30 195 L 60 198 L 90 190 L 120 180 L 150 165 L 180 110 L 210 45 L 240 95 L 270 155 L 300 185 L 330 192 L 360 195 L 400 197 L 400 220 L 0 220 Z" fill="url(#ag-b)"/>
+              <path d="M 0 200 L 30 195 L 60 198 L 90 190 L 120 180 L 150 165 L 180 110 L 210 45 L 240 95 L 270 155 L 300 185 L 330 192 L 360 195 L 400 197" fill="none" stroke="#B794F6" stroke-width="1.5" filter="url(#glow-b)"/>
+              <circle cx="210" cy="45" r="4" fill="#B794F6" filter="url(#glow-b)"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- CA list + rings -->
+      <div class="va-grid-3">
+        <div class="aur-glass va-card">
+          <div class="va-panel-title">
+            <h3>성과 분포</h3>
+          </div>
+          <div class="va-ring-group" style="padding: 30px 0;">
+            <div class="va-ring-item">
+              <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#7EEBC8" stroke-width="6" stroke-dasharray="251" stroke-dashoffset="83" stroke-linecap="round" transform="rotate(-90 50 50)" style="filter: drop-shadow(0 0 6px #7EEBC8);"/>
+                <text x="50" y="54" text-anchor="middle" font-size="18" font-weight="500" fill="#E8ECFF" font-family="Space Grotesk">67%</text>
+              </svg>
+              <div class="va-ring-label">상</div>
+            </div>
+            <div class="va-ring-item">
+              <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#00E5FF" stroke-width="6" stroke-dasharray="251" stroke-dashoffset="151" stroke-linecap="round" transform="rotate(-90 50 50)" style="filter: drop-shadow(0 0 6px #00E5FF);"/>
+                <text x="50" y="54" text-anchor="middle" font-size="18" font-weight="500" fill="#E8ECFF" font-family="Space Grotesk">40%</text>
+              </svg>
+              <div class="va-ring-label">중</div>
+            </div>
+            <div class="va-ring-item">
+              <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#FFD47A" stroke-width="6" stroke-dasharray="251" stroke-dashoffset="201" stroke-linecap="round" transform="rotate(-90 50 50)" style="filter: drop-shadow(0 0 6px #FFD47A);"/>
+                <text x="50" y="54" text-anchor="middle" font-size="18" font-weight="500" fill="#E8ECFF" font-family="Space Grotesk">20%</text>
+              </svg>
+              <div class="va-ring-label">하</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="aur-glass va-card">
+          <div class="va-panel-title">
+            <h3>통제활동별 상세 현황</h3>
+            <span class="link">전체 424건 →</span>
+          </div>
+          <div class="va-ca-row">
+            <div class="va-ca-left"><span class="va-ca-code">BASE1.A1.C4</span><span class="va-ca-name">품질관리 리뷰 · 생산팀</span></div>
+            <span class="va-ca-count">97건</span>
+            <span class="aur-tag amber">대기</span>
+          </div>
+          <div class="va-ca-row">
+            <div class="va-ca-left"><span class="va-ca-code">CO1.01.W1.C1</span><span class="va-ca-name">생산량과 출하량 검토 및 승인</span></div>
+            <span class="va-ca-count">28건</span>
+            <span class="aur-tag amber">대기</span>
+          </div>
+          <div class="va-ca-row">
+            <div class="va-ca-left"><span class="va-ca-code">CO2.01.W2.C1</span><span class="va-ca-name">월말 결산 데이터 점검</span></div>
+            <span class="va-ca-count">18건</span>
+            <span class="aur-tag amber">대기</span>
+          </div>
+          <div class="va-ca-row">
+            <div class="va-ca-left"><span class="va-ca-code">CO2.03.W1.C1</span><span class="va-ca-name">계약 품의서 검토 및 승인</span></div>
+            <span class="va-ca-count">12건</span>
+            <span class="aur-tag green">완료</span>
+          </div>
+          <div class="va-ca-row">
+            <div class="va-ca-left"><span class="va-ca-code">TR.05.W1.C1</span><span class="va-ca-name">신규 자금 조달 검토 및 승인</span></div>
+            <span class="va-ca-count">8건</span>
+            <span class="aur-tag green">완료</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+
+
+<!-- ============================================== -->
+<!-- Variant C · More HUD                            -->
+<!-- ============================================== -->
+<div class="pane" id="pane-C" data-screen-label="1-C Home · More HUD">
+
+<div class="rs-frame-dark" style="margin-top: 28px;">
+  <div class="bar">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <div class="url">portal.tongyanginc.co.kr</div>
+  </div>
+
+  <div class="aur-bg" style="min-height: 1300px;" data-screen-label="Home · More HUD">
+    <div class="aur-blob lav" style="width: 400px; height: 400px; top: 200px; right: 10%; opacity: 0.2;"></div>
+    <div class="aur-blob cyan" style="width: 350px; height: 350px; bottom: 100px; left: 5%; opacity: 0.18;"></div>
+    <div class="aur-scan"></div>
+
+    <nav class="aur-nav">
+      <div class="aur-logo">
+        <div class="aur-logo-mark">T</div>
+        <div class="aur-logo-text">TONGYANG<span class="en">INTERNAL · CONTROLS · PORTAL</span></div>
+      </div>
+      <div class="aur-nav-items">
+        <div class="aur-nav-item active">Home</div>
+        <div class="aur-nav-item">증빙관리</div>
+        <div class="aur-nav-item">내승인함</div>
+        <div class="aur-nav-item">내강좌</div>
+        <div class="aur-nav-item">강좌관리</div>
+        <div class="aur-nav-item">지도</div>
+        <div class="aur-nav-item">회사소식</div>
+        <div class="aur-nav-item">KPI</div>
+        <div class="aur-nav-item">빙고</div>
+      </div>
+      <div class="aur-nav-right">
+        <div class="aur-icon-btn">🔍</div>
+        <div class="aur-icon-btn">🔔<span class="notif-dot"></span></div>
+        <div class="aur-user-chip">
+          <div class="avatar">최</div>
+          <div>
+            <div class="name">최종헌</div>
+            <div class="role">Admin · 40P</div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="vc-main">
+      <div class="vc-header-bar">
+        <div class="vc-header-left">
+          <div class="code">// DASHBOARD/ADMIN/OVERVIEW</div>
+          <h1 class="title aur-display">좋은 오후예요, 최종헌<span style="color:#7A84B0; font-weight:300;">.ADM</span></h1>
+        </div>
+        <div class="vc-header-right">
+          <div>SYS · <span class="ts">ONLINE</span></div>
+          <div>2026-04-19 · 14:23:08 KST</div>
+          <div>LAST SYNC · 00:12s ago</div>
+        </div>
+      </div>
+
+      <!-- 4-col top strip -->
+      <div class="vc-cols">
+        <!-- Big KPI col -->
+        <div>
+          <div class="vc-col-title"><span>01 · Primary KPI</span><span class="n">▸</span></div>
+          <div class="vc-kpi-big">424</div>
+          <div class="vc-kpi-label">전체 통제활동 · Total Controls</div>
+          <hr class="aur-divider">
+          <div class="vc-stat-row"><span class="k">완료 / Done</span><span class="v" style="color:#7EEBC8;">0</span></div>
+          <div class="vc-stat-row"><span class="k">대기 / Pending</span><span class="v" style="color:#FFD47A;">0</span></div>
+          <div class="vc-stat-row"><span class="k">반려 / Rejected</span><span class="v" style="color:#FF8FB3;">0</span></div>
+          <div class="vc-stat-row"><span class="k">달성률</span><span class="v">0.00%</span></div>
+        </div>
+        <!-- Members -->
+        <div>
+          <div class="vc-col-title"><span>02 · Members</span><span class="n">▸</span></div>
+          <div class="vc-kpi-big">477</div>
+          <div class="vc-kpi-label">구성원 · Active</div>
+          <hr class="aur-divider">
+          <div class="vc-stat-row"><span class="k">관리자</span><span class="v">4</span></div>
+          <div class="vc-stat-row"><span class="k">승인자</span><span class="v">32</span></div>
+          <div class="vc-stat-row"><span class="k">담당자</span><span class="v">441</span></div>
+          <div class="vc-stat-row"><span class="k">비활성</span><span class="v">12</span></div>
+        </div>
+        <!-- Sites -->
+        <div>
+          <div class="vc-col-title"><span>03 · Sites</span><span class="n">▸</span></div>
+          <div class="vc-kpi-big">28</div>
+          <div class="vc-kpi-label">사업장 · Registered</div>
+          <hr class="aur-divider">
+          <div class="vc-stat-row"><span class="k">공장</span><span class="v">11</span></div>
+          <div class="vc-stat-row"><span class="k">사무소</span><span class="v">9</span></div>
+          <div class="vc-stat-row"><span class="k">연구소</span><span class="v">3</span></div>
+          <div class="vc-stat-row"><span class="k">해외</span><span class="v">5</span></div>
+        </div>
+        <!-- Engagement -->
+        <div>
+          <div class="vc-col-title"><span>04 · Engage</span><span class="n">▸</span></div>
+          <div class="vc-kpi-big" style="color:#00E5FF;">82%</div>
+          <div class="vc-kpi-label">참여율 · 이달</div>
+          <hr class="aur-divider">
+          <div class="vc-stat-row"><span class="k">강좌 이수</span><span class="v">67%</span></div>
+          <div class="vc-stat-row"><span class="k">빙고 참여</span><span class="v">34%</span></div>
+          <div class="vc-stat-row"><span class="k">Tell-me</span><span class="v">18건</span></div>
+          <div class="vc-stat-row"><span class="k">로그인 / 주</span><span class="v">5.2</span></div>
+        </div>
+      </div>
+
+      <!-- Main grid: big table + rank -->
+      <div class="vc-grid-main">
+        <div>
+          <div class="vc-col-title"><span>05 · Control Activities</span><span class="n">▸ 전체 424건</span></div>
+          <table class="vc-table">
+            <thead>
+              <tr>
+                <th style="width:130px;">통제번호</th>
+                <th>통제활동명</th>
+                <th>담당부서</th>
+                <th class="right" style="width:60px;">건수</th>
+                <th class="right" style="width:80px;">상태</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="code">BASE1.A1.C4</td><td>품질관리 리뷰</td><td>생산팀</td><td class="value">97</td><td class="right"><span class="aur-tag amber">대기</span></td></tr>
+              <tr><td class="code">CO1.01.W1.C1</td><td>생산량과 출하량 검토 및 승인</td><td>생산관리</td><td class="value">28</td><td class="right"><span class="aur-tag amber">대기</span></td></tr>
+              <tr><td class="code">CO2.01.W2.C1</td><td>월말 결산 데이터 점검</td><td>관리팀</td><td class="value">18</td><td class="right"><span class="aur-tag amber">대기</span></td></tr>
+              <tr><td class="code">CO2.03.W1.C1</td><td>계약 품의서 검토 및 승인</td><td>사업팀</td><td class="value">12</td><td class="right"><span class="aur-tag green">완료</span></td></tr>
+              <tr><td class="code">TR.05.W1.C1</td><td>신규 자금 조달 검토 및 승인</td><td>자금팀</td><td class="value">8</td><td class="right"><span class="aur-tag green">완료</span></td></tr>
+              <tr><td class="code">TR.05.W9.C9</td><td>담보/약정사항 집계내역 검토 및 승인</td><td>자금팀</td><td class="value">6</td><td class="right"><span class="aur-tag green">완료</span></td></tr>
+              <tr><td class="code">PR2.01.W2.C2</td><td>계약 품의서 검토 및 승인 (2차)</td><td>사업관리</td><td class="value">5</td><td class="right"><span class="aur-tag amber">대기</span></td></tr>
+              <tr><td class="code">PR2.03.W1.C1</td><td>매입전표 검토 및 승인</td><td>사업관리</td><td class="value">4</td><td class="right"><span class="aur-tag amber">대기</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <div class="vc-col-title"><span>06 · Leaderboard</span><span class="n">▸ 이달</span></div>
+          <table class="vc-table">
+            <tr><td style="color:#FFD47A; font-family: 'Space Grotesk';">01</td><td>박민준</td><td class="value">450P</td></tr>
+            <tr><td style="color:#B8C2E8; font-family: 'Space Grotesk';">02</td><td>이수연</td><td class="value">210P</td></tr>
+            <tr><td style="color:#FF8FB3; font-family: 'Space Grotesk';">03</td><td>김상훈</td><td class="value">90P</td></tr>
+            <tr><td style="font-family: 'Space Grotesk';">04</td><td>정하영</td><td class="value">60P</td></tr>
+            <tr><td style="font-family: 'Space Grotesk';">05</td><td>최우진</td><td class="value">45P</td></tr>
+          </table>
+
+          <div class="vc-col-title" style="margin-top: 28px;"><span>07 · Trend · 14M</span><span class="n">▸</span></div>
+          <div class="vc-chart">
+            <svg viewBox="0 0 400 180" preserveAspectRatio="none">
+              <defs>
+                <filter id="glow-c"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              </defs>
+              <line x1="0" y1="40" x2="400" y2="40" stroke="rgba(255,255,255,0.05)" stroke-dasharray="2,4"/>
+              <line x1="0" y1="90" x2="400" y2="90" stroke="rgba(255,255,255,0.05)" stroke-dasharray="2,4"/>
+              <line x1="0" y1="140" x2="400" y2="140" stroke="rgba(255,255,255,0.05)" stroke-dasharray="2,4"/>
+              <line x1="0" y1="170" x2="400" y2="170" stroke="rgba(255,255,255,0.1)"/>
+              <path d="M 0 168 L 30 165 L 60 166 L 90 160 L 120 152 L 150 140 L 180 95 L 210 38 L 240 82 L 270 130 L 300 158 L 330 164 L 360 166 L 400 167" fill="none" stroke="#00E5FF" stroke-width="1.2" filter="url(#glow-c)"/>
+              <circle cx="210" cy="38" r="3" fill="#00E5FF" filter="url(#glow-c)"/>
+              <text x="210" y="28" text-anchor="middle" font-size="9" fill="#00E5FF" font-family="JetBrains Mono">MAX:58</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Team grid as table -->
+      <div style="margin-bottom: 24px;">
+        <div class="vc-col-title"><span>08 · Team Progress</span><span class="n">▸ 8 teams</span></div>
+        <table class="vc-table">
+          <thead>
+            <tr><th style="width:120px;">팀명</th><th>완료율</th><th class="right" style="width:60px;">값</th><th class="right" style="width:100px;">증빙 / 총</th></tr>
+          </thead>
+          <tbody>
+            <tr><td style="color:#E8ECFF;">생산팀</td><td><div style="height:6px; background: rgba(255,255,255,0.06); border-radius:3px; position:relative; overflow:hidden;"><div style="position:absolute; inset:0 28% 0 0; background: linear-gradient(90deg, #00E5FF, #B794F6);"></div></div></td><td class="value">72%</td><td class="value" style="color:#7A84B0;">68/94</td></tr>
+            <tr><td style="color:#E8ECFF;">기획팀</td><td><div style="height:6px; background: rgba(255,255,255,0.06); border-radius:3px; position:relative; overflow:hidden;"><div style="position:absolute; inset:0 36% 0 0; background: linear-gradient(90deg, #00E5FF, #B794F6);"></div></div></td><td class="value">64%</td><td class="value" style="color:#7A84B0;">41/64</td></tr>
+            <tr><td style="color:#E8ECFF;">관리팀</td><td><div style="height:6px; background: rgba(255,255,255,0.06); border-radius:3px; position:relative; overflow:hidden;"><div style="position:absolute; inset:0 42% 0 0; background: linear-gradient(90deg, #00E5FF, #B794F6);"></div></div></td><td class="value">58%</td><td class="value" style="color:#7A84B0;">32/55</td></tr>
+            <tr><td style="color:#E8ECFF;">시설팀</td><td><div style="height:6px; background: rgba(255,255,255,0.06); border-radius:3px; position:relative; overflow:hidden;"><div style="position:absolute; inset:0 49% 0 0; background: linear-gradient(90deg, #00E5FF, #B794F6);"></div></div></td><td class="value">51%</td><td class="value" style="color:#7A84B0;">18/35</td></tr>
+            <tr><td style="color:#E8ECFF;">인사팀</td><td><div style="height:6px; background: rgba(255,255,255,0.06); border-radius:3px; position:relative; overflow:hidden;"><div style="position:absolute; inset:0 54% 0 0; background: linear-gradient(90deg, #00E5FF, #B794F6);"></div></div></td><td class="value">46%</td><td class="value" style="color:#7A84B0;">21/46</td></tr>
+            <tr><td style="color:#E8ECFF;">사업팀</td><td><div style="height:6px; background: rgba(255,255,255,0.06); border-radius:3px; position:relative; overflow:hidden;"><div style="position:absolute; inset:0 58% 0 0; background: linear-gradient(90deg, #00E5FF, #B794F6);"></div></div></td><td class="value">42%</td><td class="value" style="color:#7A84B0;">29/69</td></tr>
+            <tr><td style="color:#E8ECFF;">에너지환경팀</td><td><div style="height:6px; background: rgba(255,255,255,0.06); border-radius:3px; position:relative; overflow:hidden;"><div style="position:absolute; inset:0 62% 0 0; background: linear-gradient(90deg, #00E5FF, #B794F6);"></div></div></td><td class="value">38%</td><td class="value" style="color:#7A84B0;">12/32</td></tr>
+            <tr><td style="color:#E8ECFF;">자금팀</td><td><div style="height:6px; background: rgba(255,255,255,0.06); border-radius:3px; position:relative; overflow:hidden;"><div style="position:absolute; inset:0 69% 0 0; background: linear-gradient(90deg, #00E5FF, #B794F6);"></div></div></td><td class="value">31%</td><td class="value" style="color:#7A84B0;">9/29</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Notices + Actions -->
+      <div class="vc-grid-main">
+        <div>
+          <div class="vc-col-title"><span>09 · Dispatches</span><span class="n">▸ 04</span></div>
+          <table class="vc-table">
+            <tr><td><span class="aur-tag pink">필독</span></td><td>2026년 2분기 내부회계 운영보고서 제출 안내</td><td class="right" style="color:#7A84B0; font-size:10px;">04·18</td></tr>
+            <tr><td><span class="aur-tag amber">중요</span></td><td>전사 RCM 개정(Rev.4) 반영 완료</td><td class="right" style="color:#7A84B0; font-size:10px;">04·17</td></tr>
+            <tr><td><span class="aur-tag cyan">공지</span></td><td>2026년 하반기 교육 일정 사전 안내</td><td class="right" style="color:#7A84B0; font-size:10px;">04·15</td></tr>
+            <tr><td><span class="aur-tag green">이벤트</span></td><td>4월 빙고퀴즈 — 3줄 완성 기프티콘</td><td class="right" style="color:#7A84B0; font-size:10px;">04·12</td></tr>
+            <tr><td><span class="aur-tag lav">교육</span></td><td>신규 강좌 4건 오픈 — ESG / COSO</td><td class="right" style="color:#7A84B0; font-size:10px;">04·10</td></tr>
+          </table>
+        </div>
+
+        <div>
+          <div class="vc-col-title"><span>10 · Quick Actions</span><span class="n">▸</span></div>
+          <div class="vc-actions">
+            <div class="vc-action"><div class="left"><div class="name">RCM Update</div><div class="meta">Last run · 1h ago</div></div><div class="arrow">↗</div></div>
+            <div class="vc-action"><div class="left"><div class="name">Population Upload</div><div class="meta">Upload Excel</div></div><div class="arrow">↗</div></div>
+            <div class="vc-action"><div class="left"><div class="name">Alert Dispatch</div><div class="meta">Notify assignees</div></div><div class="arrow">↗</div></div>
+            <div class="vc-action"><div class="left"><div class="name">Site Map</div><div class="meta">28 locations</div></div><div class="arrow">↗</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- Confirm -->
+<div class="confirm-block">
+  <h3>✧ STEP 1 — Aurora Glass Exploration</h3>
+  <p>같은 <b>대기(atmosphere)</b>를 세 가지 밀도로 탐색했습니다. 세 바리언트 모두 동일한 컬러 팔레트·타이포그래피·배경 시스템을 공유하고, <b>정보 레이어를 올리는 방식</b>에서만 차이를 둡니다.</p>
+  <p style="margin-top:10px;"><b>1-A · More Glass</b> — 유리 카드가 주인공. 균형 잡힌 dreamy·information-density 타협점.</p>
+  <p><b>1-B · More Aurora</b> — 배경 오로라가 히어로로 부풀어 오릅니다. 가장 감성적·시네마틱. 대시보드 아래는 1-A와 유사한 밀도.</p>
+  <p><b>1-C · More HUD</b> — 모노스페이스 에디토리얼. 가장 기술적·터미널·editorial. 밀도 최고, dreamy는 배경에만.</p>
+  <p style="margin-top:12px;"><b>다음 단계:</b> 어떤 방향이 가장 마음에 드시나요? (혹은 A의 상단 + C의 표 같은 조합) 확정해주시면 STEP 2에서 21개 화면 전체에 적용하겠습니다.</p>
+  <div class="hint">▸ 현재 탭 상태는 새로고침 후에도 유지됩니다</div>
+</div>
+
+<script>
+  const tabs = document.querySelectorAll('.app-tab');
+  const panes = document.querySelectorAll('.pane');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const id = tab.dataset.tab;
+      tabs.forEach(t => t.classList.remove('active'));
+      panes.forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('pane-' + id).classList.add('active');
+      localStorage.setItem('aurora-tab', id);
+      window.scrollTo({top: 0, behavior: 'instant'});
+    });
+  });
+  const last = localStorage.getItem('aurora-tab');
+  if (last) {
+    const t = document.querySelector('.app-tab[data-tab="' + last + '"]');
+    if (t) t.click();
+  }
+</script>
+
+</body>
+</html>

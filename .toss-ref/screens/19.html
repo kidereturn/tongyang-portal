@@ -1,0 +1,290 @@
+<div class="screen-frame">
+<div class="at-frame">
+  <div class="bar">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <div class="url">portal.tongyanginc.co.kr/sites</div>
+  </div>
+  <nav class="at-nav">
+    <div class="at-nav-logo">
+      <div class="mark">T</div>
+      <span>동양</span>
+      <span class="en">INTERNAL CONTROLS</span>
+    </div>
+    <div class="at-nav-items">
+      <div class="at-nav-item">홈</div><div class="at-nav-item">증빙관리</div><div class="at-nav-item">내 승인함</div><div class="at-nav-item">통제활동</div><div class="at-nav-item">강좌</div><div class="at-nav-item">회사소식</div><div class="at-nav-item">KPI</div><div class="at-nav-item active">사업장</div>
+    </div>
+    <div class="at-nav-right">
+      <div class="at-nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></div>
+      <div class="at-nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/></svg><span class="notif-dot"></span></div>
+      <div class="at-nav-user">
+        <div class="avatar">최</div>
+        <div><div class="name">최종헌</div><div class="role">ADMIN · 40P</div></div>
+      </div>
+    </div>
+  </nav>
+<div class="pg-head">
+  <div class="pg-head-row">
+    <div>
+      <div class="eyebrow">사업장 · SITES<span class="sep"></span>전사 현황</div>
+      <h1>사업장. <span class="soft">전국 14곳, 한눈에.</span></h1>
+      <p class="lead">본사·공장·영업소·물류센터의 실시간 상태입니다. 마커 색상은 해당 사업장의 금월 통제 이행률에 연동됩니다.</p>
+    </div>
+    <div class="actions"><button class="btn-compact">목록 보기</button><button class="btn-compact primary">새 사업장 등록</button></div>
+  </div>
+</div>
+
+<div class="pg-body">
+  <div class="at-grid at-g-2-1" style="gap:20px;">
+    <!-- Map -->
+    <div class="at-card" style="padding:0; height:640px; overflow:hidden; position:relative; background:#F0F3F6;">
+      <!-- Fake Korea map SVG -->
+      <svg viewBox="0 0 500 640" style="width:100%; height:100%; position:absolute; inset:0;">
+        <defs>
+          <pattern id="gridp" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#E0E5EB" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+        <rect width="500" height="640" fill="url(#gridp)"/>
+
+        <!-- Stylized Korea silhouette -->
+        <path d="M 180 80 Q 220 60 260 80 L 310 120 Q 340 150 330 200 L 360 250 Q 380 290 360 330 L 340 380 Q 330 420 300 450 L 280 490 Q 260 540 220 560 L 180 590 Q 150 600 130 580 L 120 540 Q 110 490 140 450 L 130 410 Q 100 380 120 340 L 130 290 Q 110 260 140 230 L 150 180 Q 160 130 180 80 Z"
+              fill="#FFFFFF" stroke="#D4DAE2" stroke-width="1.5"/>
+
+        <!-- Jeju -->
+        <ellipse cx="200" cy="610" rx="36" ry="16" fill="#FFFFFF" stroke="#D4DAE2" stroke-width="1.5"/>
+
+        <!-- Road lines -->
+        <path d="M 220 120 Q 240 200 230 280 Q 220 380 200 480" fill="none" stroke="#E8EBF0" stroke-width="1"/>
+        <path d="M 180 260 L 340 280" fill="none" stroke="#E8EBF0" stroke-width="1"/>
+
+        <!-- City markers -->
+        
+            <g>
+              <circle cx="230" cy="150" r="22" fill="#1F7A4C" opacity="0.15">
+                <animate attributeName="r" values="22;32;22" dur="2.5s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.15;0;0.15" dur="2.5s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="230" cy="150" r="10" fill="#1F7A4C" stroke="white" stroke-width="2"/>
+              <circle cx="230" cy="150" r="3" fill="white"/>
+              <rect x="244" y="140" width="49" height="22" rx="4" fill="white" stroke="#D4DAE2" stroke-width="0.8"/>
+              <text x="252" y="154" font-family="Plus Jakarta Sans" font-size="10" font-weight="500" fill="#0A2540">동두천 공장</text>
+            </g>
+          
+            <g>
+              
+              <circle cx="220" cy="200" r="7" fill="#1F7A4C" stroke="white" stroke-width="2"/>
+              
+              <rect x="234" y="190" width="43.5" height="22" rx="4" fill="white" stroke="#D4DAE2" stroke-width="0.8"/>
+              <text x="242" y="204" font-family="Plus Jakarta Sans" font-size="10" font-weight="500" fill="#0A2540">서울 본사</text>
+            </g>
+          
+            <g>
+              
+              <circle cx="210" cy="260" r="7" fill="#1F7A4C" stroke="white" stroke-width="2"/>
+              
+              <rect x="224" y="250" width="49" height="22" rx="4" fill="white" stroke="#D4DAE2" stroke-width="0.8"/>
+              <text x="232" y="264" font-family="Plus Jakarta Sans" font-size="10" font-weight="500" fill="#0A2540">수원 영업소</text>
+            </g>
+          
+            <g>
+              
+              <circle cx="175" cy="320" r="7" fill="#1F7A4C" stroke="white" stroke-width="2"/>
+              
+              <rect x="189" y="310" width="43.5" height="22" rx="4" fill="white" stroke="#D4DAE2" stroke-width="0.8"/>
+              <text x="197" y="324" font-family="Plus Jakarta Sans" font-size="10" font-weight="500" fill="#0A2540">군산 공장</text>
+            </g>
+          
+            <g>
+              
+              <circle cx="240" cy="310" r="7" fill="#E0A857" stroke="white" stroke-width="2"/>
+              
+              <rect x="254" y="300" width="43.5" height="22" rx="4" fill="white" stroke="#D4DAE2" stroke-width="0.8"/>
+              <text x="262" y="314" font-family="Plus Jakarta Sans" font-size="10" font-weight="500" fill="#0A2540">청주 물류</text>
+            </g>
+          
+            <g>
+              
+              <circle cx="290" cy="330" r="7" fill="#1F7A4C" stroke="white" stroke-width="2"/>
+              
+              <rect x="304" y="320" width="49" height="22" rx="4" fill="white" stroke="#D4DAE2" stroke-width="0.8"/>
+              <text x="312" y="334" font-family="Plus Jakarta Sans" font-size="10" font-weight="500" fill="#0A2540">대구 영업소</text>
+            </g>
+          
+            <g>
+              
+              <circle cx="180" cy="390" r="7" fill="#E0A857" stroke="white" stroke-width="2"/>
+              
+              <rect x="194" y="380" width="49" height="22" rx="4" fill="white" stroke="#D4DAE2" stroke-width="0.8"/>
+              <text x="202" y="394" font-family="Plus Jakarta Sans" font-size="10" font-weight="500" fill="#0A2540">광주 영업소</text>
+            </g>
+          
+            <g>
+              
+              <circle cx="270" cy="400" r="7" fill="#1F7A4C" stroke="white" stroke-width="2"/>
+              
+              <rect x="284" y="390" width="43.5" height="22" rx="4" fill="white" stroke="#D4DAE2" stroke-width="0.8"/>
+              <text x="292" y="404" font-family="Plus Jakarta Sans" font-size="10" font-weight="500" fill="#0A2540">구미 공장</text>
+            </g>
+          
+            <g>
+              
+              <circle cx="320" cy="380" r="7" fill="#B4413C" stroke="white" stroke-width="2"/>
+              
+              <rect x="334" y="370" width="49" height="22" rx="4" fill="white" stroke="#D4DAE2" stroke-width="0.8"/>
+              <text x="342" y="384" font-family="Plus Jakarta Sans" font-size="10" font-weight="500" fill="#0A2540">포항 제철소</text>
+            </g>
+          
+            <g>
+              
+              <circle cx="310" cy="450" r="7" fill="#1F7A4C" stroke="white" stroke-width="2"/>
+              
+              <rect x="324" y="440" width="60" height="22" rx="4" fill="white" stroke="#D4DAE2" stroke-width="0.8"/>
+              <text x="332" y="454" font-family="Plus Jakarta Sans" font-size="10" font-weight="500" fill="#0A2540">부산 항만사업소</text>
+            </g>
+          
+            <g>
+              
+              <circle cx="250" cy="480" r="7" fill="#1F7A4C" stroke="white" stroke-width="2"/>
+              
+              <rect x="264" y="470" width="54.5" height="22" rx="4" fill="white" stroke="#D4DAE2" stroke-width="0.8"/>
+              <text x="272" y="484" font-family="Plus Jakarta Sans" font-size="10" font-weight="500" fill="#0A2540">창원 설비본부</text>
+            </g>
+          
+            <g>
+              
+              <circle cx="200" cy="610" r="7" fill="#1F7A4C" stroke="white" stroke-width="2"/>
+              
+              <rect x="214" y="600" width="49" height="22" rx="4" fill="white" stroke="#D4DAE2" stroke-width="0.8"/>
+              <text x="222" y="614" font-family="Plus Jakarta Sans" font-size="10" font-weight="500" fill="#0A2540">제주 연수원</text>
+            </g>
+          
+
+        <!-- Legend -->
+        <g transform="translate(20, 560)">
+          <rect x="0" y="0" width="160" height="62" rx="8" fill="white" stroke="#D4DAE2"/>
+          <text x="12" y="18" font-family="SF Mono" font-size="9" fill="#9CA3AF" letter-spacing="1.5">CONTROL RATE</text>
+          <circle cx="18" cy="32" r="4" fill="#1F7A4C"/>
+          <text x="28" y="35" font-family="Plus Jakarta Sans" font-size="10" fill="#0A2540">≥ 90% 정상</text>
+          <circle cx="18" cy="46" r="4" fill="#E0A857"/>
+          <text x="28" y="49" font-family="Plus Jakarta Sans" font-size="10" fill="#0A2540">85–89% 주의</text>
+          <circle cx="92" cy="46" r="4" fill="#B4413C"/>
+          <text x="102" y="49" font-family="Plus Jakarta Sans" font-size="10" fill="#0A2540">&lt;85% 경고</text>
+        </g>
+
+        <!-- Scale -->
+        <g transform="translate(420, 596)">
+          <line x1="0" y1="0" x2="50" y2="0" stroke="#0A2540" stroke-width="1.5"/>
+          <line x1="0" y1="-4" x2="0" y2="4" stroke="#0A2540" stroke-width="1.5"/>
+          <line x1="50" y1="-4" x2="50" y2="4" stroke="#0A2540" stroke-width="1.5"/>
+          <text x="25" y="-8" text-anchor="middle" font-family="SF Mono" font-size="8" fill="#0A2540">100 km</text>
+        </g>
+      </svg>
+
+      <!-- Map controls -->
+      <div style="position:absolute; top:16px; right:16px; display:flex; flex-direction:column; gap:4px; background:white; border:1px solid var(--at-ink-hair); border-radius:8px; box-shadow:0 2px 8px rgba(10,37,64,0.08);">
+        <button style="width:32px; height:32px; border:none; background:none; cursor:pointer; border-bottom:1px solid var(--at-ink-hair); font-size:16px;">+</button>
+        <button style="width:32px; height:32px; border:none; background:none; cursor:pointer; font-size:16px;">−</button>
+      </div>
+    </div>
+
+    <!-- Side panel: selected site + list -->
+    <div>
+      <!-- Selected site detail -->
+      <div class="at-card" style="padding:24px; margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;">
+          <div>
+            <div style="font-family:var(--f-mono); font-size:10px; color:var(--at-blue); letter-spacing:0.14em; text-transform:uppercase;">SELECTED · 경기 동두천</div>
+            <h3 style="font-family:var(--f-display); font-size:22px; font-weight:600; letter-spacing:-0.02em; margin:4px 0 0;">동두천 공장</h3>
+          </div>
+          <span class="status-tag done">정상</span>
+        </div>
+        <div style="font-size:12px; color:var(--at-ink-mute); line-height:1.6; margin-bottom:20px;">
+          경기 동두천시 소요로 235 · 대지 34,200㎡<br>
+          주력 생산 라인: 건축자재 A동 · 내화벽돌 B동
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
+          
+            <div style="padding:14px; background:var(--at-paper); border-radius:8px;">
+              <div style="font-family:var(--f-mono); font-size:10px; color:var(--at-ink-faint); letter-spacing:0.14em; text-transform:uppercase; margin-bottom:4px;">인원</div>
+              <div style="font-family:var(--f-display); font-size:18px; font-weight:600;">248명</div>
+            </div>
+          
+            <div style="padding:14px; background:var(--at-paper); border-radius:8px;">
+              <div style="font-family:var(--f-mono); font-size:10px; color:var(--at-ink-faint); letter-spacing:0.14em; text-transform:uppercase; margin-bottom:4px;">공장장</div>
+              <div style="font-family:var(--f-display); font-size:18px; font-weight:600;">박민준</div>
+            </div>
+          
+            <div style="padding:14px; background:var(--at-paper); border-radius:8px;">
+              <div style="font-family:var(--f-mono); font-size:10px; color:var(--at-ink-faint); letter-spacing:0.14em; text-transform:uppercase; margin-bottom:4px;">통제율</div>
+              <div style="font-family:var(--f-display); font-size:18px; font-weight:600;">98.2%</div>
+            </div>
+          
+            <div style="padding:14px; background:var(--at-paper); border-radius:8px;">
+              <div style="font-family:var(--f-mono); font-size:10px; color:var(--at-ink-faint); letter-spacing:0.14em; text-transform:uppercase; margin-bottom:4px;">증빙</div>
+              <div style="font-family:var(--f-display); font-size:18px; font-weight:600;">142건</div>
+            </div>
+          
+        </div>
+
+        <div>
+          <div style="font-family:var(--f-mono); font-size:10px; color:var(--at-ink-faint); letter-spacing:0.14em; text-transform:uppercase; margin-bottom:10px;">RECENT ACTIVITY</div>
+          <div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--at-ink-hair); align-items:center;">
+            <div style="width:6px; height:6px; border-radius:50%; background:var(--at-green);"></div>
+            <div style="flex:1; font-size:12px;">생산량 검토 승인 완료</div>
+            <div style="font-family:var(--f-mono); font-size:10px; color:var(--at-ink-faint);">2시간 전</div>
+          </div>
+          <div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--at-ink-hair); align-items:center;">
+            <div style="width:6px; height:6px; border-radius:50%; background:var(--at-blue);"></div>
+            <div style="flex:1; font-size:12px;">원재료 모집단 업로드</div>
+            <div style="font-family:var(--f-mono); font-size:10px; color:var(--at-ink-faint);">어제</div>
+          </div>
+        </div>
+
+        <button class="btn-compact primary" style="width:100%; margin-top:16px; height:36px;">상세 리포트 →</button>
+      </div>
+
+      <!-- Site list compact -->
+      <div class="at-card" style="padding:0;">
+        <div style="padding:16px 20px; border-bottom:1px solid var(--at-ink-hair); display:flex; justify-content:space-between; align-items:center;">
+          <div style="font-family:var(--f-display); font-size:15px; font-weight:600;">전체 사업장 · 14</div>
+          <div style="font-family:var(--f-mono); font-size:10px; color:var(--at-ink-faint); letter-spacing:0.12em;">BY RATE</div>
+        </div>
+        
+          <div style="display:flex; gap:12px; padding:12px 20px; border-bottom:1px solid var(--at-ink-hair); align-items:center; background:var(--at-blue-pale);">
+            <div style="width:8px; height:8px; border-radius:50%; background:var(--at-green);"></div>
+            <div style="flex:1; font-size:13px; font-weight:500;">동두천 공장</div>
+            <div style="font-family:var(--f-mono); font-size:12px; color:var(--at-ink); font-weight:500;">98.2%</div>
+          </div>
+          <div style="display:flex; gap:12px; padding:12px 20px; border-bottom:1px solid var(--at-ink-hair); align-items:center; ">
+            <div style="width:8px; height:8px; border-radius:50%; background:var(--at-green);"></div>
+            <div style="flex:1; font-size:13px; font-weight:500;">구미 공장</div>
+            <div style="font-family:var(--f-mono); font-size:12px; color:var(--at-ink); font-weight:500;">99.1%</div>
+          </div>
+          <div style="display:flex; gap:12px; padding:12px 20px; border-bottom:1px solid var(--at-ink-hair); align-items:center; ">
+            <div style="width:8px; height:8px; border-radius:50%; background:var(--at-green);"></div>
+            <div style="flex:1; font-size:13px; font-weight:500;">서울 본사</div>
+            <div style="font-family:var(--f-mono); font-size:12px; color:var(--at-ink); font-weight:500;">97.4%</div>
+          </div>
+          <div style="display:flex; gap:12px; padding:12px 20px; border-bottom:1px solid var(--at-ink-hair); align-items:center; ">
+            <div style="width:8px; height:8px; border-radius:50%; background:var(--at-red);"></div>
+            <div style="flex:1; font-size:13px; font-weight:500;">포항 제철소</div>
+            <div style="font-family:var(--f-mono); font-size:12px; color:var(--at-ink); font-weight:500;">82.4%</div>
+          </div>
+          <div style="display:flex; gap:12px; padding:12px 20px; border-bottom:1px solid var(--at-ink-hair); align-items:center; ">
+            <div style="width:8px; height:8px; border-radius:50%; background:var(--at-amber);"></div>
+            <div style="flex:1; font-size:13px; font-weight:500;">청주 물류</div>
+            <div style="font-family:var(--f-mono); font-size:12px; color:var(--at-ink); font-weight:500;">88.1%</div>
+          </div>
+      </div>
+    </div>
+  </div>
+</div>
+  <footer class="at-footer">
+    <div class="f-row">
+      <div>© 2026 (주)동양 · 내부회계관리 PORTAL</div>
+      <div class="f-links"><a href="#">개인정보처리방침</a><a href="#">이용약관</a><a href="#">시스템문의</a><a href="#">관리자</a></div>
+    </div>
+  </footer>
+</div>
+</div>

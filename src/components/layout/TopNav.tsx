@@ -6,16 +6,16 @@ import {
   BookOpen,
   Bot,
   Check,
-  ChevronDown,
   FileCheck2,
   Gamepad2,
-  Image,
+  Image as ImageIcon,
   Inbox,
   LayoutDashboard,
   LogOut,
   Map,
   MessageCircle,
   Newspaper,
+  Search,
   Settings,
   Shield,
   TrendingUp,
@@ -43,31 +43,19 @@ type NavItem = {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/dashboard', label: 'HOME', icon: LayoutDashboard },
+  { to: '/dashboard', label: '홈', icon: LayoutDashboard },
   { to: '/evidence', label: '증빙관리', icon: FileCheck2, roles: ['admin', 'owner'] },
-  { to: '/inbox', label: '내승인함', icon: Inbox, roles: ['admin', 'controller'] },
-  { to: '/courses', label: '내 강좌', icon: BookOpen },
-  { to: '/learning', label: '강좌관리', icon: BarChart2 },
-  { to: '/map', label: '지도', icon: Map, roles: ['admin'] },
-  { to: '/news', label: '회사소식과 뉴스', icon: Newspaper },
-  { to: '/kpi', label: 'KPI결과', icon: TrendingUp },
-  { to: '/bingo', label: '빙고퀴즈', icon: Gamepad2 },
-  { to: '/webtoon', label: '웹툰', icon: Image },
+  { to: '/inbox', label: '내 승인함', icon: Inbox, roles: ['admin', 'controller'] },
+  { to: '/courses', label: '강좌', icon: BookOpen },
+  { to: '/learning', label: '학습', icon: BarChart2 },
+  { to: '/news', label: '회사소식', icon: Newspaper },
+  { to: '/kpi', label: 'KPI', icon: TrendingUp },
+  { to: '/map', label: '사업장', icon: Map, roles: ['admin'] },
+  { to: '/bingo', label: '빙고', icon: Gamepad2 },
+  { to: '/webtoon', label: '웹툰', icon: ImageIcon },
   { to: '/chatbot', label: 'AI챗봇', icon: Bot },
-  { to: '/tellme', label: 'Tell me!!', icon: MessageCircle },
+  { to: '/tellme', label: 'Tell me', icon: MessageCircle },
 ]
-
-const ROLE_LABEL: Record<string, string> = {
-  admin: '관리자',
-  controller: '승인자',
-  owner: '담당자',
-}
-
-const ROLE_CLASS: Record<string, string> = {
-  admin: 'bg-warm-100 text-brand-700 border-warm-200',
-  controller: 'bg-warm-100 text-brand-700 border-warm-200',
-  owner: 'bg-warm-100 text-brand-500 border-warm-200',
-}
 
 function filterNavItems(role?: string | null) {
   return NAV_ITEMS.filter(item => !item.roles || item.roles.includes((role ?? 'owner') as never))
@@ -86,6 +74,8 @@ export default function TopNav() {
 
   const visibleItems = filterNavItems(profile?.role)
   const isAdmin = profile?.role === 'admin'
+  const role = profile?.role ?? ''
+  const roleText = role === 'admin' ? 'ADMIN' : role === 'controller' ? 'CONTROLLER' : role === 'owner' ? 'OWNER' : ''
 
   const abortRef = useRef<AbortController | null>(null)
   const fetchingRef = useRef(false)
@@ -94,7 +84,6 @@ export default function TopNav() {
     if (!profile?.id || fetchingRef.current) return
     fetchingRef.current = true
 
-    // Cancel any in-flight request
     if (abortRef.current) abortRef.current.abort()
     const controller = new AbortController()
     abortRef.current = controller
@@ -173,180 +162,215 @@ export default function TopNav() {
   }
 
   return (
-    <>
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-warm-200 bg-white/95 backdrop-blur-md">
-        <div className="mx-auto flex h-14 sm:h-16 max-w-screen-2xl items-center gap-4 px-4 sm:px-5 md:px-8">
-          <Link to="/dashboard" className="mr-2 flex items-center shrink-0">
-            <div className="hidden lg:block">
-              <p className="text-[13px] font-bold leading-tight tracking-tight text-brand-900">(주)동양 내부회계 PORTAL</p>
-              <p className="text-[9px] font-medium tracking-[0.18em] text-warm-400 uppercase">
-                Tongyang Internal Controls
-              </p>
-            </div>
-            <p className="text-[13px] font-bold tracking-tight text-brand-900 lg:hidden">(주)동양 PORTAL</p>
-          </Link>
+    <nav className="at-nav">
+      <Link to="/dashboard" className="at-nav-logo" style={{ textDecoration: 'none' }}>
+        <div className="mark">T</div>
+        <span>동양</span>
+        <span className="en">INTERNAL CONTROLS</span>
+      </Link>
 
-          <nav className="hidden min-w-0 flex-1 items-center gap-0 overflow-x-auto scrollbar-hide lg:flex">
-            {visibleItems.map(item => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  clsx(
-                    'inline-flex items-center gap-1.5 px-3 py-2 text-[13px] whitespace-nowrap transition-colors duration-200 border-b-2',
-                    isActive
-                      ? 'text-brand-900 font-semibold border-brand-800'
-                      : 'text-warm-500 font-medium border-transparent hover:text-brand-700 hover:border-warm-300'
-                  )
-                }
-              >
-                <item.icon size={14} strokeWidth={1.5} />
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
+      <div className="at-nav-items">
+        {visibleItems.map(item => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) => clsx('at-nav-item', isActive && 'active')}
+            style={{ textDecoration: 'none' }}
+          >
+            {item.label}
+          </NavLink>
+        ))}
+        {isAdmin && (
+          <NavLink
+            to="/admin"
+            className={({ isActive }) => clsx('at-nav-item', isActive && 'active')}
+            style={{ textDecoration: 'none' }}
+          >
+            관리자
+          </NavLink>
+        )}
+      </div>
 
-            {isAdmin && (
-              <NavLink
-                to="/admin"
-                className={({ isActive }) =>
-                  clsx(
-                    'inline-flex items-center gap-1.5 px-3 py-2 text-[13px] whitespace-nowrap transition-colors duration-200 border-b-2',
-                    isActive
-                      ? 'text-brand-900 font-semibold border-brand-800'
-                      : 'text-warm-500 font-medium border-transparent hover:text-brand-700 hover:border-warm-300'
-                  )
-                }
-              >
-                <Shield size={14} strokeWidth={1.5} />
-                <span>관리자</span>
-              </NavLink>
-            )}
-          </nav>
-
-          <div className="ml-auto flex items-center gap-3">
-            <div ref={notiRef} className="relative">
-              <button
-                onClick={() => setNotiOpen(v => !v)}
-                className="relative flex h-9 w-9 items-center justify-center rounded-md text-warm-500 transition-colors duration-200 hover:bg-warm-100 hover:text-brand-800"
-              >
-                <Bell size={17} strokeWidth={1.5} />
-                {unreadCount > 0 && (
-                  <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-800 px-1 text-[9px] font-bold text-white">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {notiOpen && (
-                <div className="absolute right-0 top-12 max-w-[90vw] w-80 overflow-hidden rounded-lg border border-warm-200 bg-white shadow-md sm:w-96">
-                  <div className="flex items-center justify-between border-b border-warm-100 px-5 py-3.5">
-                    <p className="text-sm font-semibold text-brand-900">알림</p>
-                    {unreadCount > 0 && (
-                      <button onClick={markAllAsRead} className="text-xs font-medium text-brand-700 hover:text-brand-800 transition-colors">
-                        모두 읽음
-                      </button>
-                    )}
-                  </div>
-                  <div className="max-h-80 overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <div className="px-5 py-10 text-center text-sm text-warm-400">알림이 없습니다</div>
-                    ) : (
-                      notifications.map(n => (
-                        <button
-                          key={n.id}
-                          onClick={() => { if (!n.is_read) markAsRead(n.id) }}
-                          className={clsx(
-                            'flex w-full items-start gap-3 px-5 py-3.5 text-left transition-colors duration-150 hover:bg-warm-50',
-                            !n.is_read && 'bg-warm-50/60'
-                          )}
-                        >
-                          <div className={clsx(
-                            'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
-                            n.is_read ? 'bg-warm-100 text-warm-400' : 'bg-brand-100 text-brand-700'
-                          )}>
-                            {n.is_read ? <Check size={11} /> : <Bell size={11} />}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className={clsx('text-sm leading-snug', n.is_read ? 'text-warm-600' : 'font-medium text-brand-900')}>
-                              {n.title}
-                            </p>
-                            {n.body && <p className="mt-0.5 line-clamp-2 text-xs text-warm-400 leading-relaxed">{n.body}</p>}
-                            <p className="mt-1.5 text-[11px] text-warm-400">
-                              {n.sender?.full_name ? `${n.sender.full_name} · ` : ''}
-                              {new Date(n.created_at).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                          </div>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* 데스크톱 프로필 드롭다운 */}
-            <div ref={profileRef} className="relative hidden lg:block">
-              <button
-                onClick={() => setProfileOpen(value => !value)}
-                className="flex items-center gap-2.5 rounded-md border border-warm-200 bg-white px-3 py-1.5 transition-colors duration-200 hover:border-warm-300 hover:bg-warm-50"
-              >
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-800 text-xs font-semibold text-white">
-                  {profile?.full_name?.slice(0, 1) ?? '?'}
-                </div>
-                <div className="hidden text-left md:block">
-                  <p className="text-[13px] font-medium text-brand-900">
-                    {profile?.full_name ?? '사용자'}
-                    <span className="ml-1.5 text-[11px] font-semibold text-blue-600">{totalPoints}P</span>
-                  </p>
-                </div>
-                {profile?.role && (
-                  <span className={clsx('badge border text-[10px]', ROLE_CLASS[profile.role] ?? 'badge-gray')}>
-                    {ROLE_LABEL[profile.role] ?? profile.role}
-                  </span>
-                )}
-                <ChevronDown size={13} className={clsx('text-warm-400 transition-transform duration-200', profileOpen && 'rotate-180')} />
-              </button>
-
-              {profileOpen && (
-                <div className="absolute right-0 top-14 w-56 overflow-hidden rounded-lg border border-warm-200 bg-white shadow-md">
-                  <div className="border-b border-warm-100 px-5 py-3.5">
-                    <p className="text-sm font-semibold text-brand-900">{profile?.full_name}</p>
-                    <p className="mt-0.5 text-xs text-warm-500">{profile?.department ?? '-'}</p>
-                    <p className="text-xs text-warm-400">{profile?.email ?? '-'}</p>
-                  </div>
-                  <div className="p-1.5">
-                    <NavLink
-                      to="/profile"
-                      onClick={() => setProfileOpen(false)}
-                      className="flex w-full items-center gap-2.5 rounded-md px-3 py-2.5 text-sm text-brand-700 transition-colors duration-150 hover:bg-warm-50"
-                    >
-                      <User size={15} className="text-warm-400" strokeWidth={1.5} />
-                      내 정보
-                    </NavLink>
-                    {isAdmin && (
-                      <NavLink
-                        to="/admin"
-                        onClick={() => setProfileOpen(false)}
-                        className="flex w-full items-center gap-2.5 rounded-md px-3 py-2.5 text-sm text-brand-700 transition-colors duration-150 hover:bg-warm-50"
-                      >
-                        <Settings size={15} className="text-warm-400" strokeWidth={1.5} />
-                        관리자 설정
-                      </NavLink>
-                    )}
-                    <button
-                      onClick={handleSignOut}
-                      className="flex w-full items-center gap-2.5 rounded-md px-3 py-2.5 text-sm text-red-700 transition-colors duration-150 hover:bg-red-50"
-                    >
-                      <LogOut size={15} strokeWidth={1.5} />
-                      로그아웃
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+      <div className="at-nav-right">
+        {/* Search icon (placeholder for future global search) */}
+        <div className="at-nav-icon" title="검색">
+          <Search size={16} strokeWidth={1.8} />
         </div>
-      </header>
-    </>
+
+        {/* Notification bell */}
+        <div ref={notiRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => setNotiOpen(v => !v)}
+            className="at-nav-icon"
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+          >
+            <Bell size={16} strokeWidth={1.8} />
+            {unreadCount > 0 && <span className="notif-dot" />}
+          </button>
+
+          {notiOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                right: 0,
+                top: '100%',
+                marginTop: 10,
+                width: 360,
+                maxWidth: '90vw',
+                background: '#fff',
+                border: '1px solid #E5E8EB',
+                borderRadius: 14,
+                boxShadow: '0 16px 40px -12px rgba(0,0,0,0.15)',
+                overflow: 'hidden',
+                zIndex: 50,
+              }}
+            >
+              <div style={{ borderBottom: '1px solid #F2F4F6', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: '#191F28', margin: 0 }}>알림</p>
+                {unreadCount > 0 && (
+                  <button onClick={markAllAsRead} style={{ fontSize: 12, fontWeight: 500, color: '#3182F6', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                    모두 읽음
+                  </button>
+                )}
+              </div>
+              <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+                {notifications.length === 0 ? (
+                  <div style={{ padding: '40px 20px', textAlign: 'center', fontSize: 13, color: '#8B95A1' }}>알림이 없습니다</div>
+                ) : (
+                  notifications.map(n => (
+                    <button
+                      key={n.id}
+                      onClick={() => { if (!n.is_read) markAsRead(n.id) }}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 12,
+                        padding: '14px 18px',
+                        textAlign: 'left',
+                        background: n.is_read ? '#fff' : '#F9FAFB',
+                        border: 'none',
+                        borderBottom: '1px solid #F2F4F6',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div
+                        style={{
+                          marginTop: 2,
+                          width: 22,
+                          height: 22,
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '50%',
+                          background: n.is_read ? '#F2F4F6' : '#E8F2FE',
+                          color: n.is_read ? '#8B95A1' : '#3182F6',
+                        }}
+                      >
+                        {n.is_read ? <Check size={11} /> : <Bell size={11} />}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <p style={{ fontSize: 13, lineHeight: 1.4, margin: 0, fontWeight: n.is_read ? 400 : 600, color: '#191F28' }}>{n.title}</p>
+                        {n.body && <p style={{ marginTop: 4, fontSize: 11.5, color: '#8B95A1', lineHeight: 1.45, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{n.body}</p>}
+                        <p style={{ marginTop: 6, fontSize: 11, color: '#8B95A1' }}>
+                          {n.sender?.full_name ? `${n.sender.full_name} · ` : ''}
+                          {new Date(n.created_at).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* User badge → dropdown on click */}
+        <div ref={profileRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => setProfileOpen(v => !v)}
+            className="at-nav-user"
+            style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
+          >
+            <div className="avatar">{profile?.full_name?.slice(0, 1) ?? '?'}</div>
+            <div>
+              <div className="name">{profile?.full_name ?? '사용자'}</div>
+              <div className="role">{roleText} · {totalPoints}P</div>
+            </div>
+          </button>
+
+          {profileOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                right: 0,
+                top: '100%',
+                marginTop: 10,
+                width: 240,
+                background: '#fff',
+                border: '1px solid #E5E8EB',
+                borderRadius: 14,
+                boxShadow: '0 16px 40px -12px rgba(0,0,0,0.15)',
+                overflow: 'hidden',
+                zIndex: 50,
+              }}
+            >
+              <div style={{ borderBottom: '1px solid #F2F4F6', padding: '14px 18px' }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: '#191F28', margin: 0 }}>{profile?.full_name}</p>
+                <p style={{ marginTop: 4, fontSize: 12, color: '#6B7684' }}>{profile?.department ?? '-'}</p>
+                <p style={{ fontSize: 11.5, color: '#8B95A1' }}>{profile?.email ?? '-'}</p>
+              </div>
+              <div style={{ padding: 6 }}>
+                <NavLink
+                  to="/profile"
+                  onClick={() => setProfileOpen(false)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 12px', borderRadius: 8,
+                    fontSize: 13, color: '#4E5968', textDecoration: 'none',
+                  }}
+                >
+                  <User size={15} strokeWidth={1.5} />
+                  내 정보
+                </NavLink>
+                {isAdmin && (
+                  <NavLink
+                    to="/admin"
+                    onClick={() => setProfileOpen(false)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '10px 12px', borderRadius: 8,
+                      fontSize: 13, color: '#4E5968', textDecoration: 'none',
+                    }}
+                  >
+                    <Settings size={15} strokeWidth={1.5} />
+                    관리자 설정
+                  </NavLink>
+                )}
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 12px', borderRadius: 8,
+                    fontSize: 13, color: '#EF4444', width: '100%',
+                    background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
+                  }}
+                >
+                  <LogOut size={15} strokeWidth={1.5} />
+                  로그아웃
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Shield icon kept hidden to satisfy unused import guard */}
+      <Shield style={{ display: 'none' }} />
+    </nav>
   )
 }

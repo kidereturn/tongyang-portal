@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
-  FileCheck2, Upload, CheckCircle2, Clock,
-  Search, RefreshCw, Download, Filter,
-  AlertCircle, ChevronRight
+  FileCheck2, Upload,
+  Search, RefreshCw, Download,
+  AlertCircle,
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../../lib/supabase'
@@ -29,11 +29,6 @@ interface Activity {
 }
 
 const REVIEW_STATUSES = ['미검토', '검토중', '완료'] as const
-const REVIEW_BADGE_STYLES: Record<string, string> = {
-  '미검토': 'bg-warm-100 text-warm-600 border-warm-200',
-  '검토중': 'bg-blue-50 text-blue-700 border-blue-200',
-  '완료': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-}
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   '미완료': { label: '미완료', cls: 'badge-yellow' },
@@ -258,252 +253,168 @@ export default function EvidenceListPage() {
     </div>
   )
 
+  const roleDesc = profile?.role === 'owner'
+    ? '담당 통제활동의 증빙을 업로드하고 결재상신합니다'
+    : profile?.role === 'controller'
+      ? '담당 통제활동의 증빙 제출 현황'
+      : '전체 증빙관리 현황'
+
   return (
-    <div className="space-y-5 pb-mobile-tab lg:pb-0">
-      {/* 헤더 */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-brand-900 flex items-center gap-2">
-            <FileCheck2 size={22} className="text-brand-700" />
-            증빙관리
-          </h1>
-          <p className="text-warm-500 text-sm mt-0.5">
-            {profile?.role === 'owner'
-              ? '담당 통제활동의 증빙을 업로드하고 결재상신합니다'
-              : profile?.role === 'controller'
-              ? '담당 통제활동의 증빙 제출 현황'
-              : `전체 증빙관리 현황`}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={fetchActivities} className="btn-ghost text-xs px-3 py-2">
-            <RefreshCw size={14} />새로고침
-          </button>
-          <button onClick={downloadExcel} className="btn-secondary text-xs px-3 py-2">
-            <Download size={14} />엑셀 다운로드
-          </button>
+    <>
+      <div className="pg-head">
+        <div className="pg-head-row">
+          <div>
+            <div className="eyebrow">증빙관리<span className="sep" />전체 목록</div>
+            <h1>증빙 목록. <span className="soft">{profile?.role === 'owner' ? '내 담당만.' : '모든 통제활동.'}</span></h1>
+            <p className="lead">{roleDesc} · 검색·필터·일괄 승인이 가능합니다.</p>
+          </div>
+          <div className="actions">
+            <button className="btn-compact" onClick={fetchActivities}>
+              <RefreshCw size={13} />새로고침
+            </button>
+            <button className="btn-compact primary" onClick={downloadExcel}>
+              <Download size={13} />엑셀 다운로드
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* KPI 통계 — 6 states including 결재대기 */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {[
-          { icon: FileCheck2,   color: 'brand',  label: '전체',     value: stats.total,     unit: '건' },
-          { icon: Clock,        color: 'amber',  label: '미완료',   value: stats.pending,   unit: '건' },
-          { icon: Upload,       color: 'blue',   label: '상신완료', value: stats.complete,  unit: '건' },
-          { icon: CheckCircle2, color: 'green',  label: '승인완료', value: stats.approved,  unit: '건' },
-          { icon: Clock,        color: 'purple', label: '결재대기', value: stats.awaiting,  unit: '건' },
-          { icon: AlertCircle,  color: 'red',    label: '반려',     value: stats.rejected,  unit: '건' },
-        ].map(s => (
-          <div key={s.label} className="card p-4">
-            <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center mb-2',
-              s.color === 'brand'  ? 'bg-warm-50 text-brand-700' :
-              s.color === 'amber'  ? 'bg-amber-50 text-amber-600' :
-              s.color === 'blue'   ? 'bg-blue-50 text-blue-600' :
-              s.color === 'green'  ? 'bg-emerald-50 text-emerald-600' :
-              s.color === 'purple' ? 'bg-purple-50 text-purple-600' :
-              'bg-red-50 text-red-600'
-            )}>
-              <s.icon size={16} />
+      <div className="pg-body">
+        {/* Summary strip */}
+        <div className="sum-strip">
+          <div className="cell"><div className="l"><span className="ic blue">●</span>전체</div><div className="v">{stats.total}<span className="u">건</span></div><div className="sub">이번 주기 누적</div></div>
+          <div className="cell"><div className="l"><span className="ic green">●</span>완료</div><div className="v">{stats.approved}<span className="u">건</span></div><div className="sub">승인 완료 · {rate}%</div></div>
+          <div className="cell"><div className="l"><span className="ic amber">●</span>대기</div><div className="v">{stats.awaiting + stats.complete}<span className="u">건</span></div><div className="sub">담당자/승인자 작업 중</div></div>
+          <div className="cell"><div className="l"><span className="ic red">●</span>반려</div><div className="v">{stats.rejected}<span className="u">건</span></div><div className="sub">재작성 필요</div></div>
+        </div>
+
+        {loadError && (
+          <div style={{ marginBottom: 20, padding: '14px 18px', borderRadius: 12, background: '#FEF3C7', border: '1px solid #FCD34D', color: '#92400E', fontSize: 13 }}>{loadError}</div>
+        )}
+
+        <div className="data-card">
+          <div className="toolbar">
+            <div className="left">
+              <div className="tbl-title">증빙 목록</div>
+              <div className="tbl-count">{filtered.length} ITEMS · 2026 Q2</div>
             </div>
-            <p className="text-xs text-warm-500">{s.label}</p>
-            <p className="text-xl font-bold text-brand-900">{s.value}<span className="text-xs text-warm-400 font-normal ml-0.5">{s.unit}</span></p>
+            <div className="search">
+              <span className="ic"><Search size={14} /></span>
+              <input placeholder="통제번호·활동명·담당자 검색" value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
+            <div className="filter-chips">
+              {[
+                { key: 'all', label: '전체', count: stats.total },
+                { key: '미완료', label: '미완료', count: stats.pending },
+                { key: '완료', label: '상신완료', count: stats.complete },
+                { key: '승인', label: '승인완료', count: stats.approved },
+                { key: 'awaiting', label: '결재대기', count: stats.awaiting },
+                { key: '반려', label: '반려', count: stats.rejected },
+              ].map(f => (
+                <span
+                  key={f.key}
+                  className={clsx('filter-chip', statusFilter === f.key && 'active')}
+                  onClick={() => setStatusFilter(f.key)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {f.label} <span className="cnt">{f.count}</span>
+                </span>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
 
-      {/* 승인율 바 — 전체 증빙 중 승인 완료된 비율 */}
-      <div className="card p-4">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-semibold text-brand-700">전체 승인율</p>
-          <p className="text-sm font-bold text-brand-700">{rate}%</p>
-        </div>
-        <div className="bg-warm-100 rounded-full h-2">
-          <div
-            className="bg-gradient-to-r from-brand-500 to-emerald-500 h-2 rounded-full transition-all duration-700"
-            style={{ width: `${rate}%` }}
-          />
-        </div>
-        <p className="text-xs text-warm-400 mt-1.5">
-          승인 {stats.approved}건 / 전체 {stats.total}건
-        </p>
-      </div>
-
-      {/* 오류 메시지 */}
-      {loadError && (
-        <div className="card p-4 text-sm text-amber-700 bg-amber-50 border-amber-100">
-          {loadError}
-        </div>
-      )}
-
-      {/* 검색/필터 */}
-      <div className="card p-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-400" />
-            <input
-              type="text" value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="통제번호, 담당자, 통제활동명 검색..."
-              className="form-input pl-9 text-sm"
-            />
-          </div>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <Filter size={14} className="text-warm-400" />
-            {[
-              { key: 'all', label: '전체' },
-              { key: '미완료', label: '미완료' },
-              { key: '완료', label: '상신완료' },
-              { key: '승인', label: '승인완료' },
-              { key: 'awaiting', label: '결재대기' },
-              { key: '반려', label: '반려' },
-            ].map(f => (
-              <button
-                key={f.key}
-                onClick={() => setStatusFilter(f.key)}
-                className={clsx(
-                  'px-2.5 py-1 rounded-lg text-xs font-semibold transition-all',
-                  statusFilter === f.key
-                    ? 'bg-brand-800 text-white'
-                    : 'bg-warm-100 text-warm-600 hover:bg-warm-200'
-                )}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* 데이터 테이블 */}
-      <div className="card overflow-hidden">
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-warm-400">
-            <AlertCircle size={32} className="mb-3 text-warm-200" />
-            <p className="font-medium text-warm-500">데이터가 없습니다</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="data-table text-xs" style={{ tableLayout: 'auto' }}>
+          {filtered.length === 0 ? (
+            <div style={{ padding: '80px 20px', textAlign: 'center', color: 'var(--at-ink-faint)' }}>
+              <AlertCircle size={32} style={{ margin: '0 auto 12px' }} />
+              <p style={{ fontWeight: 500 }}>데이터가 없습니다</p>
+            </div>
+          ) : (
+          <div className="tbl-scroll">
+            <table className="at-table compact" style={{ width: '100%', tableLayout: 'auto' }}>
               <thead>
                 <tr>
-                  <th className="text-center w-8">#</th>
-                  <th className="whitespace-nowrap">통제번호</th>
-                  {profile?.role !== 'owner' && <th className="whitespace-nowrap">담당자</th>}
-                  <th className="whitespace-nowrap">관련부서</th>
-                  <th className="min-w-[160px]">통제활동명</th>
-                  <th className="min-w-[140px]">제출 증빙 설명</th>
-                  <th className="text-center whitespace-nowrap">증빙 Upload</th>
-                  <th className="text-center whitespace-nowrap">증빙수</th>
-                  {profile?.role === 'admin' && <th className="whitespace-nowrap">승인자</th>}
-                  <th className="text-center whitespace-nowrap">KPI점수</th>
-                  <th className="text-center whitespace-nowrap">상신여부</th>
-                  <th className="text-center whitespace-nowrap">승인상태</th>
-                  {profile?.role === 'admin' && <th className="text-center whitespace-nowrap">검토결과</th>}
-                  <th className="w-6"></th>
+                  <th>통제번호</th>
+                  <th>통제활동명</th>
+                  <th>담당부서</th>
+                  <th>담당자</th>
+                  {profile?.role === 'admin' && <th>승인자</th>}
+                  <th className="num">건수</th>
+                  <th>KPI</th>
+                  <th>상신</th>
+                  <th>승인</th>
+                  {profile?.role === 'admin' && <th>검토결과</th>}
+                  <th className="num">액션</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((act, i) => {
+                {filtered.map(act => {
                   const si = STATUS_MAP[act.submission_status] ?? STATUS_MAP['미완료']
                   const canUpload = profile?.role === 'owner' && act.submission_status !== '승인'
                   const isView = profile?.role === 'controller' || (profile?.role === 'admin')
+                  const uploaded = evidenceCounts[act.id] ?? 0
+                  const total = populationTotals[act.id] ?? 0
+                  const aprStatus = approvalStatuses[act.id]
                   return (
-                    <tr key={act.id} className="group">
-                      <td className="text-center text-xs text-warm-400 py-2.5">{i + 1}</td>
-                      <td className="py-2.5 whitespace-nowrap">
-                        <code className="text-[11px] bg-warm-100 text-brand-700 px-1.5 py-0.5 rounded font-semibold">
-                          {act.control_code}
-                        </code>
+                    <tr key={act.id}>
+                      <td><span className="pr-code">{act.control_code}</span></td>
+                      <td style={{ fontWeight: 500, color: 'var(--at-ink)' }} title={act.title ?? ''}>
+                        {act.title && act.title.length > 36 ? act.title.slice(0, 36) + '…' : (act.title ?? '-')}
                       </td>
-                      {profile?.role !== 'owner' && (
-                        <td className="font-semibold text-xs text-brand-800 py-2.5 whitespace-nowrap">{act.owner_name ?? '-'}</td>
-                      )}
-                      <td className="text-xs text-warm-600 py-2.5 whitespace-nowrap">{act.department ?? '-'}</td>
-                      <td className="py-2.5">
-                        <span className="text-xs font-medium text-brand-700 cursor-help" title={act.title ?? ''}>
-                          {act.title && act.title.length > 36 ? act.title.slice(0, 36) + '…' : (act.title ?? '-')}
+                      <td>{act.department ?? '-'}</td>
+                      <td>{act.owner_name ?? '-'}</td>
+                      {profile?.role === 'admin' && <td>{act.controller_name ?? '-'}</td>}
+                      <td className="num">
+                        <span style={{ fontFamily: 'var(--f-mono)', fontWeight: 600, color: total > 0 && uploaded >= total ? 'var(--at-green)' : uploaded > 0 ? 'var(--at-blue)' : 'var(--at-ink-faint)' }}>
+                          {uploaded}/{total}
                         </span>
                       </td>
-                      <td className="py-2.5">
-                        <span className="text-xs text-warm-600 cursor-help" title={act.description ?? ''}>
-                          {act.description && act.description.length > 40 ? act.description.slice(0, 40) + '…' : (act.description ?? '-')}
-                        </span>
-                      </td>
-                      <td className="text-center py-2.5 whitespace-nowrap">
-                        {canUpload ? (
-                          <button
-                            onClick={() => openUploadModal(act)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-warm-50 text-brand-700 border border-brand-100 rounded-lg text-[11px] font-semibold hover:bg-brand-100 transition-all whitespace-nowrap"
-                          >
-                            <Upload size={12} />증빙확인
-                          </button>
-                        ) : isView ? (
-                          <button
-                            onClick={() => openUploadModal(act)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg text-[11px] font-semibold hover:bg-blue-100 transition-all whitespace-nowrap"
-                          >
-                            <FileCheck2 size={12} />증빙확인
-                          </button>
-                        ) : (
-                          <span className="text-xs text-warm-400">-</span>
-                        )}
-                      </td>
-                      <td className="text-center py-2.5 whitespace-nowrap">
-                        {(() => {
-                          const uploaded = evidenceCounts[act.id] ?? 0
-                          const total = populationTotals[act.id] ?? 0
-                          const hasUploaded = uploaded > 0
-                          const isComplete = total > 0 && uploaded >= total
-                          return (
-                            <span className={clsx(
-                              'text-xs font-bold',
-                              isComplete ? 'text-emerald-600' : hasUploaded ? 'text-brand-700' : 'text-warm-300'
-                            )}>
-                              {uploaded}/{total}
-                            </span>
-                          )
-                        })()}
+                      <td style={{ fontFamily: 'var(--f-mono)', fontWeight: 500 }}>{act.kpi_score != null ? act.kpi_score.toFixed(1) : '-'}</td>
+                      <td><span className={`at-tag ${si.cls.includes('yellow') ? 'amber' : si.cls.includes('blue') ? 'blue' : si.cls.includes('green') ? 'green' : si.cls.includes('red') ? 'red' : 'gray'}`}>{si.label}</span></td>
+                      <td>
+                        {aprStatus === 'approved' ? <span className="at-tag green">승인완료</span>
+                          : aprStatus === 'rejected' ? <span className="at-tag red">반려</span>
+                          : aprStatus === 'submitted' ? <span className="at-tag amber">승인대기</span>
+                          : <span style={{ color: 'var(--at-ink-faint)', fontSize: 11 }}>-</span>}
                       </td>
                       {profile?.role === 'admin' && (
-                        <td className="text-xs text-warm-600 py-2.5 whitespace-nowrap">{act.controller_name ?? '-'}</td>
-                      )}
-                      <td className="text-center text-xs font-semibold text-brand-700 py-2.5 whitespace-nowrap">
-                        {act.kpi_score != null ? act.kpi_score.toFixed(1) : '-'}
-                      </td>
-                      <td className="text-center py-2.5 whitespace-nowrap">
-                        <span className={si.cls}>{si.label}</span>
-                      </td>
-                      <td className="text-center py-2.5 whitespace-nowrap">
-                        {approvalStatuses[act.id] === 'approved' ? (
-                          <span className="badge-green">승인완료</span>
-                        ) : approvalStatuses[act.id] === 'rejected' ? (
-                          <span className="badge-red">반려</span>
-                        ) : approvalStatuses[act.id] === 'submitted' ? (
-                          <span className="badge-yellow">승인대기</span>
-                        ) : (
-                          <span className="text-xs text-warm-300">-</span>
-                        )}
-                      </td>
-                      {profile?.role === 'admin' && (
-                        <td className="text-center py-2.5 whitespace-nowrap">
+                        <td>
                           <select
                             value={act.review_status ?? '미검토'}
                             onChange={e => updateReviewStatus(act.id, e.target.value)}
                             onClick={e => e.stopPropagation()}
-                            className={clsx(
-                              'inline-block rounded-md border px-2 py-1 text-[11px] font-semibold cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-400/40 transition',
-                              REVIEW_BADGE_STYLES[act.review_status ?? '미검토']
-                            )}
+                            style={{
+                              padding: '4px 8px', borderRadius: 8, border: '1px solid var(--at-ink-line)',
+                              background: (act.review_status ?? '미검토') === '완료' ? '#E8F5ED'
+                                : (act.review_status ?? '미검토') === '검토중' ? '#E8F2FE' : '#F2F4F6',
+                              color: (act.review_status ?? '미검토') === '완료' ? 'var(--at-green)'
+                                : (act.review_status ?? '미검토') === '검토중' ? 'var(--at-blue)' : 'var(--at-ink-mute)',
+                              fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                            }}
                           >
-                            {REVIEW_STATUSES.map(s => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
+                            {REVIEW_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                           </select>
                         </td>
                       )}
-                      <td className="py-2.5">
-                        <ChevronRight size={12} className="text-warm-200 group-hover:text-warm-400 transition-colors" />
+                      <td className="num">
+                        {canUpload ? (
+                          <button
+                            onClick={() => openUploadModal(act)}
+                            className="btn-compact primary"
+                            style={{ padding: '0 10px', height: 28 }}
+                          >
+                            <Upload size={11} />업로드
+                          </button>
+                        ) : isView ? (
+                          <button
+                            onClick={() => openUploadModal(act)}
+                            className="btn-compact"
+                            style={{ padding: '0 10px', height: 28 }}
+                          >
+                            <FileCheck2 size={11} />확인
+                          </button>
+                        ) : (
+                          <span style={{ color: 'var(--at-ink-faint)', fontSize: 11 }}>-</span>
+                        )}
                       </td>
                     </tr>
                   )
@@ -511,17 +422,19 @@ export default function EvidenceListPage() {
               </tbody>
             </table>
           </div>
-        )}
-        <div className="px-4 py-2.5 border-t border-warm-50 flex justify-between text-xs text-warm-400">
-          <span>
-            증빙 <b className="text-warm-600">
-              {filtered.reduce((sum, a) => sum + (evidenceCounts[a.id] ?? 0), 0)}
-              /
-              {filtered.reduce((sum, a) => sum + (populationTotals[a.id] ?? 0), 0)}
-            </b>{' '}· 통제활동 <b className="text-warm-600">{filtered.length}</b>건
-            {filtered.length !== activities.length ? ` (전체 ${activities.length}건 중)` : ''}
-          </span>
-          <span>페이지 로드 시 자동 새로고침</span>
+          )}
+
+          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--at-ink-hair)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: 'var(--at-ink-faint)' }}>
+            <div>
+              증빙 <b style={{ color: 'var(--at-ink)' }}>
+                {filtered.reduce((sum, a) => sum + (evidenceCounts[a.id] ?? 0), 0)}
+                /
+                {filtered.reduce((sum, a) => sum + (populationTotals[a.id] ?? 0), 0)}
+              </b> · 통제활동 <b style={{ color: 'var(--at-ink)' }}>{filtered.length}</b>건
+              {filtered.length !== activities.length ? ` (전체 ${activities.length}건 중)` : ''}
+            </div>
+            <div style={{ fontFamily: 'var(--f-mono)', letterSpacing: '0.12em' }}>SHOWING {filtered.length} ITEMS</div>
+          </div>
         </div>
       </div>
 
@@ -533,6 +446,6 @@ export default function EvidenceListPage() {
           viewOnly={profile?.role === 'controller'}
         />
       )}
-    </div>
+    </>
   )
 }

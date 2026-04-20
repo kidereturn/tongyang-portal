@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Editorial Ivory · 전체 22개 화면</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="atelier.css?v=4">
+<link rel="stylesheet" href="editorial.css?v=1">
+<style>
+  body { margin: 0; background: var(--at-paper); }
+  /* override: no need for the step wrap */
+  .screen-frame { overflow: hidden; }
+  /* Modal host */
+  .modal-host {
+    position: relative;
+  }
+</style>
+</head>
+<body>
+
+<!-- =================== Screen picker =================== -->
+<div class="screen-picker">
+  <div class="screen-picker-inner">
+    <div class="sp-brand">
+      <span class="dot"></span>
+      <span>TONGYANG</span>
+    </div>
+    <div class="sp-tabs" id="screenTabs">
+      <!-- Part 1 · Core -->
+      <div class="sp-tab" data-scr="01"><span class="n">01</span>로그인</div>
+      <div class="sp-tab active" data-scr="02"><span class="n">02</span>홈</div>
+      <div class="sp-tab" data-scr="03"><span class="n">03</span>증빙 상세</div>
+      <div class="sp-tab" data-scr="04"><span class="n">04</span>증빙 목록</div>
+      <!-- Part 2 · Admin -->
+      <div class="sp-tab" data-scr="05"><span class="n">05</span>구성원</div>
+      <div class="sp-tab" data-scr="06"><span class="n">06</span>RCM</div>
+      <div class="sp-tab" data-scr="07"><span class="n">07</span>RCM 업로드</div>
+      <div class="sp-tab" data-scr="08"><span class="n">08</span>모집단</div>
+      <div class="sp-tab" data-scr="09"><span class="n">09</span>파일</div>
+      <div class="sp-tab" data-scr="22"><span class="n">22</span>공지</div>
+      <!-- Part 3 · News & Community -->
+      <div class="sp-tab" data-scr="10"><span class="n">10</span>뉴스 피드</div>
+      <div class="sp-tab" data-scr="11"><span class="n">11</span>빙고</div>
+      <div class="sp-tab" data-scr="12"><span class="n">12</span>말씀하세요</div>
+      <!-- Part 4 · Insight -->
+      <div class="sp-tab" data-scr="13"><span class="n">13</span>AI 챗봇</div>
+      <div class="sp-tab" data-scr="15"><span class="n">15</span>KPI</div>
+      <div class="sp-tab" data-scr="19"><span class="n">19</span>지도</div>
+      <div class="sp-tab" data-scr="21"><span class="n">21</span>프로필</div>
+      <!-- Part 5 · Learning -->
+      <div class="sp-tab" data-scr="16"><span class="n">16</span>강좌</div>
+      <div class="sp-tab" data-scr="17"><span class="n">17</span>학습</div>
+      <div class="sp-tab" data-scr="18"><span class="n">18</span>웹툰</div>
+    </div>
+  </div>
+</div>
+
+<!-- Inject individual screens below; each is <div class="screen-pane" id="scr-NN"> -->
+<div id="screens"></div>
+
+<!-- Individual screen files loaded as partials via fetch + innerHTML -->
+<script>
+  // Simple tab switcher; persist selection
+  const tabs = document.querySelectorAll('.sp-tab');
+  const panes = () => document.querySelectorAll('.screen-pane');
+
+  function activate(id){
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.scr === id));
+    panes().forEach(p => p.classList.toggle('active', p.id === 'scr-' + id));
+    localStorage.setItem('editorial-scr', id);
+    window.scrollTo({top:0, behavior:'instant'});
+  }
+  tabs.forEach(t => t.addEventListener('click', () => activate(t.dataset.scr)));
+
+  // All screens are in separate files loaded in-order below.
+</script>
+
+<!-- Screen partials -->
+<script id="scr-src"></script>
+
+<script>
+(async function loadScreens(){
+  // Load screen HTML partials inline to keep single-file-ish navigation
+  const screenIds = ['01','02','03','04','05','06','07','08','09','22','10','11','12','13','15','19','21','16','17','18'];
+  const host = document.getElementById('screens');
+  for (const id of screenIds){
+    try {
+      const r = await fetch('screens/' + id + '.html');
+      if (r.ok) {
+        const html = await r.text();
+        const wrap = document.createElement('div');
+        wrap.className = 'screen-pane';
+        wrap.id = 'scr-' + id;
+        wrap.setAttribute('data-screen-label', id + ' · ' + id);
+        wrap.innerHTML = html;
+        host.appendChild(wrap);
+      }
+    } catch(e) {}
+  }
+  const last = localStorage.getItem('editorial-scr') || '02';
+  activate(last);
+})();
+</script>
+
+</body>
+</html>

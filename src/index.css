@@ -1,4 +1,10 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+
+/* Toss Fintech design system (scoped by .theme-toss on <body>) */
+@import './styles/toss/atelier.css';
+@import './styles/toss/editorial.css';
+@import './styles/toss/toss-theme.css';
 
 @tailwind base;
 @tailwind components;
@@ -15,12 +21,13 @@
     -moz-osx-font-smoothing: grayscale;
     letter-spacing: -0.008em;
     font-size: 100%;
-    line-height: 1.7;
-    /* Global 120% zoom — matches Chrome browser zoom at 120% */
-    zoom: 1.2;
+    line-height: 1.5;
+    /* Toss design uses its own scale — disable old 1.2 zoom */
   }
   body {
-    @apply bg-warm-50 text-brand-900;
+    /* theme-toss is applied via <body class="theme-toss"> in index.html */
+    background: #F2F4F6;
+    color: #191F28;
     margin: 0;
     padding: 0;
   }

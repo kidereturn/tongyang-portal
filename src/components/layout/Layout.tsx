@@ -1,7 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { ArrowUp } from 'lucide-react'
-import Footer from './Footer'
 import TopNav from './TopNav'
 import MobileTabBar from './MobileTabBar'
 
@@ -16,8 +15,16 @@ function ScrollToTopButton() {
   return (
     <button
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-      className="fixed bottom-24 lg:bottom-8 right-4 z-50 flex items-center gap-1.5 rounded-full bg-brand-800 px-3 py-2 text-[11px] font-bold text-white shadow-lg hover:bg-brand-900 transition-all"
+      style={{
+        position: 'fixed', bottom: 96, right: 24, zIndex: 50,
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        borderRadius: 9999, background: '#3182F6', color: '#fff',
+        padding: '10px 14px', fontSize: 12, fontWeight: 700,
+        boxShadow: '0 12px 24px -8px rgba(49,130,246,0.45)',
+        border: 'none', cursor: 'pointer',
+      }}
       title="처음으로"
+      className="lg:!bottom-8"
     >
       <ArrowUp size={14} />
       처음으로
@@ -27,16 +34,11 @@ function ScrollToTopButton() {
 
 export default function Layout() {
   return (
-    <div className="min-h-screen bg-warm-50">
+    <div style={{ minHeight: '100vh', background: '#F2F4F6' }}>
       <TopNav />
-      <main className="pt-14 sm:pt-16 pb-20 lg:pb-0">
-        <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6">
-          <Outlet />
-        </div>
+      <main style={{ paddingTop: 0, paddingBottom: 80 }} className="lg:!pb-0">
+        <Outlet />
       </main>
-      <div className="hidden lg:block">
-        <Footer />
-      </div>
       <MobileTabBar />
       <ScrollToTopButton />
     </div>

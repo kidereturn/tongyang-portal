@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Toss Fintech · 전체 20개 화면</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<link rel="stylesheet" href="atelier.css?v=4">
+<link rel="stylesheet" href="editorial.css?v=1">
+<link rel="stylesheet" href="toss-theme.css?v=1">
+<style>
+  body { margin: 0; background: #F2F4F6; font-family: 'Pretendard', sans-serif; }
+  .screen-frame { overflow: hidden; }
+  .modal-host { position: relative; }
+  /* Screen picker top bar */
+  .screen-picker {
+    position: sticky; top: 0; z-index: 200;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: saturate(180%) blur(18px);
+    -webkit-backdrop-filter: saturate(180%) blur(18px);
+    border-bottom: 1px solid #E5E8EB;
+  }
+  .screen-picker-inner {
+    max-width: 1680px; margin: 0 auto;
+    padding: 12px 28px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap;
+  }
+  .sp-brand {
+    display: flex; gap: 8px; align-items: center;
+    font-weight: 700; font-size: 13px; color: #4E5968;
+    padding-right: 18px; border-right: 1px solid #E5E8EB;
+  }
+  .sp-brand .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #3182F6;
+  }
+  .sp-tabs {
+    display: flex; gap: 4px; flex-wrap: wrap; flex: 1;
+  }
+  .sp-tab {
+    display: inline-flex; gap: 6px; align-items: center;
+    padding: 7px 13px; font-size: 13px; font-weight: 600;
+    color: #4E5968; background: transparent; border-radius: 999px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .sp-tab:hover { background: #F2F4F6; color: #191F28; }
+  .sp-tab.active { background: #3182F6; color: #fff; }
+  .sp-tab .n {
+    font-weight: 700; font-size: 11px; color: #8B95A1;
+    letter-spacing: 0.02em;
+  }
+  .sp-tab.active .n { color: rgba(255,255,255,0.75); }
+  .screen-pane { display: none; }
+  .screen-pane.active { display: block; }
+</style>
+</head>
+<body class="theme-toss">
+
+<!-- =================== Screen picker =================== -->
+<div class="screen-picker">
+  <div class="screen-picker-inner">
+    <div class="sp-brand">
+      <span class="dot"></span>
+      <span>TONGYANG · TOSS</span>
+    </div>
+    <div class="sp-tabs" id="screenTabs">
+      <!-- Part 1 · Core -->
+      <div class="sp-tab" data-scr="01"><span class="n">01</span>로그인</div>
+      <div class="sp-tab active" data-scr="02"><span class="n">02</span>홈</div>
+      <div class="sp-tab" data-scr="03"><span class="n">03</span>증빙 상세</div>
+      <div class="sp-tab" data-scr="04"><span class="n">04</span>증빙 목록</div>
+      <!-- Part 2 · Admin -->
+      <div class="sp-tab" data-scr="05"><span class="n">05</span>구성원</div>
+      <div class="sp-tab" data-scr="06"><span class="n">06</span>RCM</div>
+      <div class="sp-tab" data-scr="07"><span class="n">07</span>RCM 업로드</div>
+      <div class="sp-tab" data-scr="08"><span class="n">08</span>모집단</div>
+      <div class="sp-tab" data-scr="09"><span class="n">09</span>파일</div>
+      <div class="sp-tab" data-scr="22"><span class="n">22</span>공지</div>
+      <!-- Part 3 · Community -->
+      <div class="sp-tab" data-scr="10"><span class="n">10</span>뉴스 피드</div>
+      <div class="sp-tab" data-scr="11"><span class="n">11</span>빙고</div>
+      <div class="sp-tab" data-scr="12"><span class="n">12</span>말씀하세요</div>
+      <!-- Part 4 · Insight -->
+      <div class="sp-tab" data-scr="13"><span class="n">13</span>AI 챗봇</div>
+      <div class="sp-tab" data-scr="15"><span class="n">15</span>KPI</div>
+      <div class="sp-tab" data-scr="19"><span class="n">19</span>지도</div>
+      <div class="sp-tab" data-scr="21"><span class="n">21</span>프로필</div>
+      <!-- Part 5 · Learning -->
+      <div class="sp-tab" data-scr="16"><span class="n">16</span>강좌</div>
+      <div class="sp-tab" data-scr="17"><span class="n">17</span>학습</div>
+      <div class="sp-tab" data-scr="18"><span class="n">18</span>웹툰</div>
+    </div>
+  </div>
+</div>
+
+<div id="screens"></div>
+
+<script>
+  const tabs = document.querySelectorAll('.sp-tab');
+  const panes = () => document.querySelectorAll('.screen-pane');
+
+  function activate(id){
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.scr === id));
+    panes().forEach(p => p.classList.toggle('active', p.id === 'scr-' + id));
+    localStorage.setItem('toss-scr', id);
+    window.scrollTo({top:0, behavior:'instant'});
+  }
+  tabs.forEach(t => t.addEventListener('click', () => activate(t.dataset.scr)));
+</script>
+
+<script>
+(async function loadScreens(){
+  const screenIds = ['01','02','03','04','05','06','07','08','09','22','10','11','12','13','15','19','21','16','17','18'];
+  const host = document.getElementById('screens');
+  for (const id of screenIds){
+    try {
+      const r = await fetch('screens/' + id + '.html');
+      if (r.ok) {
+        const html = await r.text();
+        const wrap = document.createElement('div');
+        wrap.className = 'screen-pane';
+        wrap.id = 'scr-' + id;
+        wrap.setAttribute('data-screen-label', id);
+        wrap.innerHTML = html;
+        host.appendChild(wrap);
+      }
+    } catch(e) { console.warn('screen', id, e); }
+  }
+  const last = localStorage.getItem('toss-scr') || '02';
+  activate(last);
+})();
+</script>
+
+</body>
+</html>

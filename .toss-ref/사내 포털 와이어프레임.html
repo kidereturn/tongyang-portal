@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>사내 포털 와이어프레임</title>
+<link rel="stylesheet" href="wireframe-styles.css">
+<link rel="stylesheet" href="wireframe-layouts.css">
+</head>
+<body>
+
+<!-- ============ Top Tab Bar ============ -->
+<div class="tab-bar">
+  <div class="tab-bar-title">사내 포털 <span>와이어프레임</span></div>
+  <div class="tab active" data-tab="A">옵션 A · 사이드바 대시보드</div>
+  <div class="tab" data-tab="B">옵션 B · 카드 허브</div>
+  <div class="tab" data-tab="C">옵션 C · 매거진</div>
+  <div class="tab" data-tab="D">옵션 D · 게시판</div>
+  <div class="tab" data-tab="NOTES">💭 설계 노트</div>
+</div>
+
+<!-- ============ Tab Contents ============ -->
+<div class="tab-content">
+
+<!-- ================================ -->
+<!-- OPTION A: Sidebar + Dashboard -->
+<!-- ================================ -->
+<div class="tab-pane active" id="tab-A">
+  <div class="option-header">
+    <div class="option-label">OPTION A</div>
+    <div class="option-title">사이드바 + 업무 대시보드</div>
+    <div class="option-desc">
+      전통적인 업무 시스템 레이아웃. 좌측 네비게이션으로 전체 기능을 한눈에 파악할 수 있고,
+      메인 영역은 "오늘 처리해야 할 일"을 중심으로 구성. 보수적이고 안정감 있음.
+    </div>
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-chrome">
+      <div class="browser-dots"><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-dot"></div></div>
+      <div class="browser-url">portal.company.co.kr</div>
+    </div>
+    <div class="browser-body">
+      <div class="optA-layout">
+        <!-- Sidebar -->
+        <div class="optA-sidebar">
+          <div class="optA-logo">우리회사 <span>포털</span></div>
+
+          <div class="optA-nav-section">
+            <div class="optA-nav-title">업무</div>
+            <div class="optA-nav-item active">🏠 대시보드</div>
+            <div class="optA-nav-item">📄 증빙 업로드</div>
+            <div class="optA-nav-item">✍️ 결재함 <span class="badge badge-red" style="margin-left:auto;">3</span></div>
+            <div class="optA-nav-item">📚 온라인 교육</div>
+            <div class="optA-nav-item">📢 공지사항</div>
+          </div>
+
+          <div class="optA-nav-section">
+            <div class="optA-nav-title">커뮤니티</div>
+            <div class="optA-nav-item">🎲 빙고게임</div>
+            <div class="optA-nav-item">🎨 웹툰 게시판</div>
+            <div class="optA-nav-item">🤖 챗봇 도우미</div>
+          </div>
+
+          <div class="optA-nav-section">
+            <div class="optA-nav-title">내 정보</div>
+            <div class="optA-nav-item">👤 마이페이지</div>
+            <div class="optA-nav-item">⚙️ 설정</div>
+          </div>
+        </div>
+
+        <!-- Main -->
+        <div class="optA-main">
+          <div class="optA-topbar">
+            <div class="optA-greeting">안녕하세요, 홍길동님 👋</div>
+            <div class="optA-topright">
+              <div class="optA-search">🔍 검색어를 입력하세요...</div>
+              <div class="icon-circle">🔔</div>
+              <div class="icon-circle">👤</div>
+            </div>
+          </div>
+
+          <!-- Stats -->
+          <div class="optA-stats">
+            <div class="optA-stat">
+              <div class="optA-stat-label">대기중인 결재</div>
+              <div class="optA-stat-value">3건</div>
+            </div>
+            <div class="optA-stat">
+              <div class="optA-stat-label">이번달 증빙</div>
+              <div class="optA-stat-value">12장</div>
+            </div>
+            <div class="optA-stat">
+              <div class="optA-stat-label">이수 교육</div>
+              <div class="optA-stat-value">4 / 6</div>
+            </div>
+            <div class="optA-stat">
+              <div class="optA-stat-label">빙고 진행률</div>
+              <div class="optA-stat-value">7칸</div>
+            </div>
+          </div>
+
+          <!-- 2-col grid -->
+          <div class="optA-grid">
+            <div>
+              <div class="optA-card" style="margin-bottom:16px;">
+                <div class="optA-card-header">
+                  <div class="optA-card-title">📢 최근 공지사항</div>
+                  <span style="font-size:13px; color:var(--ink-faint);">전체보기 →</span>
+                </div>
+                <div class="optA-list-row">
+                  <span><span class="badge">필독</span> 2026년 상반기 워크샵 안내</span>
+                  <span style="color:var(--ink-faint); font-size:13px;">04/18</span>
+                </div>
+                <div class="optA-list-row">
+                  <span>사내 교육 프로그램 신규 오픈</span>
+                  <span style="color:var(--ink-faint); font-size:13px;">04/17</span>
+                </div>
+                <div class="optA-list-row">
+                  <span>법인카드 증빙 마감일 공지</span>
+                  <span style="color:var(--ink-faint); font-size:13px;">04/15</span>
+                </div>
+                <div class="optA-list-row">
+                  <span>4월 빙고 이벤트 시작! 🎉</span>
+                  <span style="color:var(--ink-faint); font-size:13px;">04/10</span>
+                </div>
+              </div>
+
+              <div class="optA-card">
+                <div class="optA-card-header">
+                  <div class="optA-card-title">✍️ 내 결재 대기함</div>
+                  <button class="btn btn-sm btn-primary">일괄처리</button>
+                </div>
+                <div class="optA-list-row">
+                  <span>🧾 김대리 - 4월 법인카드 증빙</span>
+                  <span><span class="badge badge-red">대기</span></span>
+                </div>
+                <div class="optA-list-row">
+                  <span>🛫 박사원 - 출장 정산 요청</span>
+                  <span><span class="badge badge-red">대기</span></span>
+                </div>
+                <div class="optA-list-row">
+                  <span>📦 이과장 - 비품 구매 품의</span>
+                  <span><span class="badge">검토중</span></span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="optA-card" style="margin-bottom:16px;">
+                <div class="optA-card-header">
+                  <div class="optA-card-title">🎲 이달의 빙고</div>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:4px; font-size:11px;">
+                  <div class="icon-square" style="aspect-ratio:1; width:auto; height:auto; background:var(--highlight-yellow);">✓</div>
+                  <div class="icon-square" style="aspect-ratio:1; width:auto; height:auto;">교육</div>
+                  <div class="icon-square" style="aspect-ratio:1; width:auto; height:auto; background:var(--highlight-yellow);">✓</div>
+                  <div class="icon-square" style="aspect-ratio:1; width:auto; height:auto;">웹툰</div>
+                  <div class="icon-square" style="aspect-ratio:1; width:auto; height:auto;">회식</div>
+                  <div class="icon-square" style="aspect-ratio:1; width:auto; height:auto; background:var(--highlight-yellow);">✓</div>
+                  <div class="icon-square" style="aspect-ratio:1; width:auto; height:auto;">산책</div>
+                  <div class="icon-square" style="aspect-ratio:1; width:auto; height:auto;">독서</div>
+                  <div class="icon-square" style="aspect-ratio:1; width:auto; height:auto;">점심</div>
+                  <div class="icon-square" style="aspect-ratio:1; width:auto; height:auto; background:var(--highlight-yellow);">✓</div>
+                  <div class="icon-square" style="aspect-ratio:1; width:auto; height:auto;">기부</div>
+                  <div class="icon-square" style="aspect-ratio:1; width:auto; height:auto; background:var(--highlight-yellow);">✓</div>
+                  <div class="icon-square" style="aspect-ratio:1; width:auto; height:auto;">운동</div>
+                  <div class="icon-square" style="aspect-ratio:1; width:auto; height:auto;">챗봇</div>
+                  <div class="icon-square" style="aspect-ratio:1; width:auto; height:auto; background:var(--highlight-yellow);">✓</div>
+                  <div class="icon-square" style="aspect-ratio:1; width:auto; height:auto;">인사</div>
+                </div>
+                <div style="margin-top:10px; text-align:center; font-family:'Nanum Pen Script',cursive; font-size:16px;">
+                  7 / 16 완료
+                </div>
+              </div>
+
+              <div class="optA-card">
+                <div class="optA-card-header">
+                  <div class="optA-card-title">🤖 챗봇 도우미</div>
+                </div>
+                <div class="placeholder-img" style="min-height:80px; margin-bottom:10px;">
+                  [챗봇 아바타 일러스트]
+                </div>
+                <div style="font-size:14px; color:var(--ink-soft); text-align:center; margin-bottom:10px;">
+                  무엇이든 물어보세요!
+                </div>
+                <div class="btn btn-primary" style="display:block; text-align:center;">대화 시작하기</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================ -->
+<!-- OPTION B: Top Nav + Card Hub -->
+<!-- ================================ -->
+<div class="tab-pane" id="tab-B">
+  <div class="option-header">
+    <div class="option-label">OPTION B</div>
+    <div class="option-title">탑 네비 + 카드 허브</div>
+    <div class="option-desc">
+      넓은 히어로 영역으로 환영 분위기 연출. 기능을 큰 카드 그리드로 시각적으로 배치해
+      어느 기능이 있는지 직관적으로 파악 가능. 친근하고 접근성 높음.
+    </div>
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-chrome">
+      <div class="browser-dots"><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-dot"></div></div>
+      <div class="browser-url">portal.company.co.kr</div>
+    </div>
+    <div class="browser-body">
+      <!-- Top nav -->
+      <div class="optB-topbar">
+        <div class="optB-nav">
+          <div class="optB-logo">우리 <span>포털</span></div>
+          <div class="optB-nav-link active">홈</div>
+          <div class="optB-nav-link">업무</div>
+          <div class="optB-nav-link">교육</div>
+          <div class="optB-nav-link">커뮤니티</div>
+          <div class="optB-nav-link">공지</div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <div class="optA-search">🔍 전체 검색</div>
+          <div class="icon-circle">🔔</div>
+          <div class="icon-circle">홍</div>
+        </div>
+      </div>
+
+      <!-- Hero -->
+      <div class="optB-hero">
+        <div>
+          <div class="optB-hero-title">안녕하세요, <span class="highlight-pink">홍길동</span>님!<br>오늘도 화이팅 💪</div>
+          <div class="optB-hero-sub">지금 처리할 일 3건 · 새 공지 2개 · 이번달 미이수 교육 2개</div>
+          <div style="margin-top:8px;">
+            <button class="btn btn-primary">내 할 일 보기</button>
+            <button class="btn">결재함 열기</button>
+          </div>
+        </div>
+        <div class="optB-quick-actions">
+          <div class="optB-quick-action">
+            <div style="font-size:24px;">🧾</div>
+            <div style="font-weight:700; margin-top:4px;">증빙 업로드</div>
+          </div>
+          <div class="optB-quick-action">
+            <div style="font-size:24px;">✍️</div>
+            <div style="font-weight:700; margin-top:4px;">결재 올리기</div>
+          </div>
+          <div class="optB-quick-action">
+            <div style="font-size:24px;">📚</div>
+            <div style="font-weight:700; margin-top:4px;">교육 수강</div>
+          </div>
+          <div class="optB-quick-action">
+            <div style="font-size:24px;">🤖</div>
+            <div style="font-weight:700; margin-top:4px;">챗봇 묻기</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Services section -->
+      <div class="optB-section">
+        <div class="optB-section-title">🗂️ 전체 서비스</div>
+        <div class="optB-card-grid">
+          <div class="optB-card">
+            <div class="optB-card-icon">🧾</div>
+            <div class="optB-card-title">증빙 업로드</div>
+            <div class="optB-card-desc">법인카드·영수증 보관</div>
+          </div>
+          <div class="optB-card">
+            <div class="optB-card-icon" style="background:var(--highlight-pink);">✍️</div>
+            <div class="optB-card-title">전자 결재</div>
+            <div class="optB-card-desc">품의·정산·휴가 신청</div>
+          </div>
+          <div class="optB-card">
+            <div class="optB-card-icon" style="background:var(--highlight-green);">📚</div>
+            <div class="optB-card-title">온라인 교육</div>
+            <div class="optB-card-desc">법정·직무 교육 이수</div>
+          </div>
+          <div class="optB-card">
+            <div class="optB-card-icon" style="background:var(--highlight-yellow);">🎲</div>
+            <div class="optB-card-title">빙고 이벤트</div>
+            <div class="optB-card-desc">이달의 미션 달성하기</div>
+          </div>
+          <div class="optB-card">
+            <div class="optB-card-icon">🎨</div>
+            <div class="optB-card-title">웹툰 게시판</div>
+            <div class="optB-card-desc">사내 웹툰 감상</div>
+          </div>
+          <div class="optB-card">
+            <div class="optB-card-icon" style="background:var(--highlight-pink);">🤖</div>
+            <div class="optB-card-title">챗봇 도우미</div>
+            <div class="optB-card-desc">업무 질문 AI 답변</div>
+          </div>
+          <div class="optB-card">
+            <div class="optB-card-icon" style="background:var(--highlight-green);">📢</div>
+            <div class="optB-card-title">공지사항</div>
+            <div class="optB-card-desc">회사 소식 한눈에</div>
+          </div>
+          <div class="optB-card">
+            <div class="optB-card-icon" style="background:var(--highlight-yellow);">📅</div>
+            <div class="optB-card-title">사내 일정</div>
+            <div class="optB-card-desc">회의실·이벤트</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- News / Updates -->
+      <div class="optB-section" style="display:grid; grid-template-columns:2fr 1fr; gap:24px;">
+        <div>
+          <div class="optB-section-title">📢 지금 꼭 봐야 할 공지</div>
+          <div style="display:grid; gap:10px;">
+            <div class="sketch-box" style="padding:12px; display:flex; gap:12px; align-items:center;">
+              <div class="placeholder-img" style="width:80px; height:60px; flex-shrink:0; min-height:auto;">썸네일</div>
+              <div style="flex:1;">
+                <div style="font-weight:700; font-size:16px;"><span class="badge badge-red">필독</span> 2026 상반기 전사 워크샵 안내</div>
+                <div style="font-size:13px; color:var(--ink-faint);">인사팀 · 2026.04.18 · 조회 245</div>
+              </div>
+            </div>
+            <div class="sketch-box" style="padding:12px; display:flex; gap:12px; align-items:center;">
+              <div class="placeholder-img" style="width:80px; height:60px; flex-shrink:0; min-height:auto;">썸네일</div>
+              <div style="flex:1;">
+                <div style="font-weight:700; font-size:16px;">법인카드 증빙 마감일 변경 안내</div>
+                <div style="font-size:13px; color:var(--ink-faint);">재무팀 · 2026.04.15 · 조회 188</div>
+              </div>
+            </div>
+            <div class="sketch-box" style="padding:12px; display:flex; gap:12px; align-items:center;">
+              <div class="placeholder-img" style="width:80px; height:60px; flex-shrink:0; min-height:auto;">썸네일</div>
+              <div style="flex:1;">
+                <div style="font-weight:700; font-size:16px;">신규 온라인 교육 4건 오픈 🆕</div>
+                <div style="font-size:13px; color:var(--ink-faint);">교육팀 · 2026.04.12 · 조회 156</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="optB-section-title">🏆 이달의 랭킹</div>
+          <div class="sketch-box-2" style="padding:12px;">
+            <div style="padding:4px 0; border-bottom:1px dotted var(--ink-faint); font-size:14px;">🥇 김대리 · 빙고 14칸</div>
+            <div style="padding:4px 0; border-bottom:1px dotted var(--ink-faint); font-size:14px;">🥈 박사원 · 빙고 12칸</div>
+            <div style="padding:4px 0; border-bottom:1px dotted var(--ink-faint); font-size:14px;">🥉 이과장 · 빙고 11칸</div>
+            <div style="padding:4px 0; font-size:14px;">4. 홍길동 · 빙고 7칸</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================ -->
+<!-- OPTION C: Magazine Layout -->
+<!-- ================================ -->
+<div class="tab-pane" id="tab-C">
+  <div class="option-header">
+    <div class="option-label">OPTION C</div>
+    <div class="option-title">매거진 · 뉴스룸 스타일</div>
+    <div class="option-desc">
+      3단 컬럼 매거진 레이아웃. "회사 소식"을 메인 스토리로 크게 다루고 사이드에 업무 바로가기·랭킹·빙고 배치.
+      세련되고 정돈된 인상. 공지·웹툰·소식 콘텐츠가 풍부한 회사에 적합.
+    </div>
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-chrome">
+      <div class="browser-dots"><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-dot"></div></div>
+      <div class="browser-url">portal.company.co.kr</div>
+    </div>
+    <div class="browser-body">
+      <div class="optC-header">
+        <div class="optC-logo">우리회사 데일리</div>
+        <div class="optC-tagline">— 매일 업데이트되는 사내 소식·업무 포털 —</div>
+      </div>
+      <div class="optC-subnav">
+        <div class="optC-subnav-item">홈</div>
+        <div class="optC-subnav-item">업무</div>
+        <div class="optC-subnav-item">공지</div>
+        <div class="optC-subnav-item">교육</div>
+        <div class="optC-subnav-item">웹툰</div>
+        <div class="optC-subnav-item">빙고</div>
+        <div class="optC-subnav-item">챗봇</div>
+        <div class="optC-subnav-item">마이페이지</div>
+      </div>
+
+      <div class="optC-body">
+        <!-- Left col: Quick work area -->
+        <div class="optC-col">
+          <div class="optC-sidebar-box">
+            <div class="optC-sidebar-title">🗂️ 내 업무</div>
+            <div class="optC-mini-item">
+              <div>
+                <div style="font-weight:700; font-size:14px;">대기중 결재 3건</div>
+                <div style="font-size:12px; color:var(--ink-faint);">가장 오래된 것: 3일 전</div>
+              </div>
+            </div>
+            <div class="optC-mini-item">
+              <div>
+                <div style="font-weight:700; font-size:14px;">미이수 교육 2건</div>
+                <div style="font-size:12px; color:var(--ink-faint);">개인정보 보호 등</div>
+              </div>
+            </div>
+            <div class="optC-mini-item">
+              <div>
+                <div style="font-weight:700; font-size:14px;">이번달 증빙 12장</div>
+                <div style="font-size:12px; color:var(--ink-faint);">마감 D-10</div>
+              </div>
+            </div>
+            <div style="margin-top:10px;">
+              <div class="btn btn-primary" style="width:100%; text-align:center; display:block;">업무 바로가기 →</div>
+            </div>
+          </div>
+
+          <div class="optC-sidebar-box">
+            <div class="optC-sidebar-title">🎲 이달의 빙고</div>
+            <div class="placeholder-img" style="min-height:100px;">[4x4 빙고판 미니뷰]</div>
+            <div style="margin-top:8px; font-size:13px; text-align:center; color:var(--ink-soft);">
+              현재 진행 <span class="highlight-yellow">7 / 16</span>
+            </div>
+          </div>
+
+          <div class="optC-sidebar-box">
+            <div class="optC-sidebar-title">🤖 빠른 질문</div>
+            <div class="sketch-box-3" style="padding:8px; font-size:13px; color:var(--ink-faint);">
+              챗봇에게 업무 관련<br>질문을 해보세요...
+            </div>
+          </div>
+        </div>
+
+        <!-- Center col: Featured stories -->
+        <div class="optC-col">
+          <div class="optC-feature">
+            <div class="optC-feature-eyebrow">TOP STORY · 공지</div>
+            <div class="optC-feature-title">2026 상반기 전사 워크샵, <span class="squiggle">제주에서 만나요</span></div>
+            <div class="placeholder-img" style="min-height:200px; margin:12px 0;">
+              [워크샵 메인 이미지 배치]
+            </div>
+            <div class="optC-feature-sub">
+              5월 15일-17일, 제주도에서 진행되는 전사 워크샵 일정과 참가 방법을 안내합니다.
+              셔틀버스, 숙소 배정, 선택 프로그램까지 상세 정보를 확인하세요.
+            </div>
+            <div style="font-size:12px; color:var(--ink-faint);">인사팀 · 2026.04.18 · 245 views</div>
+          </div>
+
+          <div class="optC-feature">
+            <div class="optC-feature-eyebrow">교육 · NEW</div>
+            <div class="optC-feature-title">이번 분기 신규 교육 4건</div>
+            <div class="optC-feature-sub">
+              개인정보 보호, AI 활용 실무, 리더십 2.0, 재무제표 읽기 — 오픈!
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:10px;">
+              <div class="placeholder-img" style="min-height:70px; font-size:11px;">교육1</div>
+              <div class="placeholder-img" style="min-height:70px; font-size:11px;">교육2</div>
+              <div class="placeholder-img" style="min-height:70px; font-size:11px;">교육3</div>
+              <div class="placeholder-img" style="min-height:70px; font-size:11px;">교육4</div>
+            </div>
+          </div>
+
+          <div class="optC-feature">
+            <div class="optC-feature-eyebrow">사내 웹툰 · 이번주</div>
+            <div class="optC-feature-title">월급쟁이 다이어리 · 38화</div>
+            <div style="display:flex; gap:12px; margin-top:10px;">
+              <div class="placeholder-img" style="width:140px; min-height:100px; flex-shrink:0;">웹툰 컷</div>
+              <div style="font-size:14px; color:var(--ink-soft);">
+                회식 후 다음날 출근길에 벌어진 에피소드.<br>
+                이번주도 공감 100%! <span class="highlight-pink">♥ 128</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right col: Rankings + micro updates -->
+        <div class="optC-col">
+          <div class="optC-sidebar-box">
+            <div class="optC-sidebar-title">🏆 이달의 랭킹</div>
+            <div class="optC-mini-item">
+              <div class="optC-mini-num">1</div>
+              <div>
+                <div style="font-weight:700;">김대리</div>
+                <div style="font-size:12px; color:var(--ink-faint);">빙고 14칸 완성</div>
+              </div>
+            </div>
+            <div class="optC-mini-item">
+              <div class="optC-mini-num">2</div>
+              <div>
+                <div style="font-weight:700;">박사원</div>
+                <div style="font-size:12px; color:var(--ink-faint);">빙고 12칸</div>
+              </div>
+            </div>
+            <div class="optC-mini-item">
+              <div class="optC-mini-num">3</div>
+              <div>
+                <div style="font-weight:700;">이과장</div>
+                <div style="font-size:12px; color:var(--ink-faint);">빙고 11칸</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="optC-sidebar-box">
+            <div class="optC-sidebar-title">📅 이번주 일정</div>
+            <div class="optC-mini-item">
+              <div>
+                <div style="font-size:13px; font-weight:700;">월 · 전체회의</div>
+                <div style="font-size:12px; color:var(--ink-faint);">10:00 · 대회의실</div>
+              </div>
+            </div>
+            <div class="optC-mini-item">
+              <div>
+                <div style="font-size:13px; font-weight:700;">수 · 교육 마감</div>
+                <div style="font-size:12px; color:var(--ink-faint);">개인정보 보호</div>
+              </div>
+            </div>
+            <div class="optC-mini-item">
+              <div>
+                <div style="font-size:13px; font-weight:700;">금 · 타운홀</div>
+                <div style="font-size:12px; color:var(--ink-faint);">15:00 · 라운지</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="optC-sidebar-box">
+            <div class="optC-sidebar-title">💬 자주 찾는</div>
+            <div style="display:flex; flex-wrap:wrap; gap:4px;">
+              <span class="badge">증빙양식</span>
+              <span class="badge badge-blue">출장신청</span>
+              <span class="badge badge-green">휴가</span>
+              <span class="badge badge-red">경조사</span>
+              <span class="badge">재택근무</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================ -->
+<!-- OPTION D: Playful Bulletin Board -->
+<!-- ================================ -->
+<div class="tab-pane" id="tab-D">
+  <div class="option-header">
+    <div class="option-label">OPTION D</div>
+    <div class="option-title">게시판 · 놀이터 스타일</div>
+    <div class="option-desc">
+      사내 포스트잇 게시판 메타포. 딱딱한 그리드가 아닌 살짝 기울어진 포스트잇·스티커 배치.
+      빙고·웹툰·챗봇 같은 재미 요소가 돋보이며, 회사 분위기를 밝게 만드는 효과. 캐주얼한 조직에 추천.
+    </div>
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-chrome">
+      <div class="browser-dots"><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-dot"></div></div>
+      <div class="browser-url">portal.company.co.kr</div>
+    </div>
+    <div class="browser-body">
+      <div class="optD-body">
+        <div class="optD-header">
+          <div class="optD-logo">우리회사 <span>보드</span></div>
+          <div class="optD-user">
+            <div class="icon-circle" style="width:30px; height:30px; font-size:14px;">홍</div>
+            <div style="font-size:14px; font-weight:700;">홍길동님 · 🔔 3</div>
+          </div>
+        </div>
+
+        <div class="optD-board">
+          <!-- Hero greeting -->
+          <div class="optD-note size-hero pink tilt-l" style="grid-column: span 8; grid-row: span 3;">
+            <div class="optD-pin"></div>
+            <div style="font-family:'Nanum Pen Script',cursive; font-size:36px; line-height:1.1;">
+              좋은 아침이에요! ☕<br>
+              오늘은 <span class="highlight-yellow">결재 3건</span> · <span class="highlight-blue">교육 2개</span> 남았어요
+            </div>
+            <div style="margin-top:12px; display:flex; gap:8px;">
+              <button class="btn">할 일 보기</button>
+              <button class="btn btn-primary">챗봇 열기</button>
+            </div>
+          </div>
+
+          <!-- Bingo -->
+          <div class="optD-note size-side yellow tilt-r" style="grid-column: span 4; grid-row: span 3;">
+            <div class="optD-pin"></div>
+            <div class="optD-note-title">🎲 이달의 빙고</div>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:3px; margin-top:8px;">
+              <div style="aspect-ratio:1; border:1.5px solid var(--line); background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:10px;">✓</div>
+              <div style="aspect-ratio:1; border:1.5px solid var(--line); background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:10px;">교육</div>
+              <div style="aspect-ratio:1; border:1.5px solid var(--line); background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:10px;">✓</div>
+              <div style="aspect-ratio:1; border:1.5px solid var(--line); background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:10px;">웹툰</div>
+              <div style="aspect-ratio:1; border:1.5px solid var(--line); background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:10px;">회식</div>
+              <div style="aspect-ratio:1; border:1.5px solid var(--line); background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:10px;">✓</div>
+              <div style="aspect-ratio:1; border:1.5px solid var(--line); background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:10px;">산책</div>
+              <div style="aspect-ratio:1; border:1.5px solid var(--line); background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:10px;">독서</div>
+              <div style="aspect-ratio:1; border:1.5px solid var(--line); background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:10px;">점심</div>
+              <div style="aspect-ratio:1; border:1.5px solid var(--line); background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:10px;">✓</div>
+              <div style="aspect-ratio:1; border:1.5px solid var(--line); background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:10px;">기부</div>
+              <div style="aspect-ratio:1; border:1.5px solid var(--line); background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:10px;">✓</div>
+              <div style="aspect-ratio:1; border:1.5px solid var(--line); background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:10px;">운동</div>
+              <div style="aspect-ratio:1; border:1.5px solid var(--line); background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:10px;">챗봇</div>
+              <div style="aspect-ratio:1; border:1.5px solid var(--line); background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:10px;">✓</div>
+              <div style="aspect-ratio:1; border:1.5px solid var(--line); background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:10px;">인사</div>
+            </div>
+            <div style="text-align:center; margin-top:8px; font-family:'Nanum Pen Script',cursive; font-size:16px;">7 / 16</div>
+          </div>
+
+          <!-- Quick actions -->
+          <div class="optD-note size-med blue" style="grid-column: span 4;">
+            <div class="optD-pin"></div>
+            <div class="optD-note-title">🧾 증빙 올리기</div>
+            <div class="optD-note-body">영수증 사진을 올리면 자동 분류돼요</div>
+            <div style="margin-top:10px;"><button class="btn btn-sm">올리기 →</button></div>
+          </div>
+
+          <div class="optD-note size-med green tilt-l" style="grid-column: span 4;">
+            <div class="optD-pin"></div>
+            <div class="optD-note-title">✍️ 결재함</div>
+            <div class="optD-note-body">대기 <b>3건</b> · 내가 올린 것 <b>2건</b></div>
+            <div style="margin-top:10px;"><button class="btn btn-sm">열기 →</button></div>
+          </div>
+
+          <div class="optD-note size-med tilt-r" style="grid-column: span 4;">
+            <div class="optD-pin"></div>
+            <div class="optD-note-title">📚 교육</div>
+            <div class="optD-note-body">미이수 2건 · 마감 D-7</div>
+            <div style="margin-top:10px;"><button class="btn btn-sm btn-primary">수강 →</button></div>
+          </div>
+
+          <!-- Webtoon feature -->
+          <div class="optD-note size-wide tilt-l" style="grid-column: span 6; grid-row: span 4;">
+            <div class="optD-pin"></div>
+            <div class="optD-note-title">🎨 이번주 웹툰 · 월급쟁이 다이어리 38화</div>
+            <div class="placeholder-img" style="min-height:180px; margin-top:10px;">[웹툰 썸네일 4컷 미리보기]</div>
+            <div style="margin-top:10px; font-size:13px; color:var(--ink-soft);">
+              <span class="highlight-pink">♥ 128</span> · 💬 42 · 조회 580
+            </div>
+          </div>
+
+          <!-- Notices -->
+          <div class="optD-note size-side" style="grid-column: span 6; grid-row: span 4;">
+            <div class="optD-pin"></div>
+            <div class="optD-note-title">📢 공지사항</div>
+            <div style="margin-top:8px;">
+              <div style="padding:6px 0; border-bottom:1px dotted var(--ink-faint); font-size:14px;">
+                <span class="badge badge-red">필독</span> 2026 상반기 워크샵 안내
+              </div>
+              <div style="padding:6px 0; border-bottom:1px dotted var(--ink-faint); font-size:14px;">
+                법인카드 증빙 마감 변경
+              </div>
+              <div style="padding:6px 0; border-bottom:1px dotted var(--ink-faint); font-size:14px;">
+                신규 교육 4건 오픈 🆕
+              </div>
+              <div style="padding:6px 0; border-bottom:1px dotted var(--ink-faint); font-size:14px;">
+                4월 빙고 이벤트 시작
+              </div>
+              <div style="padding:6px 0; font-size:14px;">
+                사내 동호회 신규 모집
+              </div>
+            </div>
+          </div>
+
+          <!-- Chatbot -->
+          <div class="optD-note size-med pink tilt-r" style="grid-column: span 4; grid-row: span 3;">
+            <div class="optD-pin"></div>
+            <div class="optD-note-title">🤖 챗봇</div>
+            <div class="placeholder-img" style="min-height:80px; margin:8px 0;">[챗봇 아바타]</div>
+            <div class="optD-note-body">"출장비는 어떻게 올려요?"<br>궁금한 거 물어보세요!</div>
+          </div>
+
+          <!-- Ranking -->
+          <div class="optD-note size-med yellow" style="grid-column: span 4; grid-row: span 3;">
+            <div class="optD-pin"></div>
+            <div class="optD-note-title">🏆 이달의 랭킹</div>
+            <div style="font-size:14px; margin-top:6px;">🥇 김대리 · 14칸</div>
+            <div style="font-size:14px;">🥈 박사원 · 12칸</div>
+            <div style="font-size:14px;">🥉 이과장 · 11칸</div>
+            <div style="font-size:14px; margin-top:4px; color:var(--ink-faint);">나: 7칸 (10위)</div>
+          </div>
+
+          <!-- Schedule -->
+          <div class="optD-note size-med green tilt-l" style="grid-column: span 4; grid-row: span 3;">
+            <div class="optD-pin"></div>
+            <div class="optD-note-title">📅 이번주</div>
+            <div style="font-size:13px; margin-top:6px;">• 월 · 전체회의 10:00</div>
+            <div style="font-size:13px;">• 수 · 교육 마감 D-3</div>
+            <div style="font-size:13px;">• 금 · 타운홀 15:00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================ -->
+<!-- DESIGN NOTES -->
+<!-- ================================ -->
+<div class="tab-pane" id="tab-NOTES">
+  <div class="option-header">
+    <div class="option-label">DESIGN NOTES</div>
+    <div class="option-title">설계 노트 & 다음 단계</div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+    <div class="sketch-box" style="padding:20px;">
+      <div style="font-family:'Nanum Pen Script',cursive; font-size:24px; margin-bottom:12px;">🤔 가정한 것들</div>
+      <ul style="padding-left:20px; font-size:15px; line-height:1.8;">
+        <li>PC 기준 데스크탑 뷰 (1280px+)</li>
+        <li>기능: 증빙/결재, 교육, 빙고, 챗봇, 웹툰, 공지</li>
+        <li>손그림 느낌 로우파이 와이어프레임 (흑백+포인트)</li>
+        <li>한글 사용자 대상 · 한국 기업 문화 반영</li>
+        <li>로그인 후 메인 대시보드 화면 탐색</li>
+        <li>한 회사를 위한 오리지널 디자인 (외부 브랜드 복제 X)</li>
+      </ul>
+    </div>
+
+    <div class="sketch-box-2" style="padding:20px;">
+      <div style="font-family:'Nanum Pen Script',cursive; font-size:24px; margin-bottom:12px;">📐 디자인 시스템</div>
+      <ul style="padding-left:20px; font-size:15px; line-height:1.8;">
+        <li>폰트: Nanum Pen Script (제목), Gaegu (본문), Kalam (설명)</li>
+        <li>컬러: 크림 페이퍼 + 먹색 · 노랑/파랑/핑크/초록 하이라이트</li>
+        <li>박스: 비대칭 라운드 모서리로 손그림 느낌</li>
+        <li>플레이스홀더: 대각 줄무늬 + 설명 텍스트</li>
+        <li>브라우저 프레임으로 실제 웹사이트임을 시각화</li>
+      </ul>
+    </div>
+
+    <div class="sketch-box-3" style="padding:20px;">
+      <div style="font-family:'Nanum Pen Script',cursive; font-size:24px; margin-bottom:12px;">✨ 각 옵션 핵심 차이</div>
+      <div style="font-size:15px; line-height:1.7;">
+        <p><b>A · 사이드바 대시보드</b> — 가장 표준적. 업무 중심, 데이터 많을 때 유리.</p>
+        <p style="margin-top:8px;"><b>B · 카드 허브</b> — 친근함. 기능 카드로 "뭐가 있는지"가 먼저 보임.</p>
+        <p style="margin-top:8px;"><b>C · 매거진</b> — 콘텐츠(공지·웹툰·소식)가 풍부할 때 효과적.</p>
+        <p style="margin-top:8px;"><b>D · 포스트잇 보드</b> — 캐주얼·재미 강조. 빙고/웹툰이 주연.</p>
+      </div>
+    </div>
+
+    <div class="sketch-box" style="padding:20px; background:var(--highlight-yellow);">
+      <div style="font-family:'Nanum Pen Script',cursive; font-size:24px; margin-bottom:12px;">👉 다음 단계</div>
+      <ol style="padding-left:20px; font-size:15px; line-height:1.8;">
+        <li>4가지 중 마음에 드는 방향 골라주세요 (섞어도 OK)</li>
+        <li>회사 브랜드 컬러·로고 공유 (있으면)</li>
+        <li>기존 사이트 스크린샷 또는 GitHub 레포 연결</li>
+        <li>선택한 방향을 하이파이(실제 UI)로 발전</li>
+        <li>각 기능별 상세 화면 (증빙 업로드 · 결재 · 교육 등) 디자인</li>
+      </ol>
+    </div>
+  </div>
+
+  <div style="margin-top:32px; text-align:center; font-family:'Nanum Pen Script',cursive; font-size:24px; color:var(--ink-faint);">
+    우측 하단 <span style="color:var(--accent-red);">Tweaks</span> 버튼으로 색감·배경을 바꿔보세요 →
+  </div>
+</div>
+
+</div><!-- /.tab-content -->
+
+<!-- ============ Tweaks Panel ============ -->
+<div class="tweaks-panel" id="tweaksPanel">
+  <div class="tweaks-title">🎨 Tweaks</div>
+
+  <div class="tweak-row">
+    <label class="tweak-label">메인 하이라이트 컬러</label>
+    <div class="tweak-color-row" data-tweak="highlight">
+      <div class="tweak-color-swatch active" data-color="yellow" style="background:#fff59d;"></div>
+      <div class="tweak-color-swatch" data-color="blue" style="background:#bbdefb;"></div>
+      <div class="tweak-color-swatch" data-color="pink" style="background:#f8bbd0;"></div>
+      <div class="tweak-color-swatch" data-color="green" style="background:#c5e1a5;"></div>
+      <div class="tweak-color-swatch" data-color="orange" style="background:#ffcc80;"></div>
+    </div>
+  </div>
+
+  <div class="tweak-row">
+    <label class="tweak-label">페이퍼 톤</label>
+    <div class="tweak-color-row" data-tweak="paper">
+      <div class="tweak-color-swatch active" data-color="cream" style="background:#fafaf6;"></div>
+      <div class="tweak-color-swatch" data-color="white" style="background:#ffffff;"></div>
+      <div class="tweak-color-swatch" data-color="warm" style="background:#fdf6e3;"></div>
+      <div class="tweak-color-swatch" data-color="cool" style="background:#f4f7fa;"></div>
+    </div>
+  </div>
+
+  <div class="tweak-row">
+    <label class="tweak-label">제목 폰트</label>
+    <select id="tweakFont">
+      <option value="'Nanum Pen Script', cursive">나눔 펜 (기본)</option>
+      <option value="'Gaegu', sans-serif">개구</option>
+      <option value="'Caveat', cursive">Caveat</option>
+      <option value="'Kalam', cursive">Kalam</option>
+    </select>
+  </div>
+
+  <div class="tweak-row">
+    <label class="tweak-label">배경 격자</label>
+    <select id="tweakGrid">
+      <option value="dots">점 패턴</option>
+      <option value="grid">모눈</option>
+      <option value="lined">줄노트</option>
+      <option value="none">없음</option>
+    </select>
+  </div>
+
+  <div style="font-size:12px; color:var(--ink-faint); margin-top:8px;">
+    툴바의 Tweaks를 다시 눌러 닫기
+  </div>
+</div>
+
+<!-- ============ Edit-mode default state marker ============ -->
+<script>
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "highlight": "yellow",
+  "paper": "cream",
+  "font": "'Nanum Pen Script', cursive",
+  "grid": "dots"
+}/*EDITMODE-END*/;
+</script>
+
+<script>
+// ============ Tab switching ============
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const id = tab.dataset.tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + id).classList.add('active');
+    localStorage.setItem('ia-wireframe-tab', id);
+  });
+});
+
+// Restore last tab
+const lastTab = localStorage.getItem('ia-wireframe-tab');
+if (lastTab) {
+  const t = document.querySelector('.tab[data-tab="' + lastTab + '"]');
+  if (t) t.click();
+}
+
+// ============ Tweaks: Edit mode integration ============
+let tweakState = {...TWEAK_DEFAULTS};
+
+const highlightColors = {
+  yellow: '#fff59d', blue: '#bbdefb', pink: '#f8bbd0',
+  green: '#c5e1a5', orange: '#ffcc80'
+};
+const paperColors = {
+  cream: { paper: '#fafaf6', paper2: '#f3f1e8' },
+  white: { paper: '#ffffff', paper2: '#f5f5f5' },
+  warm:  { paper: '#fdf6e3', paper2: '#f0e9d1' },
+  cool:  { paper: '#f4f7fa', paper2: '#e7edf4' }
+};
+
+function applyTweaks() {
+  const root = document.documentElement;
+  root.style.setProperty('--highlight-yellow', highlightColors[tweakState.highlight]);
+  const p = paperColors[tweakState.paper];
+  root.style.setProperty('--paper', p.paper);
+  root.style.setProperty('--paper-2', p.paper2);
+
+  // Font
+  document.querySelectorAll('.option-title, .tab-bar-title, .optA-logo, .optB-logo, .optC-logo, .optD-logo, .optA-greeting, .optA-card-title, .optB-hero-title, .optB-section-title, .optC-feature-title, .optC-sidebar-title, .optD-note-title, .optA-stat-value, .tweaks-title')
+    .forEach(el => el.style.fontFamily = tweakState.font);
+
+  // Grid pattern
+  const body = document.body;
+  body.style.backgroundImage = '';
+  if (tweakState.grid === 'dots') {
+    body.style.backgroundImage =
+      'radial-gradient(circle at 20% 30%, rgba(0,0,0,0.015) 1px, transparent 1px), radial-gradient(circle at 80% 70%, rgba(0,0,0,0.015) 1px, transparent 1px)';
+    body.style.backgroundSize = '40px 40px, 60px 60px';
+  } else if (tweakState.grid === 'grid') {
+    body.style.backgroundImage =
+      'linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)';
+    body.style.backgroundSize = '24px 24px';
+  } else if (tweakState.grid === 'lined') {
+    body.style.backgroundImage =
+      'linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px)';
+    body.style.backgroundSize = '100% 28px';
+  } else {
+    body.style.backgroundImage = 'none';
+  }
+}
+applyTweaks();
+
+// Swatches
+document.querySelectorAll('[data-tweak] .tweak-color-swatch').forEach(sw => {
+  sw.addEventListener('click', () => {
+    const group = sw.closest('[data-tweak]').dataset.tweak;
+    sw.closest('[data-tweak]').querySelectorAll('.tweak-color-swatch').forEach(x => x.classList.remove('active'));
+    sw.classList.add('active');
+    tweakState[group] = sw.dataset.color;
+    applyTweaks();
+    persistTweaks({[group]: sw.dataset.color});
+  });
+});
+
+document.getElementById('tweakFont').addEventListener('change', e => {
+  tweakState.font = e.target.value;
+  applyTweaks();
+  persistTweaks({font: e.target.value});
+});
+
+document.getElementById('tweakGrid').addEventListener('change', e => {
+  tweakState.grid = e.target.value;
+  applyTweaks();
+  persistTweaks({grid: e.target.value});
+});
+
+function persistTweaks(edits) {
+  try {
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+  } catch (err) {}
+}
+
+// Edit mode listener MUST be registered before announcing availability
+window.addEventListener('message', (e) => {
+  if (!e.data || typeof e.data !== 'object') return;
+  if (e.data.type === '__activate_edit_mode') {
+    document.getElementById('tweaksPanel').classList.add('visible');
+  } else if (e.data.type === '__deactivate_edit_mode') {
+    document.getElementById('tweaksPanel').classList.remove('visible');
+  }
+});
+
+try {
+  window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+} catch (err) {}
+
+// Initialize selects to reflect defaults
+document.getElementById('tweakFont').value = tweakState.font;
+document.getElementById('tweakGrid').value = tweakState.grid;
+</script>
+
+</body>
+</html>

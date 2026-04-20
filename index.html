@@ -6,18 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="theme-color" content="#1D1B18" />
+    <meta name="theme-color" content="#3182F6" />
     <title>(주)동양 내부회계 PORTAL</title>
     <style>
-      #splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:#FAFAF8;transition:opacity .4s ease}
+      #splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:#F2F4F6;transition:opacity .4s ease}
       #splash.hide{opacity:0;pointer-events:none}
-      #splash .bar{width:120px;height:3px;background:#ECEAE4;border-radius:2px;overflow:hidden}
-      #splash .bar>div{width:30%;height:100%;background:#5C564A;border-radius:2px;animation:slide 1s ease-in-out infinite}
-      #splash p{font:500 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#9E9888;letter-spacing:.02em}
+      #splash .bar{width:120px;height:3px;background:#E5E8EB;border-radius:2px;overflow:hidden}
+      #splash .bar>div{width:30%;height:100%;background:#3182F6;border-radius:2px;animation:slide 1s ease-in-out infinite}
+      #splash p{font:600 13px/1 'Pretendard',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#4E5968;letter-spacing:.02em}
       @keyframes slide{0%{transform:translateX(-100%)}50%{transform:translateX(250%)}100%{transform:translateX(-100%)}}
     </style>
   </head>
-  <body>
+  <body class="theme-toss">
     <div id="splash"><p>(주)동양 내부회계 PORTAL</p><div class="bar"><div></div></div></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

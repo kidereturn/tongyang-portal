@@ -1,0 +1,142 @@
+<div class="screen-frame">
+  <!-- Login has its own chrome — no global nav -->
+  <nav class="at-nav">
+    <div class="at-nav-logo">
+      <div class="mark">T</div>
+      <span>동양</span>
+      <span class="en">INTERNAL CONTROLS</span>
+    </div>
+    <div class="at-nav-items">
+      <div class="at-nav-item">소개</div>
+      <div class="at-nav-item">내부회계</div>
+      <div class="at-nav-item">뉴스</div>
+      <div class="at-nav-item">문의</div>
+    </div>
+    <div class="at-nav-right">
+      <div style="font-family: var(--f-mono); font-size: 10px; color: var(--at-ink-faint); letter-spacing: 0.14em;">KO · EN</div>
+    </div>
+  </nav>
+
+  <div class="login-wrap">
+    <!-- Left: cinematic dark -->
+    <div class="login-left">
+      <div class="bg-orbit"></div>
+      <div class="stars-bg"></div>
+
+      <div class="login-hd">
+        <div class="mini-logo">
+          <div class="mk">T</div>
+          <span>INTERNAL CONTROLS · CYCLE 04</span>
+        </div>
+        <div class="eugene">
+          <span class="ico">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2 L14.5 8.5 L21 10 L14.5 11.5 L12 18 L9.5 11.5 L3 10 L9.5 8.5 Z"/>
+            </svg>
+          </span>
+          Powered by Eugene
+        </div>
+      </div>
+
+      <div class="login-hero">
+        <div class="cycle-tag">2026 · Q2 · Cycle 04 · In Progress</div>
+        <h1>고요하게<br>움직입니다.</h1>
+        <p class="en">
+          424개 통제활동, <b>477명</b>의 구성원, <b>28개 사업장</b>이 하나의 사이클로 연결되어 있습니다.
+          오늘도 당신의 기록이 조직의 신뢰를 만듭니다.
+        </p>
+        <div class="quote">
+          "Control is not a constraint — it's the quiet architecture of trust."
+        </div>
+      </div>
+
+      <div class="login-bus">
+        <div class="b active">
+          <div class="bi">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M3 9 L12 3 L21 9 V21 H3 Z"/><path d="M9 21 V13 H15 V21"/>
+            </svg>
+          </div>
+          <div class="bn">Financial</div>
+          <div class="bl">금융투자</div>
+        </div>
+        <div class="b">
+          <div class="bi">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 010 18"/>
+            </svg>
+          </div>
+          <div class="bn">Overseas</div>
+          <div class="bl">해외법인</div>
+        </div>
+        <div class="b">
+          <div class="bi">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="4" y="7" width="16" height="13" rx="2"/><path d="M8 7V4h8v3"/>
+            </svg>
+          </div>
+          <div class="bn">Logistics</div>
+          <div class="bl">물류</div>
+        </div>
+        <div class="b">
+          <div class="bi">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/>
+            </svg>
+          </div>
+          <div class="bn">ETC</div>
+          <div class="bl">기타 사업</div>
+        </div>
+      </div>
+
+      <div class="login-bot">
+        <div class="status">
+          <span class="dot"></span>
+          <span>All systems · Normal</span>
+        </div>
+        <div>© 2026 Tongyang Group · v4.2.1</div>
+      </div>
+    </div>
+
+    <!-- Right: ivory form -->
+    <div class="login-right">
+      <div class="eyebrow">01 · SIGN IN</div>
+      <h2>다시 만나 반갑습니다.</h2>
+      <p class="sub">사내 인증 시스템으로 로그인하세요. 내부회계 포털 전용 계정입니다.</p>
+
+      <form class="login-form" onsubmit="event.preventDefault(); alert('데모: 로그인');">
+        <div class="fld">
+          <div class="fld-lab">사번 또는 이메일 <span class="req">ID</span></div>
+          <input class="fld-in" type="text" value="jhchoi@tongyang.co.kr" readonly>
+          <div class="hint">사번(8자리) 또는 <b>@tongyang.co.kr</b> 이메일로 로그인할 수 있습니다.</div>
+        </div>
+        <div class="fld">
+          <div class="fld-lab">비밀번호 <span class="req">PW</span></div>
+          <div class="pw-wrap">
+            <input class="fld-in" type="password" value="••••••••••••" readonly>
+            <span class="eye">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            </span>
+          </div>
+        </div>
+        <button class="login-submit">
+          포털 입장하기
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </button>
+      </form>
+
+      <div class="login-notice">
+        <div class="ln-hd">
+          <input type="checkbox" id="auto-login">
+          <label for="auto-login">자동 로그인 유지 (30일)</label>
+        </div>
+        <div class="ln-tx">
+          공용 단말이나 외부 기기에서는 체크하지 마세요. 보안을 위해 마지막 접속 기록은
+          <b>마이페이지 → 활동 이력</b>에서 확인할 수 있습니다.
+        </div>
+      </div>
+
+      <div class="login-foot">비밀번호 재설정 · 관리자 문의 · 개인정보처리방침</div>
+    </div>
+  </div>
+</div>
