@@ -61,7 +61,7 @@ export default function KpiPage() {
         <div className="card p-5">
           <p className="font-bold text-brand-900 mb-4">월별 KPI 달성률 추이</p>
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={CHART_DATA} barSize={22} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+            <BarChart data={CHART_DATA} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E8EB" vertical={false} />
               <XAxis dataKey="month" tick={{ fill: '#8B95A1', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: '#8B95A1', fontSize: 11 }} axisLine={false} tickLine={false} domain={[0, 100]} />
@@ -69,8 +69,8 @@ export default function KpiPage() {
                 contentStyle={{ backgroundColor: '#fff', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 12 }}
                 cursor={{ fill: 'rgba(49, 130, 246, 0.06)' }}
               />
-              <Bar dataKey="목표" fill="#C9DDFF" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="실적" fill="#3182F6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="목표" fill="#C9DDFF" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+              <Bar dataKey="실적" fill="#3182F6" radius={[4, 4, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>
