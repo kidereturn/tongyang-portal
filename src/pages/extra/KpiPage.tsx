@@ -21,14 +21,18 @@ const CHART_DATA = [
 
 export default function KpiPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-brand-900 flex items-center gap-2">
-          <TrendingUp size={22} className="text-brand-700" />KPI 결과
-        </h1>
-        <p className="text-warm-500 text-sm mt-0.5">내부회계관리제도 운영 KPI 현황</p>
+    <>
+      <div className="pg-head">
+        <div className="pg-head-row">
+          <div>
+            <div className="eyebrow">성과 지표<span className="sep" />KPI Dashboard</div>
+            <h1>KPI 결과. <span className="soft">숫자로 본 내부회계관리.</span></h1>
+            <p className="lead">부서·월별 달성률과 통제활동 현황을 한눈에. 매일 자정 업데이트됩니다.</p>
+          </div>
+        </div>
       </div>
 
+      <div className="pg-body space-y-6">
       {/* KPI 요약 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
@@ -146,6 +150,7 @@ export default function KpiPage() {
           </table>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   )
 }

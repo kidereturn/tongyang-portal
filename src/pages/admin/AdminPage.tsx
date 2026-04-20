@@ -14,7 +14,6 @@ import {
   Shield,
   Users,
 } from 'lucide-react'
-import clsx from 'clsx'
 import type { Tab } from './adminShared'
 
 import UserUploadTab from './tabs/UserUploadTab'
@@ -60,56 +59,64 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="flex items-center gap-2 text-xl font-bold text-brand-900">
-          <Shield size={22} className="text-brand-600" />
-          관리자
-        </h1>
-        <p className="mt-0.5 text-sm text-warm-500">
-          사용자 초기 세팅, RCM, 모집단 업로드를 여기서 관리합니다.
-        </p>
+    <>
+      <div className="pg-head">
+        <div className="pg-head-row">
+          <div>
+            <div className="eyebrow">관리자<span className="sep" />Administration Console</div>
+            <h1>관리자. <span className="soft">포털 전체 세팅과 운영.</span></h1>
+            <p className="lead">사용자 초기 업로드 → RCM 업로드 → 모집단 업로드 순서로 진행하세요. 로그인 ID와 초기 비밀번호는 모두 사번으로 맞춰집니다.</p>
+          </div>
+          <div className="actions">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 10, fontSize: 12, color: '#92400E' }}>
+              <Shield size={14} /> 관리자 권한
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="rounded-lg border border-orange-100 bg-orange-50/70 p-4">
-        <p className="text-sm font-semibold text-orange-900">현재 권장 순서</p>
-        <p className="mt-1 text-sm text-orange-800">
-          1. 사용자 초기 업로드 2. RCM 업로드 3. 모집단 업로드 순서로 진행하면 됩니다.
-          로그인 ID와 초기 비밀번호는 모두 사번으로 맞춰집니다.
-        </p>
-      </div>
+      <div className="pg-body">
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: 6, background: 'var(--at-white)', borderRadius: 14, border: '1px solid var(--at-ink-hair)', marginBottom: 20 }}>
+          {TABS.map(item => {
+            const Icon = item.icon
+            const active = tab === item.key
+            return (
+              <button
+                key={item.key}
+                onClick={() => setTab(item.key)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  whiteSpace: 'nowrap', padding: '10px 14px', borderRadius: 10,
+                  fontSize: 12, fontWeight: 600,
+                  border: 'none', cursor: 'pointer',
+                  background: active ? 'var(--at-blue)' : 'transparent',
+                  color: active ? '#fff' : 'var(--at-ink-mute)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <Icon size={13} strokeWidth={1.8} />
+                {item.label}
+              </button>
+            )
+          })}
+        </div>
 
-      <div className="flex gap-1 overflow-x-auto rounded-xl bg-warm-100 p-1.5">
-        {TABS.map(item => (
-          <button
-            key={item.key}
-            onClick={() => setTab(item.key)}
-            className={clsx(
-              'flex items-center gap-1 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition-all',
-              tab === item.key ? 'bg-white text-brand-900 shadow-sm' : 'text-warm-500 hover:text-brand-700'
-            )}
-          >
-            <item.icon size={13} />
-            {item.label}
-          </button>
-        ))}
+        {tab === 'upload-users' && <UserUploadTab onDone={refresh} />}
+        {tab === 'upload-rcm' && <RcmUploadTab onDone={refresh} />}
+        {tab === 'upload-population' && <PopulationUploadTab onDone={refresh} />}
+        {tab === 'users' && <UsersTab refreshKey={refreshKey} />}
+        {tab === 'activities' && <ActivitiesTab refreshKey={refreshKey} />}
+        {tab === 'files' && <FilesTab />}
+        {tab === 'notifications' && <NotificationsTab />}
+        {tab === 'videos' && <VideosTab />}
+        {tab === 'webtoon' && <WebtoonTab />}
+        {tab === 'settings' && <SettingsTab />}
+        {tab === 'login-logs' && <LoginLogsTab />}
+        {tab === 'quiz-results' && <QuizResultsTab />}
+        {tab === 'notices' && <NoticesTab />}
+        {tab === 'points' && <PointsTab />}
+        {tab === 'chatbot-docs' && <ChatbotDocsTab />}
       </div>
-
-      {tab === 'upload-users' && <UserUploadTab onDone={refresh} />}
-      {tab === 'upload-rcm' && <RcmUploadTab onDone={refresh} />}
-      {tab === 'upload-population' && <PopulationUploadTab onDone={refresh} />}
-      {tab === 'users' && <UsersTab refreshKey={refreshKey} />}
-      {tab === 'activities' && <ActivitiesTab refreshKey={refreshKey} />}
-      {tab === 'files' && <FilesTab />}
-      {tab === 'notifications' && <NotificationsTab />}
-      {tab === 'videos' && <VideosTab />}
-      {tab === 'webtoon' && <WebtoonTab />}
-      {tab === 'settings' && <SettingsTab />}
-      {tab === 'login-logs' && <LoginLogsTab />}
-      {tab === 'quiz-results' && <QuizResultsTab />}
-      {tab === 'notices' && <NoticesTab />}
-      {tab === 'points' && <PointsTab />}
-      {tab === 'chatbot-docs' && <ChatbotDocsTab />}
-    </div>
+    </>
   )
 }

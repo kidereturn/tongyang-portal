@@ -135,44 +135,35 @@ export default function TellMePage() {
   const catColor = (cat: string) => CATEGORIES.find(c => c.key === cat)?.color ?? 'bg-warm-100 text-warm-600'
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="rounded-lg bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
-        <p className="text-xs font-semibold tracking-[0.24em] text-warm-300">TELL ME!!</p>
-        <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
-          <MessageCircle size={28} className="text-warm-300" />
-          Tell me!!
-        </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-warm-300">
-          자유롭게 의견을 남겨주세요. 익명 게시도 가능합니다. 모든 사용자가 게시글을 볼 수 있습니다.
-        </p>
+    <>
+      <div className="pg-head">
+        <div className="pg-head-row">
+          <div>
+            <div className="eyebrow">커뮤니티<span className="sep" />Tell me!!</div>
+            <h1>Tell me!! <span className="soft">자유롭게 이야기하세요.</span></h1>
+            <p className="lead">응원·불편·개선·건의·쓴소리까지 익명으로 남길 수 있습니다. 모든 사용자가 볼 수 있어요.</p>
+          </div>
+          <div className="actions">
+            <button onClick={() => setShowForm(true)} className="btn-compact primary">
+              <Plus size={13} /> 글쓰기
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          onClick={() => setShowForm(true)}
-          className="btn-primary text-sm"
-        >
-          <Plus size={16} /> 글쓰기
-        </button>
-        <div className="flex flex-wrap gap-1.5 ml-auto">
+      <div className="pg-body">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
           {CATEGORIES.map(cat => (
             <button
               key={cat.key}
               onClick={() => setFilter(cat.key)}
-              className={clsx(
-                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border',
-                filter === cat.key
-                  ? 'bg-brand-800 text-white border-brand-600'
-                  : 'bg-white text-warm-600 border-warm-200 hover:bg-warm-50'
-              )}
+              className={clsx('filter-chip', filter === cat.key && 'active')}
+              style={{ cursor: 'pointer' }}
             >
               {cat.label}
             </button>
           ))}
         </div>
-      </div>
 
       {/* Post list */}
       {loading ? (
@@ -386,6 +377,7 @@ export default function TellMePage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }

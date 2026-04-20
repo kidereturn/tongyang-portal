@@ -346,48 +346,51 @@ export default function CoursesPage() {
     setSelectedVideo(v)
   }
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="rounded-lg bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
-          <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">COURSE PLAYER</p>
-          <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
-            <BookOpen size={28} className="text-brand-300" />내 강좌
-          </h1>
+  const pageHeader = (
+    <div className="pg-head">
+      <div className="pg-head-row">
+        <div>
+          <div className="eyebrow">Courses<span className="sep" />내 강좌</div>
+          <h1>내 강좌. <span className="soft">영상으로 배웁니다.</span></h1>
+          <p className="lead">강의 동영상을 재생하고 학습 진도를 관리합니다. 배속은 2배속까지, 건너뛰기는 제한됩니다.</p>
         </div>
-        <div className="text-center text-sm text-warm-400 py-20">
-          {loadError ?? '강좌를 불러오는 중...'}
+        <div className="actions">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--at-ivory)', border: '1px solid var(--at-ink-hair)', borderRadius: 10, fontSize: 12, color: 'var(--at-ink-mute)' }}>
+            <BookOpen size={14} /> {videos.length}개 강좌
+          </div>
         </div>
       </div>
+    </div>
+  )
+
+  if (loading) {
+    return (
+      <>
+        {pageHeader}
+        <div className="pg-body">
+          <div className="text-center text-sm text-warm-400 py-20">
+            {loadError ?? '강좌를 불러오는 중...'}
+          </div>
+        </div>
+      </>
     )
   }
 
   if (videos.length === 0) {
     return (
-      <div className="space-y-6">
-        <div className="rounded-lg bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
-          <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">COURSE PLAYER</p>
-          <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
-            <BookOpen size={28} className="text-brand-300" />내 강좌
-          </h1>
+      <>
+        {pageHeader}
+        <div className="pg-body">
+          <div className="text-center text-sm text-warm-400 py-20">등록된 강좌가 없습니다. 관리자가 동영상을 추가하면 여기에 표시됩니다.</div>
         </div>
-        <div className="text-center text-sm text-warm-400 py-20">등록된 강좌가 없습니다. 관리자가 동영상을 추가하면 여기에 표시됩니다.</div>
-      </div>
+      </>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-lg bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
-        <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">COURSE PLAYER</p>
-        <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
-          <BookOpen size={28} className="text-brand-300" />내 강좌
-        </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-warm-300">
-          강의 동영상을 재생하고 학습 진도를 관리합니다. 배속은 2배속까지, 건너뛰기는 제한됩니다.
-        </p>
-      </div>
-
+    <>
+      {pageHeader}
+      <div className="pg-body">
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         {/* Player */}
         <section className="overflow-hidden rounded-lg border border-warm-200 bg-white shadow-md">
@@ -523,6 +526,7 @@ export default function CoursesPage() {
           onClose={() => setQuizOpen(false)}
         />
       )}
-    </div>
+      </div>
+    </>
   )
 }

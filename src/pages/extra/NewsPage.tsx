@@ -4,7 +4,6 @@ import {
   Building2,
   ExternalLink,
   Loader2,
-  Newspaper,
   RefreshCw,
   Search,
   TrendingUp,
@@ -129,30 +128,27 @@ export default function NewsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Hero */}
-      <div className="rounded-lg bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <>
+      <div className="pg-head">
+        <div className="pg-head-row">
           <div>
-            <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">LIVE FEED</p>
-            <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
-              <Newspaper size={28} className="text-brand-300" />
-              뉴스 · 공시 · 재무
-            </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-warm-300">
-              DART 공시, 실시간 주가, 재무제표, 네이버 금융 뉴스를 통합 조회합니다.
-            </p>
+            <div className="eyebrow">Live Feed<span className="sep" />공시 · 주가 · 뉴스</div>
+            <h1>뉴스 · 공시 · 재무. <span className="soft">숫자와 흐름을 한 번에.</span></h1>
+            <p className="lead">DART 공시, 실시간 주가, 재무제표, 네이버 금융 뉴스를 통합 조회합니다.</p>
           </div>
-          <button
-            onClick={() => loadFeed()}
-            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-          >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-            새로 고침
-          </button>
+          <div className="actions">
+            <button
+              onClick={() => loadFeed()}
+              className="btn-compact"
+            >
+              <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+              새로 고침
+            </button>
+          </div>
         </div>
       </div>
 
+      <div className="pg-body">
       {/* Main grid: DART left, News right */}
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         {/* ───── LEFT: DART 공시 ───── */}
@@ -341,7 +337,8 @@ export default function NewsPage() {
           onClose={() => setShowSearchPopup(false)}
         />
       )}
-    </div>
+      </div>
+    </>
   )
 }
 

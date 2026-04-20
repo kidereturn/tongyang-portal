@@ -123,20 +123,23 @@ export default function ChatbotPage() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-brand-900 flex items-center gap-2">
-            <Bot size={22} className="text-brand-700" />AI 챗봇
-          </h1>
-          <p className="text-warm-500 text-sm mt-0.5">내부회계관리 문서 기반 AI 어시스턴트</p>
-        </div>
-        <div className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs bg-emerald-50 border border-emerald-100 text-emerald-700">
-          <Sparkles size={12} />
-          <span>문서 기반 AI</span>
+    <>
+      <div className="pg-head">
+        <div className="pg-head-row">
+          <div>
+            <div className="eyebrow">AI Assistant<span className="sep" />챗봇</div>
+            <h1>AI 챗봇. <span className="soft">묻고 배우세요.</span></h1>
+            <p className="lead">내부회계관리 문서 기반으로 답변합니다. 문서에 없는 내용은 답하지 않습니다.</p>
+          </div>
+          <div className="actions">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: 10, fontSize: 12, color: '#065F46' }}>
+              <Sparkles size={12} /> 문서 기반 AI
+            </div>
+          </div>
         </div>
       </div>
 
+      <div className="pg-body">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
         {/* 채팅 영역 */}
         <div className="lg:col-span-3 card flex flex-col h-[calc(100vh-200px)] sm:h-[500px] lg:h-[580px]">
@@ -288,6 +291,7 @@ export default function ChatbotPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   )
 }

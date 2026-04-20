@@ -220,42 +220,31 @@ export default function MapPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* 헤더 */}
-      <div className="rounded-lg bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <>
+      <div className="pg-head">
+        <div className="pg-head-row">
           <div>
-            <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">MAP CENTER</p>
-            <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
-              <Map size={28} className="text-brand-300" />
-              사업장 지도
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-warm-300">
-              업로드하신 <strong className="text-white">사업장 주소.xlsx</strong> 기준 28개 사업장을 한 화면에서 비교합니다.
-              목록을 누르면 선택한 사업장으로 즉시 확대 이동합니다.
-            </p>
+            <div className="eyebrow">Locations<span className="sep" />사업장 지도</div>
+            <h1>사업장 지도. <span className="soft">한 화면으로 28곳.</span></h1>
+            <p className="lead">업로드한 사업장 주소 기준 전국 사업장을 Kakao/Naver/Google/VWorld 4가지 지도로 비교합니다.</p>
           </div>
-
-          <div className="grid gap-2 sm:grid-cols-4">
+          <div className="actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {PROVIDERS.map(item => (
               <button
                 key={item.id}
                 onClick={() => setProvider(item.id)}
-                className={clsx(
-                  'rounded-lg border px-4 py-3 text-left transition',
-                  provider === item.id
-                    ? 'border-brand-300 bg-warm-500/20 text-white'
-                    : 'border-white/10 bg-white/5 text-warm-300 hover:border-white/20 hover:bg-white/10'
-                )}
+                className={clsx('filter-chip', provider === item.id && 'active')}
+                style={{ cursor: 'pointer' }}
               >
-                <p className="text-sm font-bold">{item.label}</p>
-                <p className="mt-1 text-xs text-warm-400">{item.description}</p>
+                <Map size={12} style={{ marginRight: 4, display: 'inline' }} />
+                {item.label}
               </button>
             ))}
           </div>
         </div>
       </div>
 
+      <div className="pg-body">
       {/* 본문 */}
       <div className="grid gap-6 xl:grid-cols-[1.5fr_0.9fr]">
         <section className="overflow-hidden rounded-lg border border-warm-200 bg-white shadow-md">
@@ -327,6 +316,7 @@ export default function MapPage() {
           </div>
         </section>
       </div>
-    </div>
+      </div>
+    </>
   )
 }

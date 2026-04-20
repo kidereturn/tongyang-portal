@@ -71,38 +71,47 @@ export default function WebtoonPage() {
 
   const ep = episodes[current]
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="rounded-lg bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
-          <div className="flex items-center gap-3">
-            <BookOpen className="h-8 w-8 opacity-80" />
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] opacity-70">Webtoon</p>
-          </div>
-          <h1 className="mt-3 text-3xl font-bold tracking-tight">내부회계 웹툰</h1>
+  const header = (
+    <div className="pg-head">
+      <div className="pg-head-row">
+        <div>
+          <div className="eyebrow">교육 콘텐츠<span className="sep" />Webtoon</div>
+          <h1>내부회계 웹툰. <span className="soft">보면서 배웁니다.</span></h1>
+          <p className="lead">어려운 내부회계관리제도 이야기를 한 장씩 풀어드립니다.</p>
         </div>
-        <div className="flex items-center justify-center py-20 text-warm-400">
-          <Loader2 size={24} className="animate-spin mr-2" />
-          로딩 중...
+        <div className="actions">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--at-ivory)', border: '1px solid var(--at-ink-hair)', borderRadius: 10, fontSize: 12, color: 'var(--at-ink-mute)' }}>
+            <BookOpen size={14} /> {episodes.length}화 연재중
+          </div>
         </div>
       </div>
+    </div>
+  )
+
+  if (loading) {
+    return (
+      <>
+        {header}
+        <div className="pg-body">
+          <div className="flex items-center justify-center py-20 text-warm-400">
+            <Loader2 size={24} className="animate-spin mr-2" />
+            로딩 중...
+          </div>
+        </div>
+      </>
     )
   }
 
   if (episodes.length === 0) {
     return (
-      <div className="space-y-6">
-        <div className="rounded-lg bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
-          <div className="flex items-center gap-3">
-            <BookOpen className="h-8 w-8 opacity-80" />
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] opacity-70">Webtoon</p>
+      <>
+        {header}
+        <div className="pg-body">
+          <div className="py-20 text-center text-sm text-warm-400">
+            등록된 웹툰이 없습니다. 관리자가 에피소드를 업로드하면 여기에 표시됩니다.
           </div>
-          <h1 className="mt-3 text-3xl font-bold tracking-tight">내부회계 웹툰</h1>
         </div>
-        <div className="py-20 text-center text-sm text-warm-400">
-          등록된 웹툰이 없습니다. 관리자가 에피소드를 업로드하면 여기에 표시됩니다.
-        </div>
-      </div>
+      </>
     )
   }
 
@@ -110,18 +119,9 @@ export default function WebtoonPage() {
   const imagePaths = ep ? parsePaths(ep.image_path) : []
 
   return (
-    <div className="space-y-6">
-      {/* Hero */}
-      <div className="rounded-lg bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
-        <div className="flex items-center gap-3">
-          <BookOpen className="h-8 w-8 opacity-80" />
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] opacity-70">Webtoon</p>
-        </div>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight">내부회계 웹툰</h1>
-        <p className="mt-2 max-w-xl text-sm leading-relaxed opacity-80">
-          내부회계관리제도를 쉽고 재미있게 이해할 수 있는 웹툰 콘텐츠입니다.
-        </p>
-      </div>
+    <>
+      {header}
+      <div className="pg-body space-y-6">
 
       {/* Tab bar */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -219,6 +219,7 @@ export default function WebtoonPage() {
           처음으로
         </button>
       )}
-    </div>
+      </div>
+    </>
   )
 }

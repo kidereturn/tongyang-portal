@@ -449,49 +449,45 @@ export default function InboxPage() {
   const rejected = items.filter(i => i.status === 'rejected').length
 
   return (
-    <div className="space-y-5 pb-mobile-tab lg:pb-0">
-      {/* 헤더 */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-brand-900 flex items-center gap-2">
-            <Inbox size={22} className="text-brand-700" />
-            {profile?.role === 'controller' ? '내승인함' : '결재 현황'}
-          </h1>
-          <p className="text-warm-500 text-sm mt-0.5">
-            {profile?.role === 'controller'
-              ? '담당자가 상신한 증빙 결재를 처리합니다'
-              : '전체 결재 현황을 관리합니다'}
-          </p>
+    <>
+      <div className="pg-head">
+        <div className="pg-head-row">
+          <div>
+            <div className="eyebrow">결재<span className="sep" />내 승인함</div>
+            <h1>{profile?.role === 'controller' ? '내 승인함.' : '결재 현황.'} <span className="soft">한 번에 정리.</span></h1>
+            <p className="lead">
+              {profile?.role === 'controller'
+                ? '담당자가 상신한 증빙을 확인하고 승인·반려합니다.'
+                : '전사 결재 현황을 관리하고, 필요 시 강제 취소할 수 있습니다.'}
+            </p>
+          </div>
+          <div className="actions">
+            <button onClick={fetchInbox} className="btn-compact">
+              <RefreshCw size={13} />새로고침
+            </button>
+          </div>
         </div>
-        <button onClick={fetchInbox} className="btn-ghost text-xs px-3 py-2">
-          <RefreshCw size={14} />새로고침
-        </button>
       </div>
 
-      {/* 통계 카드 */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="card p-4">
-          <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center mb-2">
-            <Clock size={16} />
+      <div className="pg-body">
+        {/* Summary strip */}
+        <div className="sum-strip">
+          <div className="cell">
+            <div className="l"><span className="ic amber">●</span>결재 대기</div>
+            <div className="v">{pending}<span className="u">건</span></div>
+            <div className="sub">승인/반려 처리 필요</div>
           </div>
-          <p className="text-xs text-warm-500">결재 대기</p>
-          <p className="text-xl font-bold text-brand-900">{pending}<span className="text-xs text-warm-400 font-normal ml-0.5">건</span></p>
-        </div>
-        <div className="card p-4">
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2">
-            <CheckCircle2 size={16} />
+          <div className="cell">
+            <div className="l"><span className="ic green">●</span>승인완료</div>
+            <div className="v">{approved}<span className="u">건</span></div>
+            <div className="sub">처리 완료</div>
           </div>
-          <p className="text-xs text-warm-500">승인완료</p>
-          <p className="text-xl font-bold text-brand-900">{approved}<span className="text-xs text-warm-400 font-normal ml-0.5">건</span></p>
-        </div>
-        <div className="card p-4">
-          <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center mb-2">
-            <XCircle size={16} />
+          <div className="cell">
+            <div className="l"><span className="ic red">●</span>반려</div>
+            <div className="v">{rejected}<span className="u">건</span></div>
+            <div className="sub">재작성 요청</div>
           </div>
-          <p className="text-xs text-warm-500">반려</p>
-          <p className="text-xl font-bold text-brand-900">{rejected}<span className="text-xs text-warm-400 font-normal ml-0.5">건</span></p>
         </div>
-      </div>
 
       {/* 일괄 처리 바 (controller, admin만) */}
       {canBatchSelect && items.length > 0 && (
@@ -674,6 +670,8 @@ export default function InboxPage() {
         </div>
       )}
 
+      </div>
+
       {/* 증빙 확인 모달 */}
       {modalOpen && selectedActivity && (
         <EvidenceUploadModal
@@ -682,6 +680,6 @@ export default function InboxPage() {
           viewOnly={true}
         />
       )}
-    </div>
+    </>
   )
 }

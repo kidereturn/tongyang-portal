@@ -187,19 +187,27 @@ export default function LearningPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-lg bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
-        <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">COURSE MANAGEMENT</p>
-        <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
-          <BarChart2 size={28} className="text-brand-300" />
-          강좌관리
-        </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-warm-300">
-          {isAdmin
-            ? '전체 사용자의 진도율, 이수완료 여부, 최근 학습시각을 한 번에 볼 수 있습니다.'
-            : '본인의 강좌 진도율과 학습 상태를 확인합니다.'}
-        </p>
+    <>
+      <div className="pg-head">
+        <div className="pg-head-row">
+          <div>
+            <div className="eyebrow">Learning<span className="sep" />강좌관리</div>
+            <h1>강좌관리. <span className="soft">진도와 이수 현황.</span></h1>
+            <p className="lead">
+              {isAdmin
+                ? '전체 사용자의 진도율, 이수완료 여부, 최근 학습시각을 한 번에 볼 수 있습니다.'
+                : '본인의 강좌 진도율과 학습 상태를 확인합니다.'}
+            </p>
+          </div>
+          <div className="actions">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--at-ivory)', border: '1px solid var(--at-ink-hair)', borderRadius: 10, fontSize: 12, color: 'var(--at-ink-mute)' }}>
+              <BarChart2 size={14} /> {(isAdmin ? flatRows.length : courses.length).toLocaleString()}건
+            </div>
+          </div>
+        </div>
       </div>
+
+      <div className="pg-body space-y-6">
 
       <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
         <div className="rounded-[24px] border border-warm-200 bg-white p-5 shadow-sm">
@@ -368,6 +376,7 @@ export default function LearningPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   )
 }

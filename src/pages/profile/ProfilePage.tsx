@@ -97,18 +97,23 @@ export default function ProfilePage() {
   const ROLE_LABEL: Record<string, string> = { admin: '관리자', controller: '승인자', owner: '담당자' }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-lg bg-gradient-to-r from-brand-900 via-brand-800 to-brand-700 px-6 py-8 text-white shadow-md">
-        <p className="text-xs font-semibold tracking-[0.24em] text-warm-400">MY PROFILE</p>
-        <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
-          <User size={28} className="text-brand-300" />
-          내 정보
-        </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-warm-300">
-          프로필 정보를 확인하고 수정할 수 있습니다. 비밀번호도 여기서 변경 가능합니다.
-        </p>
+    <>
+      <div className="pg-head">
+        <div className="pg-head-row">
+          <div>
+            <div className="eyebrow">My Profile<span className="sep" />개인 설정</div>
+            <h1>내 정보. <span className="soft">프로필과 비밀번호.</span></h1>
+            <p className="lead">사번·이름·부서·연락처를 확인하고 비밀번호를 변경할 수 있습니다.</p>
+          </div>
+          <div className="actions">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--at-ivory)', border: '1px solid var(--at-ink-hair)', borderRadius: 10, fontSize: 12, color: 'var(--at-ink-mute)' }}>
+              <User size={14} /> {ROLE_LABEL[profile?.role ?? ''] ?? profile?.role ?? '-'}
+            </div>
+          </div>
+        </div>
       </div>
 
+      <div className="pg-body">
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Profile edit */}
         <div className="overflow-hidden rounded-lg border border-warm-200 bg-white shadow-md">
@@ -214,6 +219,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
