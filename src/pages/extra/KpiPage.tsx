@@ -60,16 +60,17 @@ export default function KpiPage() {
         {/* 월별 KPI 추이 */}
         <div className="card p-5">
           <p className="font-bold text-brand-900 mb-4">월별 KPI 달성률 추이</p>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={CHART_DATA} barSize={14}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-              <XAxis dataKey="month" tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} domain={[0, 100]} />
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={CHART_DATA} barSize={22} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E8EB" vertical={false} />
+              <XAxis dataKey="month" tick={{ fill: '#8B95A1', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#8B95A1', fontSize: 11 }} axisLine={false} tickLine={false} domain={[0, 100]} />
               <Tooltip
-                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 12 }}
+                contentStyle={{ backgroundColor: '#fff', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 12 }}
+                cursor={{ fill: 'rgba(49, 130, 246, 0.06)' }}
               />
-              <Bar dataKey="목표" fill="#e0e7ff" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="실적" fill="#4f46e5" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="목표" fill="#C9DDFF" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="실적" fill="#3182F6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
