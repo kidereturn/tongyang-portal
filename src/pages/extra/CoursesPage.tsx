@@ -138,8 +138,12 @@ export default function CoursesPage() {
     }
   }
 
-  // 수강기한 (deadline) — mock: end of current quarter
-  function deadlineFor(_idx: number): string {
+  // 수강기한 (deadline) — prefer DB-set value, fallback to end of current quarter
+  function deadlineFor(v: VideoRow | undefined, _idx: number): string {
+    if (v && (v as any).deadline) {
+      const d = new Date((v as any).deadline)
+      return `${d.getMonth() + 1}/${d.getDate()}까지`
+    }
     const now = new Date()
     const q = Math.floor(now.getMonth() / 3)
     const end = new Date(now.getFullYear(), q * 3 + 3, 0)
@@ -306,7 +310,7 @@ export default function CoursesPage() {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#1E40AF', marginTop: 8, padding: '4px 8px', background: '#EEF4FE', border: '1px solid #DCE8FB', borderRadius: 6, alignSelf: 'flex-start' }}>
                       <Clock size={10} />
-                      수강기한 {deadlineFor(idx)}
+                      수강기한 {deadlineFor(v, idx)}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: 10, borderTop: '1px solid var(--at-ink-hair)' }}>
                       <div style={{ fontSize: 11, color: 'var(--at-ink-mute)' }}>

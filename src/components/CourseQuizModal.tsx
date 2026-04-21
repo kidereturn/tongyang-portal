@@ -21,16 +21,15 @@ interface Props {
   onClose: () => void
 }
 
-const TOTAL = 10
+const TOTAL = 5
+const PASS_SCORE = 3  // 3문제 이상 맞으면 수료 처리
 const OPTIONS = ['A', 'B', 'C', 'D'] as const
 
 function getScoreMessage(score: number): { emoji: string; title: string; sub: string; color: string } {
-  if (score === 10) return { emoji: '\uD83C\uDF89', title: '\uC644\uBCBD\uD574\uC694! \uCC9C\uC7AC\uC2E0\uAC00\uC694?!', sub: '\uB0B4\uBD80\uD1B5\uC81C\uC758 \uB2EC\uC778\uC774\uC2DC\uAD70\uC694!', color: 'text-accent-600' }
-  if (score >= 8) return { emoji: '\uD83D\uDC4F', title: '\uD6CC\uB96D\uD574\uC694!', sub: '\uB0B4\uBD80\uD68C\uACC4 \uC804\uBB38\uAC00 \uC218\uC900\uC774\uC5D0\uC694!', color: 'text-emerald-600' }
-  if (score >= 6) return { emoji: '\uD83D\uDE0A', title: '\uC798\uD558\uC168\uC5B4\uC694!', sub: '\uC870\uAE08\uB9CC \uB354 \uACF5\uBD80\uD558\uBA74 \uB9CC\uC810!', color: 'text-blue-600' }
-  if (score >= 4) return { emoji: '\uD83E\uDD14', title: '\uBCF4\uD1B5\uC774\uC5D0\uC694~', sub: '\uAC15\uC88C\uB97C \uD55C\uBC88 \uB354 \uBCF5\uC2B5\uD574\uBCF4\uC138\uC694!', color: 'text-orange-600' }
-  if (score >= 2) return { emoji: '\uD83D\uDE05', title: '\uC880 \uB354 \uD30C\uC774\uD305!', sub: '\uAC15\uC758 \uB2E4\uC2DC \uB4E4\uC73C\uBA74 \uB2E4\uC74C\uC5D4 \uB354 \uC798\uD560 \uC218 \uC788\uC5B4\uC694!', color: 'text-red-500' }
-  return { emoji: '\uD83D\uDE31', title: '\uC774\uAC74 \uC880... \uACF5\uBD80\uD558\uC168\uB098\uC694?', sub: '\uAC15\uC758\uB97C \uB2E4\uC2DC \uB4E4\uC5B4\uBCF4\uC138\uC694! \uD654\uC774\uD305!', color: 'text-warm-500' }
+  if (score === TOTAL) return { emoji: '🎉', title: '완벽해요!', sub: '내부통제의 달인이시군요!', color: 'text-accent-600' }
+  if (score >= 4) return { emoji: '👏', title: '훌륭해요!', sub: '내부회계 전문가 수준이에요!', color: 'text-emerald-600' }
+  if (score >= PASS_SCORE) return { emoji: '😊', title: '수료입니다!', sub: `${PASS_SCORE}문제 이상 정답 — 강좌 이수 처리되었어요!`, color: 'text-blue-600' }
+  return { emoji: '🤔', title: '조금만 더!', sub: `${PASS_SCORE}문제 이상 맞히면 수료됩니다. 강의를 다시 복습해보세요.`, color: 'text-orange-600' }
 }
 
 export default function CourseQuizModal({ courseId, courseTitle, open, onClose }: Props) {
@@ -117,6 +116,19 @@ export default function CourseQuizModal({ courseId, courseTitle, open, onClose }
           points: score,
           description: `퀴즈 ${score}/${questions.length}점 (${courseTitle})`,
         })
+      }
+      // 수료 처리: 3문제 이상 맞히면 learning_progress를 completed로 업그레이드
+      if (score >= PASS_SCORE) {
+        try {
+          await (supabase as any).rpc('upsert_learning_progress', {
+            p_user_id: profile.id,
+            p_course_id: courseId,
+            p_watched_seconds: 0,
+            p_duration_seconds: 0,
+            p_progress_percent: 100,
+            p_status: 'completed',
+          })
+        } catch { /* silent */ }
       }
     } catch {
       // silent

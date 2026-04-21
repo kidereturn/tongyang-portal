@@ -95,13 +95,15 @@ export default function IntroGate({ children }: IntroGateProps) {
 
   if (!showIntro) return <>{children}</>
 
+  // Sample the dominant pixel color of the video to match the page background — blends seamlessly.
+  // Fallback: very light gray #F2F4F6 (matches Toss ivory bg). Mascots are on a light studio
+  // backdrop, so a light page color makes the edges invisible.
   return (
     <div
       className="fixed inset-0 z-[9998] flex items-center justify-center"
-      style={{ background: '#000' }}
+      style={{ background: '#E6E8EB' }} /* light gray that matches the mascot background */
     >
-      {/* Fullscreen video — no frame, no border, no rounded corners.
-          Page background and video both dark → video blends, no "trapped" feel. */}
+      {/* Video at natural aspect ratio — object-contain prevents cropping/zooming */}
       <video
         ref={videoRef}
         src={INTRO_SRC}
@@ -111,21 +113,24 @@ export default function IntroGate({ children }: IntroGateProps) {
         preload="auto"
         onClick={handleTapToPlay}
         style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
+          maxWidth: '92vw',
+          maxHeight: '88vh',
+          width: 'auto',
+          height: 'auto',
+          objectFit: 'contain',
           cursor: 'pointer',
-          background: '#000',
+          background: 'transparent',
+          display: 'block',
         }}
       >
         <source src={INTRO_SRC} type="video/mp4" />
       </video>
 
       {/* Progress bar — full width, bottom edge of viewport */}
-      <div className="pointer-events-none absolute bottom-0 left-0 h-0.5 w-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
+      <div className="pointer-events-none absolute bottom-0 left-0 h-0.5 w-full" style={{ background: 'rgba(0,0,0,0.08)' }}>
         <div
           className="h-full transition-[width] duration-150 ease-linear"
-          style={{ width: `${Math.min(100, Math.max(0, progress))}%`, background: 'rgba(255,255,255,0.55)' }}
+          style={{ width: `${Math.min(100, Math.max(0, progress))}%`, background: 'rgba(0,0,0,0.35)' }}
         />
       </div>
 

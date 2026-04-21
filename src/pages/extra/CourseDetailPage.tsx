@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { BookOpen, PauseCircle, PlayCircle, RotateCcw, CheckCircle2, Circle, Star, FileDown, MessageSquare, ChevronLeft } from 'lucide-react'
+import { BookOpen, PauseCircle, PlayCircle, RotateCcw, CheckCircle2, Circle, MessageSquare, ChevronLeft } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import CourseQuizModal from '../../components/CourseQuizModal'
@@ -215,12 +215,22 @@ export default function CourseDetailPage() {
     playing ? playerRef.current.pauseVideo() : playerRef.current.playVideo()
   }
 
+  // Preserve max-progress watermark so restarting doesn't lower recorded progress.
+  // When user watches again past the previous max, new progress is recorded.
+  const maxProgressRef = useRef(0)
+  useEffect(() => { if (progress > maxProgressRef.current) maxProgressRef.current = progress }, [progress])
+
   function handleRestart() {
     if (!playerRef.current) return
+    // Remember the highest progress ever reached in this session/DB
+    const prevMax = Math.max(maxProgressRef.current, progress)
+    maxProgressRef.current = prevMax
+    // Seek to 0 but keep the DB max progress; watchLimitRef tracks current pass only
     playerRef.current.seekTo(0, true)
     watchLimitRef.current = 0
     setCurrentTime(0)
-    setProgress(0)
+    // Do NOT reset progress bar display to 0 — keep the recorded max.
+    setProgress(prevMax)
   }
 
   function handleRateChange(rate: number) {
@@ -235,6 +245,9 @@ export default function CourseDetailPage() {
     if (!profile?.id || !selectedVideo?.id || watchLimitRef.current <= 0) return
     const d = duration || (playerRef.current?.getDuration?.() ?? 0)
     const pct = d > 0 ? Math.min(100, Math.round((watchLimitRef.current / d) * 100)) : 0
+    // Do NOT downgrade the DB value — only save when current pass exceeds previous max
+    if (pct < maxProgressRef.current) return
+    maxProgressRef.current = pct
     const st = pct >= 95 ? 'completed' : pct > 0 ? 'in_progress' : 'not_started'
 
     try {
@@ -321,6 +334,26 @@ export default function CourseDetailPage() {
         }
         quizTriggeredRef.current.add(selectedVideo.id)
         setQuizOpen(true)
+      } catch { /* silent */ }
+    })()
+  }, [profile?.id, selectedVideo?.id, progress])
+
+  // Rank among all learners (based on progress_percent for this course)
+  const [myRank, setMyRank] = useState<number | null>(null)
+  const [totalLearners, setTotalLearners] = useState(0)
+  useEffect(() => {
+    if (!profile?.id || !selectedVideo?.id) return
+    ;(async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from('learning_progress')
+          .select('user_id, progress_percent')
+          .eq('course_id', selectedVideo.id)
+          .order('progress_percent', { ascending: false })
+        const rows = (data ?? []) as Array<{ user_id: string; progress_percent: number }>
+        setTotalLearners(rows.length)
+        const idx = rows.findIndex(r => r.user_id === profile.id)
+        setMyRank(idx >= 0 ? idx + 1 : null)
       } catch { /* silent */ }
     })()
   }, [profile?.id, selectedVideo?.id, progress])
@@ -415,38 +448,51 @@ export default function CourseDetailPage() {
     })()
   }, [profile?.id, videos])
 
-  function selectVideo(v: VideoRow) {
-    // Save current progress before switching
-    saveProgressRef.current?.()
-    // Reset watchLimit for new video (will be loaded by DB effect)
-    watchLimitRef.current = 0
-    setCurrentTime(0)
-    setProgress(0)
-    setDuration(0)
-    setSelectedVideo(v)
-  }
+  // (prior selectVideo function removed — curriculum sidebar is timeline-based)
 
   // Auto-close prevention: popup-style detail (opens in new window from list)
   const catLabel = selectedVideo?.category ?? '내부통제'
   const difficulty = selectedVideo?.difficulty ?? '초급'
   const isMust = (selectedVideo?.tag ?? '필수').includes('필수')
-  const instructor = selectedVideo?.instructor ?? '박지훈 · 김서희 리드'
-  const rating = selectedVideo?.rating ?? 4.8
-  const ratingCount = selectedVideo?.rating_count ?? 182
 
   // Hooks that depend on videos — must be called BEFORE any early return
-  const chapters = useMemo(() => {
-    const list = videos.slice()
-    const out: { ch: number; title: string; items: VideoRow[] }[] = []
-    for (let i = 0; i < list.length; i += 3) {
-      out.push({
-        ch: Math.floor(i / 3) + 1,
-        title: i === 0 ? '오리엔테이션' : i === 3 ? '내부통제의 정의' : i === 6 ? '통제환경 · CONTROL ENVIRONMENT' : i === 9 ? '위험평가 · RISK ASSESSMENT' : `Chapter ${Math.floor(i / 3) + 1}`,
-        items: list.slice(i, i + 3),
-      })
+  // Timeline chapters: split the currently-playing video into equal time segments
+  // with descriptive titles. Uses duration (seconds) when available.
+  const timelineChapters = useMemo(() => {
+    // Parse duration string ("15:08") → seconds, fallback to actual player duration
+    const parseMMSS = (s: string | null | undefined): number => {
+      if (!s) return 0
+      const m = s.match(/(\d+):(\d+)/)
+      if (!m) return 0
+      return Number(m[1]) * 60 + Number(m[2])
     }
-    return out
-  }, [videos])
+    const totalSec = duration > 0 ? duration : parseMMSS(selectedVideo?.duration)
+    if (!selectedVideo || totalSec <= 0) return [] as Array<{ startSec: number; lengthSec: number; title: string; startLabel: string; lengthLabel: string }>
+
+    // Split into ~5 chapters with generic titles extracted from video title
+    const title = selectedVideo.title ?? ''
+    const defaultTitles = [
+      '도입 · 학습 목표',
+      '핵심 개념 정리',
+      '실무 적용 사례',
+      '체크리스트 및 QnA',
+      '마무리 · 이수 조건',
+    ]
+    const segCount = 5
+    const segLen = totalSec / segCount
+    const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
+    return Array.from({ length: segCount }, (_, i) => {
+      const startSec = Math.floor(i * segLen)
+      const lengthSec = Math.floor(segLen)
+      return {
+        startSec,
+        lengthSec,
+        title: defaultTitles[i] + (i === 0 && title ? ` - ${title.slice(0, 18)}` : ''),
+        startLabel: fmt(startSec),
+        lengthLabel: fmt(lengthSec),
+      }
+    })
+  }, [selectedVideo, duration])
 
   const pageHeader = (
     <div className="pg-head">
@@ -497,8 +543,7 @@ export default function CourseDetailPage() {
     )
   }
 
-  const currentChapterIdx = chapters.findIndex(ch => ch.items.some(it => it.id === selectedVideo?.id))
-  const completedCount = Math.floor((videos.length * 5) / 12)
+  // Progress stats left in for legacy references (removed from UI)
 
   return (
     <>
@@ -575,22 +620,17 @@ export default function CourseDetailPage() {
               )}
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--at-ink-hair)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#3182F6', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 700 }}>박</div>
-                  <div>
-                    <div style={{ fontSize: 11, color: 'var(--at-ink-mute)' }}>강사</div>
-                    <div style={{ fontSize: 12, fontWeight: 600 }}>{instructor}</div>
-                  </div>
+                <div>
+                  <div style={{ fontSize: 11, color: 'var(--at-ink-mute)' }}>내 진도율</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#3182F6' }}>{progress}<span style={{ fontSize: 11, color: 'var(--at-ink-mute)' }}>%</span></div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: 'var(--at-ink-mute)' }}>수강생</div>
-                  <div style={{ fontSize: 12, fontWeight: 600 }}>284 명</div>
+                  <div style={{ fontSize: 11, color: 'var(--at-ink-mute)' }}>수강기한</div>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>{(selectedVideo as any)?.deadline ? new Date((selectedVideo as any).deadline).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }) + '까지' : '-'}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: 'var(--at-ink-mute)' }}>평점</div>
-                  <div style={{ fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                    <Star size={11} fill="#F59E0B" stroke="#F59E0B" /> {rating} ({ratingCount}개 리뷰)
-                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--at-ink-mute)' }}>진도율 순위</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#F59E0B' }}>{myRank ? `${myRank}/${totalLearners}` : '-'}</div>
                 </div>
                 <div style={{ marginLeft: 'auto' }}>
                   <div style={{ fontSize: 11, color: 'var(--at-ink-mute)' }}>이수 시</div>
@@ -598,19 +638,16 @@ export default function CourseDetailPage() {
                 </div>
               </div>
 
-              {/* Action buttons */}
+              {/* Action buttons — no 자료받기 */}
               <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
                 <button onClick={handlePlayPause} className="btn-compact primary" style={{ padding: '10px 18px' }}>
                   {playing ? <PauseCircle size={14} /> : <PlayCircle size={14} />}
                   {playing ? '일시정지' : `이어서 시청 · ${watchedLabel}부터`}
                 </button>
-                <button className="btn-compact">
-                  <FileDown size={13} /> 자료 받기 (6)
-                </button>
                 <button onClick={() => setQuizOpen(true)} className="btn-compact">
                   <BookOpen size={13} /> 퀴즈 응시
                 </button>
-                <button onClick={handleRestart} className="btn-compact" style={{ marginLeft: 'auto' }}>
+                <button onClick={handleRestart} className="btn-compact" style={{ marginLeft: 'auto' }} title="기존 최대 진도율은 유지됩니다">
                   <RotateCcw size={13} /> 처음부터
                 </button>
               </div>
@@ -665,70 +702,64 @@ export default function CourseDetailPage() {
             </div>
           </div>
 
-          {/* RIGHT: Curriculum sidebar */}
+          {/* RIGHT: Curriculum — timeline chapters of the currently-playing video */}
           <div style={{ position: 'sticky', top: 24, alignSelf: 'start' }}>
             <div className="at-card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--at-ink-hair)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ fontSize: 10, color: 'var(--at-ink-mute)', letterSpacing: '0.12em' }}>CURRICULUM · 전체 {videos.length}강</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>커리큘럼</div>
+                  <div style={{ fontSize: 10, color: 'var(--at-ink-mute)', letterSpacing: '0.12em' }}>CURRICULUM · 현재 강좌 타임라인</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{selectedVideo?.title?.slice(0, 28) ?? '커리큘럼'}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 10, color: 'var(--at-ink-mute)' }}>진행</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#3182F6' }}>{completedCount}/{videos.length} · {Math.round((completedCount / videos.length) * 100)}%</div>
+                  <div style={{ fontSize: 10, color: 'var(--at-ink-mute)' }}>진도율</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#3182F6' }}>{progress}%</div>
                 </div>
               </div>
 
               <div style={{ maxHeight: 640, overflowY: 'auto' }}>
-                {chapters.map((ch, chi) => (
-                  <div key={chi}>
-                    <div style={{ padding: '10px 18px', background: 'var(--at-ivory)', fontSize: 10, fontWeight: 700, color: 'var(--at-ink-mute)', letterSpacing: '0.1em' }}>
-                      CH {String(ch.ch).padStart(2, '0')} · {ch.title}
-                    </div>
-                    {ch.items.map((it, ii) => {
-                      const isSel = it.id === selectedVideo?.id
-                      const isDone = chi < currentChapterIdx || (chi === currentChapterIdx && ii < 1)
-                      return (
-                        <button
-                          key={it.id}
-                          onClick={() => selectVideo(it)}
-                          style={{
-                            width: '100%',
-                            padding: '12px 18px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                            background: isSel ? '#EEF4FE' : '#fff',
-                            border: 'none',
-                            borderLeft: isSel ? '3px solid #3182F6' : '3px solid transparent',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            transition: 'background 0.15s',
-                          }}
-                          onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'var(--at-ivory)' }}
-                          onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = '#fff' }}
-                        >
-                          {isDone ? (
-                            <CheckCircle2 size={16} style={{ color: '#10B981', flexShrink: 0 }} />
-                          ) : (
-                            <Circle size={16} style={{ color: isSel ? '#3182F6' : 'var(--at-ink-faint)', flexShrink: 0 }} />
-                          )}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 10, color: 'var(--at-ink-mute)', fontFamily: 'var(--f-mono)' }}>
-                              {ch.ch}-{ii + 1}
-                            </div>
-                            <div style={{ fontSize: 12, fontWeight: isSel ? 700 : 500, color: 'var(--at-ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {it.title}
-                            </div>
-                          </div>
-                          <div style={{ fontSize: 10, color: 'var(--at-ink-mute)', fontFamily: 'var(--f-mono)', flexShrink: 0 }}>
-                            {it.duration ?? '3:20'}
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                ))}
+                {timelineChapters.map((seg, si) => {
+                  const isActive = currentTime >= seg.startSec && currentTime < (seg.startSec + seg.lengthSec)
+                  const isDone = currentTime >= (seg.startSec + seg.lengthSec)
+                  return (
+                    <button
+                      key={si}
+                      onClick={() => { if (playerRef.current?.seekTo) { playerRef.current.seekTo(seg.startSec, true); setCurrentTime(seg.startSec) } }}
+                      style={{
+                        width: '100%',
+                        padding: '12px 18px',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 10,
+                        background: isActive ? '#EEF4FE' : '#fff',
+                        border: 'none',
+                        borderLeft: isActive ? '3px solid #3182F6' : '3px solid transparent',
+                        borderBottom: '1px solid var(--at-ink-hair)',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--at-ivory)' }}
+                      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = '#fff' }}
+                    >
+                      {isDone ? (
+                        <CheckCircle2 size={16} style={{ color: '#10B981', flexShrink: 0, marginTop: 2 }} />
+                      ) : (
+                        <Circle size={16} style={{ color: isActive ? '#3182F6' : 'var(--at-ink-faint)', flexShrink: 0, marginTop: 2 }} />
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 10, color: 'var(--at-ink-mute)', fontFamily: 'var(--f-mono)' }}>
+                          CH {String(si + 1).padStart(2, '0')} · {seg.startLabel}
+                        </div>
+                        <div style={{ fontSize: 12, fontWeight: isActive ? 700 : 500, color: 'var(--at-ink)', lineHeight: 1.35 }}>
+                          {seg.title}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--at-ink-mute)', fontFamily: 'var(--f-mono)', flexShrink: 0, marginTop: 2 }}>
+                        {seg.lengthLabel}
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
             </div>
           </div>

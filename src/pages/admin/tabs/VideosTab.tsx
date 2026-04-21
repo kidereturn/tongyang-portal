@@ -16,6 +16,8 @@ type VideoRow = {
   sort_order: number
   is_active: boolean
   created_at: string
+  deadline?: string | null
+  category?: string | null
 }
 
 export default function VideosTab() {
@@ -216,6 +218,8 @@ function EditVideoModal({
   const [duration, setDuration] = useState(video.duration ?? '')
   const [sortOrder, setSortOrder] = useState(video.sort_order)
   const [hasSubtitles, setHasSubtitles] = useState(video.has_subtitles)
+  const [deadline, setDeadline] = useState<string>(video.deadline ?? '')
+  const [category, setCategory] = useState<string>(video.category ?? '내부통제')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -243,6 +247,8 @@ function EditVideoModal({
         duration: duration.trim() || null,
         sort_order: Number.isFinite(sortOrder) ? sortOrder : video.sort_order,
         has_subtitles: hasSubtitles,
+        deadline: deadline || null,
+        category: category || null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', video.id)
@@ -318,6 +324,33 @@ function EditVideoModal({
                 className="form-input text-sm"
                 min={0}
               />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="form-label">수강기한 *</label>
+              <input
+                type="date"
+                value={deadline}
+                onChange={e => setDeadline(e.target.value)}
+                className="form-input text-sm"
+              />
+              <p className="mt-1 text-[11px] text-warm-500">썸네일 및 영상 페이지 하단에 표시됩니다.</p>
+            </div>
+            <div>
+              <label className="form-label">카테고리</label>
+              <select
+                value={category}
+                onChange={e => setCategory(e.target.value)}
+                className="form-input text-sm"
+              >
+                <option>내부통제</option>
+                <option>재무회계</option>
+                <option>규제대응</option>
+                <option>리더십</option>
+                <option>IT·보안</option>
+                <option>필수</option>
+              </select>
             </div>
           </div>
           <label className="flex items-center gap-2 text-sm text-brand-800 cursor-pointer select-none">

@@ -54,13 +54,15 @@ function getSubmissionStatus(raw: string | null): 'pendingApproval' | 'approved'
 export default function DashboardPage() {
   const { profile } = useAuth()
   const [stats, setStats] = useState<Stats>({ total: 0, pendingApproval: 0, approved: 0, rejected: 0 })
-  const [deptStats, setDeptStats] = useState<DeptData[]>([])
-  const [activities, setActivities] = useState<Activity[]>([])
+  const [, setDeptStats] = useState<DeptData[]>([])
+  const [allDeptStats, setAllDeptStats] = useState<DeptData[]>([])
+  const [, setActivities] = useState<Activity[]>([])
+  const [allActivities, setAllActivities] = useState<Activity[]>([])
   const [userCount, setUserCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [pointsRanking, setPointsRanking] = useState<RankingUser[]>([])
   const [notices, setNotices] = useState<NoticeRow[]>([])
-  const [bingoRecent, setBingoRecent] = useState(0) // 오늘 풀린 칸 수 (간이)
+  const [, setBingoRecent] = useState(0)
   const [bingoRanking, setBingoRanking] = useState<Array<{ user_id: string; full_name?: string; team?: string; max_lines: number }>>([])
 
   useEffect(() => { void fetchAll() }, [profile?.id])
@@ -105,7 +107,23 @@ export default function DashboardPage() {
       }
       setStats(next)
       setActivities(records.slice(0, 6))
+      setAllActivities(records)
       setDeptStats(Object.values(deptMap).filter(d => d.total > 0).sort((a, b) => b.total - a.total).slice(0, 8))
+
+      // Fetch ALL activities org-wide for 전 부서 진행 현황 (admin or controller sees everything)
+      try {
+        const { data: allAct } = await db.from('activities').select('department, submission_status').eq('active', true)
+        const fullMap: Record<string, DeptData> = {}
+        for (const r of allAct ?? []) {
+          const s = getSubmissionStatus(r.submission_status)
+          const dept = r.department ?? '미지정'
+          if (!fullMap[dept]) fullMap[dept] = { name: dept, total: 0, approved: 0, pending: 0 }
+          fullMap[dept].total += 1
+          if (s === 'approved') fullMap[dept].approved += 1
+          if (s === 'pendingApproval') fullMap[dept].pending += 1
+        }
+        setAllDeptStats(Object.values(fullMap).filter(d => d.total > 0).sort((a, b) => b.total - a.total))
+      } catch { /* silent */ }
       setUserCount(userCnt?.count ?? 0)
       setPointsRanking(((rankRes?.data ?? []) as RankingUser[]).slice(0, 5))
       setNotices((noticeRes?.data ?? []) as NoticeRow[])
@@ -153,6 +171,15 @@ export default function DashboardPage() {
   const isAdmin = profile?.role === 'admin'
   const firstName = profile?.full_name ?? '사용자'
 
+  // Real-time clock
+  const [now, setNow] = useState(new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  const dateLabel = now.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })
+  const timeLabel = now.toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+
   return (
     <div>
       {/* Hero — Editorial ivory split */}
@@ -160,7 +187,12 @@ export default function DashboardPage() {
         <div className="at-hero-bg" />
         <div className="at-hero-content">
           <div>
-            <div className="at-eyebrow at-hero-eyebrow">2026 · Q2 · Cycle 04 · 진행 중</div>
+            <div className="at-eyebrow at-hero-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <span>{dateLabel}</span>
+              <span style={{ fontFamily: 'var(--f-mono)', color: 'var(--at-blue)', fontSize: 13, fontWeight: 700, letterSpacing: '0.04em' }}>{timeLabel}</span>
+              <span>·</span>
+              <span>2026 · Q2 · Cycle 04 · 진행 중</span>
+            </div>
             <h1 className="at-hero-title">
               {greeting()},<br />
               <span className="soft">{firstName}님.</span>
@@ -197,7 +229,7 @@ export default function DashboardPage() {
                 <div style={{ padding: '12px 0', fontSize: 12, color: 'var(--at-ink-faint)' }}>등록된 공지가 없습니다</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {notices.slice(0, 4).map(n => (
+                  {notices.slice(0, 5).map(n => (
                     <Link
                       key={n.id}
                       to={`/notice/${n.id}`}
@@ -221,16 +253,16 @@ export default function DashboardPage() {
                     <Link to="/kpi" style={{ textDecoration: 'none', fontSize: 10, color: 'var(--at-blue)', fontWeight: 600 }}>전체</Link>
                   </div>
                   {pointsRanking.length === 0 ? (
-                    <div style={{ fontSize: 11, color: 'var(--at-ink-faint)', padding: '4px 0' }}>데이터 없음</div>
+                    <div style={{ fontSize: 14, color: 'var(--at-ink-faint)', padding: '4px 0' }}>데이터 없음</div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                       {pointsRanking.slice(0, 3).map((r, i) => (
-                        <div key={r.user_id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-                          <span style={{ width: 18, height: 18, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 700, background: i === 0 ? '#FDE68A' : i === 1 ? '#E5E7EB' : '#FECACA', color: i === 0 ? '#92400E' : i === 1 ? '#374151' : '#991B1B' }}>
+                        <div key={r.user_id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15 }}>
+                          <span style={{ width: 22, height: 22, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, background: i === 0 ? '#FDE68A' : i === 1 ? '#E5E7EB' : '#FECACA', color: i === 0 ? '#92400E' : i === 1 ? '#374151' : '#991B1B' }}>
                             {i + 1}
                           </span>
                           <span style={{ flex: 1, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.full_name ?? '익명'}</span>
-                          <span style={{ fontFamily: 'var(--f-mono)', fontWeight: 700, color: 'var(--at-blue)' }}>{r.total_points}P</span>
+                          <span style={{ fontFamily: 'var(--f-mono)', fontWeight: 700, color: 'var(--at-blue)', fontSize: 16 }}>{r.total_points}P</span>
                         </div>
                       ))}
                     </div>
@@ -239,16 +271,16 @@ export default function DashboardPage() {
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--at-ink-mute)', letterSpacing: '0.04em', marginBottom: 8 }}>🎯 빙고 줄 TOP 3</div>
                   {bingoRanking.length === 0 ? (
-                    <div style={{ fontSize: 11, color: 'var(--at-ink-faint)', padding: '4px 0' }}>기록 없음</div>
+                    <div style={{ fontSize: 14, color: 'var(--at-ink-faint)', padding: '4px 0' }}>기록 없음</div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                       {bingoRanking.slice(0, 3).map((r, i) => (
-                        <div key={r.user_id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-                          <span style={{ width: 18, height: 18, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 700, background: i === 0 ? '#FDE68A' : i === 1 ? '#E5E7EB' : '#FECACA', color: i === 0 ? '#92400E' : i === 1 ? '#374151' : '#991B1B' }}>
+                        <div key={r.user_id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15 }}>
+                          <span style={{ width: 22, height: 22, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, background: i === 0 ? '#FDE68A' : i === 1 ? '#E5E7EB' : '#FECACA', color: i === 0 ? '#92400E' : i === 1 ? '#374151' : '#991B1B' }}>
                             {i + 1}
                           </span>
                           <span style={{ flex: 1, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.full_name ?? '익명'}</span>
-                          <span style={{ fontFamily: 'var(--f-mono)', fontWeight: 700, color: '#F59E0B' }}>{r.max_lines}줄</span>
+                          <span style={{ fontFamily: 'var(--f-mono)', fontWeight: 700, color: '#F59E0B', fontSize: 16 }}>{r.max_lines}줄</span>
                         </div>
                       ))}
                     </div>
@@ -266,7 +298,7 @@ export default function DashboardPage() {
           <div className="at-section-head">
             <div className="title">
               <div className="at-section-label">01 · OVERVIEW</div>
-              <h2 className="at-h2">이번 주기 현황</h2>
+              <h2 className="at-h2">증빙 제출 현황</h2>
             </div>
             <div className="meta">전사 통제활동 진행 상황을 한눈에.</div>
           </div>
@@ -326,47 +358,121 @@ export default function DashboardPage() {
 
       {/* 전해드릴 소식 is now in the hero (right side), no separate section needed */}
 
-      {/* Team progress + Bingo */}
+      {/* 02 · ACTIVITIES — moved BEFORE progress (user's担当 전체, scrollable) */}
+      <section className="at-section" style={{ padding: '88px 0' }}>
+        <div className="at-wrap-wide">
+          <div className="at-section-head">
+            <div className="title">
+              <div className="at-section-label">02 · ACTIVITIES</div>
+              <h2 className="at-h2">통제활동별 현황.</h2>
+            </div>
+            <div className="meta">{isAdmin ? '전사 통제활동' : '내가 담당하는 통제활동'} 전체</div>
+          </div>
+          <div className="at-card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ maxHeight: 420, overflowY: 'auto' }}>
+              <table className="at-table">
+                <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
+                  <tr>
+                    <th style={{ width: 130, paddingLeft: 24 }}>통제번호</th>
+                    <th>통제활동명</th>
+                    <th>담당부서</th>
+                    <th>담당자</th>
+                    <th className="right" style={{ paddingRight: 24 }}>상태</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allActivities.length === 0 && !loading && (
+                    <tr><td colSpan={5} style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--at-ink-faint)' }}>데이터가 없습니다</td></tr>
+                  )}
+                  {allActivities.map(a => {
+                    const status = getSubmissionStatus(a.submission_status)
+                    const tag = status === 'approved' ? ['green', '승인']
+                      : status === 'rejected' ? ['red', '반려']
+                        : status === 'pendingApproval' ? ['amber', '대기']
+                          : ['gray', '미완료']
+                    return (
+                      <tr key={a.id}>
+                        <td className="mono" style={{ paddingLeft: 24 }}>{a.control_code ?? '-'}</td>
+                        <td>{a.title ?? '-'}</td>
+                        <td>{a.department ?? '-'}</td>
+                        <td>{a.owner_name ?? '-'}</td>
+                        <td className="num" style={{ paddingRight: 24, textAlign: 'right' }}>
+                          <span className={`at-tag ${tag[0]}`}>{tag[1]}</span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 03 · 전 부서 진행 현황 (scrollable) + 우측: 빙고 현황 (원형 승인율) */}
       <section className="at-section ivory" style={{ padding: '88px 0' }}>
         <div className="at-wrap-wide">
           <div className="at-section-head">
             <div className="title">
-              <div className="at-section-label">02 · PROGRESS</div>
-              <h2 className="at-h2">팀별 진척도.</h2>
+              <div className="at-section-label">03 · PROGRESS</div>
+              <h2 className="at-h2">전 부서 진행 현황.</h2>
             </div>
-            <div className="meta">상위 8개 팀의 승인율을 확인하세요.</div>
+            <div className="meta">모든 부서의 승인율을 한눈에.</div>
           </div>
 
           <div className="at-grid at-g-2-1">
-            <div className="at-card">
-              <div className="at-card-head"><div className="at-card-title">팀별 승인율</div><Link to="/kpi" className="at-card-link" style={{ textDecoration: 'none' }}>자세히</Link></div>
-              {deptStats.length === 0 && !loading && (
-                <p style={{ padding: '24px 0', textAlign: 'center', color: 'var(--at-ink-faint)', fontSize: 13 }}>팀별 데이터가 없습니다</p>
-              )}
-              {deptStats.map(d => {
-                const pct = d.total > 0 ? Math.round((d.approved / d.total) * 100) : 0
-                return (
-                  <div key={d.name} className="at-team-row">
-                    <div className="name">{d.name}</div>
-                    <div className="bar"><div className="fill" style={{ width: `${pct}%` }} /></div>
-                    <div className="pct" title={`${d.approved}/${d.total}건`}>{pct}%</div>
-                  </div>
-                )
-              })}
+            <div className="at-card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div className="at-card-head" style={{ padding: '16px 20px', borderBottom: '1px solid var(--at-ink-hair)' }}><div className="at-card-title">부서별 승인율</div><Link to="/kpi" className="at-card-link" style={{ textDecoration: 'none' }}>자세히</Link></div>
+              <div style={{ maxHeight: 420, overflowY: 'auto', padding: '10px 20px' }}>
+                {allDeptStats.length === 0 && !loading && (
+                  <p style={{ padding: '24px 0', textAlign: 'center', color: 'var(--at-ink-faint)', fontSize: 13 }}>부서별 데이터가 없습니다</p>
+                )}
+                {allDeptStats.map(d => {
+                  const pct = d.total > 0 ? Math.round((d.approved / d.total) * 100) : 0
+                  return (
+                    <div key={d.name} className="at-team-row">
+                      <div className="name">{d.name}</div>
+                      <div className="bar"><div className="fill" style={{ width: `${pct}%` }} /></div>
+                      <div className="pct" title={`${d.approved}/${d.total}건`}>{pct}%</div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
 
             <div>
-              <Link to="/bingo" className="at-card" style={{ padding: 28, marginBottom: 16, display: 'block', textDecoration: 'none' }}>
+              {/* 빙고 현황 → 원형 승인율 (총 증빙 대비 승인율) */}
+              <Link to="/evidence" className="at-card" style={{ padding: 28, marginBottom: 16, display: 'block', textDecoration: 'none' }}>
                 <div className="at-card-head" style={{ marginBottom: 16 }}>
-                  <div className="at-card-title">빙고 현황</div>
-                  <span className="at-tag blue">오늘</span>
+                  <div className="at-card-title">승인율 현황</div>
+                  <span className="at-tag blue">{stats.approved}/{stats.total}</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
-                  {Array.from({ length: 25 }).map((_, i) => (
-                    <div key={i} style={{ aspectRatio: '1', background: i < bingoRecent ? 'var(--at-blue)' : 'var(--at-ink-hair)', borderRadius: 4 }} />
-                  ))}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 0' }}>
+                  {(() => {
+                    const size = 160
+                    const stroke = 14
+                    const radius = (size - stroke) / 2
+                    const c = 2 * Math.PI * radius
+                    const rate = stats.total > 0 ? stats.approved / stats.total : 0
+                    const offset = c * (1 - rate)
+                    return (
+                      <div style={{ position: 'relative', width: size, height: size }}>
+                        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+                          <circle cx={size/2} cy={size/2} r={radius} stroke="var(--at-ink-hair)" strokeWidth={stroke} fill="none" />
+                          <circle cx={size/2} cy={size/2} r={radius} stroke="#3182F6" strokeWidth={stroke} fill="none" strokeLinecap="round"
+                            strokeDasharray={c} strokeDashoffset={offset} style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
+                        </svg>
+                        <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontFamily: 'var(--f-display)', fontSize: 34, fontWeight: 700, lineHeight: 1 }}>{Math.round(rate * 100)}<span style={{ fontSize: 16, color: 'var(--at-ink-mute)' }}>%</span></div>
+                            <div style={{ fontSize: 11, color: 'var(--at-ink-mute)', marginTop: 4 }}>승인율</div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--at-ink-mute)', marginTop: 14, textAlign: 'center' }}>오늘 {bingoRecent}칸 완료 · 3줄 완성 시 기프티콘</div>
+                <div style={{ fontSize: 12, color: 'var(--at-ink-mute)', textAlign: 'center' }}>총 {stats.total}건 중 {stats.approved}건 승인 완료</div>
               </Link>
 
               {isAdmin && (
@@ -389,55 +495,6 @@ export default function DashboardPage() {
                 </Link>
               )}
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Activities table */}
-      <section className="at-section" style={{ padding: '88px 0' }}>
-        <div className="at-wrap-wide">
-          <div className="at-section-head">
-            <div className="title">
-              <div className="at-section-label">03 · ACTIVITIES</div>
-              <h2 className="at-h2">통제활동별 현황.</h2>
-            </div>
-            <div className="meta">상위 6건 바로가기.</div>
-          </div>
-          <div className="at-card" style={{ padding: 0 }}>
-            <table className="at-table">
-              <thead>
-                <tr>
-                  <th style={{ width: 130, paddingLeft: 24 }}>통제번호</th>
-                  <th>통제활동명</th>
-                  <th>담당부서</th>
-                  <th>담당자</th>
-                  <th className="right" style={{ paddingRight: 24 }}>상태</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activities.length === 0 && !loading && (
-                  <tr><td colSpan={5} style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--at-ink-faint)' }}>데이터가 없습니다</td></tr>
-                )}
-                {activities.map(a => {
-                  const status = getSubmissionStatus(a.submission_status)
-                  const tag = status === 'approved' ? ['green', '승인']
-                    : status === 'rejected' ? ['red', '반려']
-                      : status === 'pendingApproval' ? ['amber', '대기']
-                        : ['gray', '미완료']
-                  return (
-                    <tr key={a.id}>
-                      <td className="mono" style={{ paddingLeft: 24 }}>{a.control_code ?? '-'}</td>
-                      <td>{a.title ?? '-'}</td>
-                      <td>{a.department ?? '-'}</td>
-                      <td>{a.owner_name ?? '-'}</td>
-                      <td className="num" style={{ paddingRight: 24, textAlign: 'right' }}>
-                        <span className={`at-tag ${tag[0]}`}>{tag[1]}</span>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
           </div>
         </div>
       </section>

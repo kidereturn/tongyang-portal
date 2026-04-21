@@ -625,6 +625,12 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
     }
   }
 
+  // Upload progress — % of population items with at least 1 file
+  const uploadedCount = items.filter(it => it.uploads.length > 0).length
+  const totalPopulation = items.length || 1
+  const uploadProgress = Math.round((uploadedCount / totalPopulation) * 100)
+  const allUploaded = uploadedCount === items.length && items.length > 0
+
   return (
     <div className="modal-overlay" onClick={event => { if (event.target === event.currentTarget) onClose() }}>
       <div className="modal-box w-[98vw] sm:w-[96vw] max-w-[1560px] max-h-[94vh]">
@@ -633,14 +639,14 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
             <h2 className="text-lg font-bold text-brand-900">
               {viewOnly ? '증빙 확인' : '증빙 Upload'}
             </h2>
-            <div className="flex flex-wrap gap-2 mt-1.5">
-              <code className="text-xs bg-warm-100 text-warm-600 px-2 py-0.5 rounded">{activity.control_code}</code>
-              <span className="text-sm text-warm-600">{activity.department}</span>
+            <div className="flex flex-wrap gap-2 mt-1.5 items-center">
+              <code className="text-sm bg-warm-100 text-brand-900 px-2 py-0.5 rounded font-bold font-mono">{activity.control_code}</code>
+              <span className="text-sm text-brand-900 font-bold">{activity.department}</span>
               {activity.controller_name && (
-                <span className="text-xs text-warm-400">승인자: {activity.controller_name}</span>
+                <span className="text-xs text-warm-500 font-semibold">승인자: <span className="text-brand-900">{activity.controller_name}</span></span>
               )}
             </div>
-            <p className="text-sm text-warm-500 mt-1">{activity.title}</p>
+            <p className="text-sm text-brand-900 font-bold mt-1">{activity.title}</p>
           </div>
 
           <button
@@ -651,10 +657,31 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
           </button>
         </div>
 
+        {/* Upload progress bar — always visible at top, shown stronger while submitting/saving */}
+        {!viewOnly && (
+          <div className="px-6 py-3 bg-white border-b border-warm-100">
+            <div className="flex items-center justify-between mb-1.5 text-xs font-bold">
+              <span className="text-brand-900">증빙 업로드 진행률 · {uploadedCount}/{items.length}건</span>
+              <span className={allUploaded ? 'text-emerald-600' : 'text-brand-700'}>
+                {submitting ? '결재상신 처리 중…' : saving ? '저장 중…' : `${uploadProgress}%`}
+              </span>
+            </div>
+            <div className="h-2 bg-warm-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-300 ${allUploaded ? 'bg-emerald-500' : (submitting || saving) ? 'bg-brand-500 animate-pulse' : 'bg-brand-500'}`}
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+            {!allUploaded && !viewOnly && (
+              <p className="text-xs text-amber-700 font-semibold mt-1.5">※ 결재상신은 모든 항목이 업로드된 후에만 가능합니다 (중간저장은 언제든 가능).</p>
+            )}
+          </div>
+        )}
+
         {activity.description && (
           <div className="px-6 py-3 bg-blue-50 border-b border-blue-100">
-            <p className="text-xs text-blue-600 font-semibold mb-0.5">제출 증빙에 대한 설명</p>
-            <p className="text-sm text-blue-800">{activity.description}</p>
+            <p className="text-xs text-blue-700 font-bold mb-0.5">제출 증빙에 대한 설명</p>
+            <p className="text-sm text-blue-900 font-semibold">{activity.description}</p>
           </div>
         )}
 
@@ -946,11 +973,12 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
 
               <button
                 onClick={handleSubmit}
-                disabled={submitting || saving || activity.submission_status === '승인'}
-                className={clsx('btn-primary', activity.submission_status === '승인' && 'opacity-40 cursor-not-allowed')}
+                disabled={submitting || saving || activity.submission_status === '승인' || !allUploaded}
+                className={clsx('btn-primary', (activity.submission_status === '승인' || !allUploaded) && 'opacity-40 cursor-not-allowed')}
+                title={!allUploaded ? '모든 증빙이 업로드되어야 결재상신이 가능합니다' : undefined}
               >
                 {submitting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-                결재상신
+                결재상신 {!allUploaded && <span className="text-[10px] opacity-80">({uploadedCount}/{items.length})</span>}
               </button>
             </div>
           )}

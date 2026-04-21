@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowUp, BookOpen, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { BookOpen, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
 
@@ -29,8 +29,6 @@ export default function WebtoonPage() {
   const [episodes, setEpisodes] = useState<Episode[]>([])
   const [loading, setLoading] = useState(true)
   const [current, setCurrent] = useState(0)
-  const [showScrollTop, setShowScrollTop] = useState(false)
-
   useEffect(() => {
     async function load() {
       try {
@@ -46,14 +44,6 @@ export default function WebtoonPage() {
       }
     }
     load()
-  }, [])
-
-  useEffect(() => {
-    function handleScroll() {
-      setShowScrollTop(window.scrollY > 300)
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   function scrollToTop() {
@@ -209,16 +199,7 @@ export default function WebtoonPage() {
         </button>
       </div>
 
-      {/* 처음으로 플로팅 버튼 */}
-      {showScrollTop && (
-        <button
-          onClick={scrollToTop}
-          className="fixed bottom-8 right-8 z-50 flex h-12 items-center gap-2 rounded-full bg-brand-800 px-5 text-sm font-bold text-white shadow-md transition-all hover:bg-brand-900 hover:shadow-brand-200 active:scale-95"
-        >
-          <ArrowUp size={16} />
-          처음으로
-        </button>
-      )}
+      {/* 자체 "처음으로" 버튼 제거 — 전역 ScrollToTopButton 사용 */}
       </div>
     </>
   )

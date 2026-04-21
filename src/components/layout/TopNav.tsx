@@ -164,9 +164,8 @@ export default function TopNav() {
 
   return (
     <nav className="at-nav">
-      <Link to="/dashboard" className="at-nav-logo" style={{ textDecoration: 'none' }}>
-        <div className="mark">T</div>
-        <span>동양</span>
+      <Link to="/dashboard" className="at-nav-logo" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+        <img src="/ci_영문_05_preview_rev_1.png" alt="동양" style={{ height: 30, width: 'auto', display: 'block' }} />
         <span className="en">INTERNAL CONTROLS</span>
       </Link>
 
