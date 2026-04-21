@@ -43,6 +43,50 @@ async function fetchDocuments(): Promise<Array<{ title: string; category: string
   }
 }
 
+/**
+ * Lightweight keyword-based retrieval.
+ * Scores each doc by how many query tokens appear in its content, then returns
+ * the top-K docs. This keeps the system prompt under Gemini's token limit when
+ * the corpus contains big regulatory PDFs (2M+ chars total).
+ */
+function retrieveRelevantDocs(
+  docs: Array<{ title: string; category: string; content: string }>,
+  query: string,
+  topK = 6,
+  maxCharsPerDoc = 50_000,
+  maxTotalChars = 180_000,
+): Array<{ title: string; category: string; content: string }> {
+  const tokens = query
+    .toLowerCase()
+    .replace(/[^가-힣a-z0-9\s]/gi, ' ')
+    .split(/\s+/)
+    .filter(t => t.length >= 2)
+  if (tokens.length === 0) return docs.slice(0, topK) // no query terms → fallback
+
+  const scored = docs.map(d => {
+    const text = (d.title + ' ' + d.category + ' ' + d.content).toLowerCase()
+    let score = 0
+    for (const tok of tokens) {
+      // Count occurrences; title/category matches weighted 5x
+      const titleHits = (d.title + ' ' + d.category).toLowerCase().split(tok).length - 1
+      const contentHits = text.split(tok).length - 1
+      score += contentHits + titleHits * 4
+    }
+    return { doc: d, score }
+  })
+
+  scored.sort((a, b) => b.score - a.score)
+  const top = scored.filter(s => s.score > 0).slice(0, topK).map(s => s.doc)
+
+  // Truncate each doc's content so total stays under maxTotalChars
+  let remaining = maxTotalChars
+  return top.map(d => {
+    const allowed = Math.min(d.content.length, maxCharsPerDoc, remaining)
+    remaining -= allowed
+    return { ...d, content: d.content.slice(0, Math.max(0, allowed)) }
+  }).filter(d => d.content.length > 0)
+}
+
 function buildSystemPrompt(docs: Array<{ title: string; category: string; content: string }>) {
   const docTexts = docs
     .map((d, i) => `=== 문서 ${i + 1}: [${d.category}] ${d.title} ===\n${d.content}`)
@@ -99,9 +143,13 @@ export async function POST(request: Request) {
   }
 
   // Fetch documents from Supabase
-  const docs = await fetchDocuments()
+  const allDocs = await fetchDocuments()
 
-  // Build system prompt with documents
+  // Use the latest user message as retrieval query; fall back to last message
+  const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content ?? messages[messages.length - 1].content
+  const docs = retrieveRelevantDocs(allDocs, lastUserMsg, 6, 50_000, 180_000)
+
+  // Build system prompt with retrieved documents only
   const systemPrompt = buildSystemPrompt(docs)
 
   // Build Gemini request
@@ -144,7 +192,7 @@ export async function POST(request: Request) {
         const data = await response.json()
         const text = (data as any).candidates?.[0]?.content?.parts?.[0]?.text
         if (text) {
-          return json({ ok: true, reply: text, model: model.name, docsCount: docs.length })
+          return json({ ok: true, reply: text, model: model.name, docsCount: docs.length, totalDocs: allDocs.length })
         }
         errors.push(`${model.name}: empty response`)
         continue

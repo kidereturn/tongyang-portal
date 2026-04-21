@@ -3,6 +3,8 @@ import { BookOpen, Edit3, FileText, FileUp, Loader2, Plus, Search, Trash2, X, Sa
 import clsx from 'clsx'
 import { supabase } from '../../../lib/supabase'
 import * as pdfjsLib from 'pdfjs-dist'
+// @ts-expect-error — mammoth/mammoth.browser has no TypeScript types
+import mammoth from 'mammoth/mammoth.browser'
 
 // PDF.js worker 설정 (CDN)
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`
@@ -85,6 +87,7 @@ export default function ChatbotDocsTab() {
   const pdfBatchInputRef = useRef<HTMLInputElement>(null)
   const pdfInputModalRef = useRef<HTMLInputElement>(null)
   const txtInputRef = useRef<HTMLInputElement>(null)
+  const docxInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { load() }, [])
 
@@ -245,6 +248,60 @@ export default function ChatbotDocsTab() {
     setPdfExtracting(false)
     setPdfProgress('')
     if (pdfBatchInputRef.current) pdfBatchInputRef.current.value = ''
+  }
+
+  // DOCX 일괄 업로드 → mammoth로 텍스트 추출 → DB 저장
+  async function handleDocxUpload(files: FileList) {
+    const docxFiles = Array.from(files).filter(f => /\.docx$/i.test(f.name))
+    if (docxFiles.length === 0) {
+      alert('DOCX 파일을 선택해 주세요.')
+      return
+    }
+    const oversize = docxFiles.filter(f => f.size > 20 * 1024 * 1024)
+    if (oversize.length) {
+      alert(`${oversize.map(f => f.name).join(', ')}\n\n위 파일이 20MB를 초과합니다.`)
+      return
+    }
+
+    setPdfExtracting(true)
+    setBatchResults([])
+    const results: Array<{ name: string; ok: boolean; error?: string }> = []
+    const db = supabase as any
+
+    for (let i = 0; i < docxFiles.length; i++) {
+      const file = docxFiles[i]
+      setPdfProgress(`(${i + 1}/${docxFiles.length}) "${file.name}" 텍스트 추출 중...`)
+      try {
+        const arrayBuffer = await file.arrayBuffer()
+        const result = await mammoth.extractRawText({ arrayBuffer })
+        const text = (result.value ?? '').trim()
+        if (!text) {
+          results.push({ name: file.name, ok: false, error: '빈 문서' })
+          continue
+        }
+        const title = file.name.replace(/\.docx$/i, '').trim()
+        const { data } = await db.from('chatbot_documents').insert({
+          title,
+          category: '문서',
+          content: text,
+          is_active: true,
+        }).select().single()
+        if (data) {
+          setDocs(prev => [...prev, data])
+          results.push({ name: file.name, ok: true })
+        } else {
+          results.push({ name: file.name, ok: false, error: 'DB 저장 실패' })
+        }
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'DOCX 처리 오류'
+        results.push({ name: file.name, ok: false, error: msg })
+      }
+    }
+
+    setBatchResults(results)
+    setPdfExtracting(false)
+    setPdfProgress('')
+    if (docxInputRef.current) docxInputRef.current.value = ''
   }
 
   // 텍스트 파일 일괄 업로드 → 즉시 DB 저장
@@ -460,6 +517,24 @@ export default function ChatbotDocsTab() {
             onChange={e => {
               const files = e.target.files
               if (files && files.length > 0) handleBatchPdfUpload(files)
+            }}
+          />
+        </label>
+        <label className={clsx(
+          'btn-primary text-xs gap-1 bg-purple-600 hover:bg-purple-700 cursor-pointer',
+          pdfExtracting && 'opacity-50 pointer-events-none'
+        )}>
+          <FileText size={14} />DOCX 일괄
+          <input
+            ref={docxInputRef}
+            type="file"
+            accept=".docx"
+            multiple
+            className="hidden"
+            disabled={pdfExtracting}
+            onChange={e => {
+              const files = e.target.files
+              if (files && files.length > 0) handleDocxUpload(files)
             }}
           />
         </label>
