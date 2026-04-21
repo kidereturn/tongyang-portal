@@ -117,11 +117,11 @@ export default function LoginPage() {
           </div>
 
           <div className="login-hero">
-            <div className="cycle-tag" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <span>{dateLabel}</span>
-              <span style={{ fontFamily: 'var(--f-mono)', color: '#60A5FA', fontWeight: 700 }}>{timeLabel}</span>
+            <div className="cycle-tag" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', color: '#FFFFFF' }}>
+              <span style={{ color: '#FFFFFF' }}>{dateLabel}</span>
+              <span style={{ fontFamily: 'var(--f-mono)', color: '#FFFFFF', fontWeight: 700 }}>{timeLabel}</span>
             </div>
-            <h1 style={{ fontSize: '50%', whiteSpace: 'nowrap' }}>내부회계 Portal System</h1>
+            <h1 style={{ fontSize: '80%', whiteSpace: 'nowrap' }}>내부회계 Portal System</h1>
             <p className="en">Internal Accounting Control System</p>
             <div className="quote">
               "Control is not a constraint — it's the quiet architecture of trust."
