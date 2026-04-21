@@ -121,7 +121,7 @@ export default function LoginPage() {
               <span style={{ color: '#FFFFFF' }}>{dateLabel}</span>
               <span style={{ fontFamily: 'var(--f-mono)', color: '#FFFFFF', fontWeight: 700 }}>{timeLabel}</span>
             </div>
-            <h1 style={{ fontSize: '80%', whiteSpace: 'nowrap' }}>내부회계 Portal System</h1>
+            <h1 style={{ fontSize: 'clamp(51px, 6.4vw, 83px)', whiteSpace: 'nowrap' }}>내부회계 Portal System</h1>
             <p className="en">Internal Accounting Control System</p>
             <div className="quote">
               "Control is not a constraint — it's the quiet architecture of trust."
