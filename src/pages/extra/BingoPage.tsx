@@ -130,6 +130,35 @@ function checkAnswer(question: QuizQuestion, userAnswer: string): boolean {
 export default function BingoPage() {
   const { profile } = useAuth()
   const [questions, setQuestions] = useState<QuizQuestion[]>(() => buildBingoQuestions())
+  const [aiQuestionsSource, setAiQuestionsSource] = useState<'ai' | 'static'>('static')
+
+  // Try to load AI-generated questions from today's cache (generates if missing, server-cached).
+  // Falls back to static pool on failure — zero disruption.
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/generate-bingo', { method: 'GET' })
+        if (!res.ok) return
+        const data = await res.json()
+        if (!data?.ok || !Array.isArray(data.questions) || data.questions.length < 25) return
+        if (cancelled) return
+        // Map server format → QuizQuestion shape
+        const mapped: QuizQuestion[] = data.questions.slice(0, 25).map((q: any, i: number) => ({
+          id: `ai-${data.date}-${i}`,
+          type: 'multiple',
+          question: q.question,
+          choices: q.choices,
+          answer: q.answer,
+          explanation: q.explanation,
+          difficulty: 'medium',
+        }))
+        setQuestions(mapped)
+        setAiQuestionsSource('ai')
+      } catch { /* keep static fallback */ }
+    })()
+    return () => { cancelled = true }
+  }, [])
   const [activeIdx, setActiveIdx] = useState<number | null>(null)
   const [subjectiveAnswer, setSubjectiveAnswer] = useState('')
   const [selectedChoice, setSelectedChoice] = useState('')
@@ -445,6 +474,11 @@ export default function BingoPage() {
             <p className="lead">
               이번 달 25개 미션. 완료하면 포인트가 적립되고, 가로·세로·대각선 3줄 이상이면 기프티콘이 지급됩니다.
               문제당 <b>10초</b> · 하루 <b>{MAX_DAILY_PLAYS}회</b> 도전.
+              {aiQuestionsSource === 'ai' && (
+                <span style={{ marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', background: '#EEF4FE', border: '1px solid #DCE8FB', borderRadius: 6, fontSize: 11, fontWeight: 600, color: '#1E40AF' }}>
+                  ✨ AI가 사내 문서에서 오늘의 문제를 생성함
+                </span>
+              )}
             </p>
           </div>
           <div className="actions">

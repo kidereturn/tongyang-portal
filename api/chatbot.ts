@@ -147,7 +147,8 @@ export async function POST(request: Request) {
 
   // Use the latest user message as retrieval query; fall back to last message
   const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content ?? messages[messages.length - 1].content
-  const docs = retrieveRelevantDocs(allDocs, lastUserMsg, 6, 50_000, 180_000)
+  // Cost-aware defaults: top-4 docs, 30K per doc, 80K total (~35K tokens input)
+  const docs = retrieveRelevantDocs(allDocs, lastUserMsg, 4, 30_000, 80_000)
 
   // Build system prompt with retrieved documents only
   const systemPrompt = buildSystemPrompt(docs)
