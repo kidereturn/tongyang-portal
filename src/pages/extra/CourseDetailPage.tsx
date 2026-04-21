@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { BookOpen, PauseCircle, PlayCircle, RotateCcw, CheckCircle2, Circle, Star, FileDown, MessageSquare, ChevronLeft } from 'lucide-react'
-import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import CourseQuizModal from '../../components/CourseQuizModal'
@@ -326,6 +325,77 @@ export default function CourseDetailPage() {
     })()
   }, [profile?.id, selectedVideo?.id, progress])
 
+  // Q&A state
+  const [qaList, setQaList] = useState<Array<{ id: string; user_id: string; question: string; answer?: string | null; created_at: string; user_name?: string; answered_at?: string | null }>>([])
+  const [showAskQ, setShowAskQ] = useState(false)
+  const [qAsking, setQAsking] = useState(false)
+  const [newQText, setNewQText] = useState('')
+  const [detailQ, setDetailQ] = useState<typeof qaList[number] | null>(null)
+
+  useEffect(() => {
+    if (!selectedVideo?.id) return
+    ;(async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from('course_qa')
+          .select('id, user_id, question, answer, created_at, answered_at, profiles:profiles(full_name)')
+          .eq('course_id', selectedVideo.id)
+          .order('created_at', { ascending: false })
+        const items = (data ?? []).map((r: any) => ({
+          id: r.id,
+          user_id: r.user_id,
+          question: r.question,
+          answer: r.answer,
+          answered_at: r.answered_at,
+          created_at: r.created_at,
+          user_name: r.profiles?.full_name ?? '익명',
+        }))
+        setQaList(items)
+      } catch { /* silent */ }
+    })()
+  }, [selectedVideo?.id])
+
+  async function submitQuestion() {
+    const text = newQText.trim()
+    if (!text || !profile?.id || !selectedVideo?.id) return
+    setQAsking(true)
+    try {
+      await (supabase as any).from('course_qa').insert({
+        course_id: selectedVideo.id,
+        user_id: profile.id,
+        question: text,
+      })
+      // Notify self + admins
+      const recipients: Array<{ id: string }> = []
+      const { data: admins } = await (supabase as any).from('profiles').select('id').eq('role', 'admin').eq('is_active', true)
+      recipients.push(...(admins ?? []))
+      recipients.push({ id: profile.id })
+      const unique = Array.from(new Set(recipients.map(r => r.id)))
+      const notes = unique.map(id => ({
+        recipient_id: id,
+        sender_id: profile.id,
+        title: `수강생 질문 - ${selectedVideo.title}`,
+        body: `${profile.full_name ?? ''} (${profile.employee_id ?? ''})\n\n${text}`,
+        is_read: false,
+      }))
+      if (notes.length) await (supabase as any).from('notifications').insert(notes)
+      // Refresh list
+      const { data } = await (supabase as any)
+        .from('course_qa').select('id, user_id, question, answer, created_at, answered_at, profiles:profiles(full_name)')
+        .eq('course_id', selectedVideo.id).order('created_at', { ascending: false })
+      setQaList((data ?? []).map((r: any) => ({
+        id: r.id, user_id: r.user_id, question: r.question, answer: r.answer, answered_at: r.answered_at, created_at: r.created_at,
+        user_name: r.profiles?.full_name ?? '익명',
+      })))
+      alert('질문이 등록되었습니다. 관리자와 본인에게 알림이 전송되었어요.')
+      setNewQText(''); setShowAskQ(false)
+    } catch (e: any) {
+      alert('등록 실패: ' + (e?.message ?? ''))
+    } finally {
+      setQAsking(false)
+    }
+  }
+
   // Load all video progress for the sidebar list
   const [, setVideoProgress] = useState<Record<string, number>>({})
   useEffect(() => {
@@ -427,12 +497,6 @@ export default function CourseDetailPage() {
     )
   }
 
-  // Sample Q&A data (future: fetch from course_qa table)
-  const qaSample = [
-    { user: '김서영', date: '2일 전 14:22', content: 'COSO 2013년과 2025년 가장 큰 차이가 뭔가요? 실무에 반영할 때 어디부터 손을 대는 게 좋을지 궁금합니다.', replies: 3, tag: '강사답' },
-    { user: '정아영', date: '3일 전 09:50', content: '챕터 3 어떻게서 나온 "고유위험 vs 잔여위험" 설명이 너무 쉽네요. 예시 하나만 더 있었으면 종겠어요!', replies: 1, tag: '기대글' },
-  ]
-
   const currentChapterIdx = chapters.findIndex(ch => ch.items.some(it => it.id === selectedVideo?.id))
   const completedCount = Math.floor((videos.length * 5) / 12)
 
@@ -443,7 +507,7 @@ export default function CourseDetailPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 24, alignItems: 'start' }}>
           {/* LEFT: Video player + actions + Q&A */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {/* Player */}
+            {/* Player with playback-rate overlay on bottom-right */}
             <div style={{ borderRadius: 14, overflow: 'hidden', background: '#000', position: 'relative' }}>
               <div className="aspect-video" style={{ position: 'relative' }} id="yt-player-wrap">
                 <div id="youtube-course-player" className="h-full w-full" />
@@ -453,6 +517,48 @@ export default function CourseDetailPage() {
                     <p style={{ marginTop: 8, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>다른 강좌를 선택하거나 관리자에게 문의하세요</p>
                   </div>
                 )}
+                {/* Playback rate overlay — bottom-right of video */}
+                <div style={{
+                  position: 'absolute', bottom: 12, right: 12,
+                  display: 'flex', gap: 4,
+                  padding: '6px 8px',
+                  background: 'rgba(0,0,0,0.7)',
+                  backdropFilter: 'blur(8px)',
+                  borderRadius: 10,
+                  zIndex: 10,
+                }}>
+                  {PLAYBACK_RATES.map(rate => (
+                    <button
+                      key={rate}
+                      onClick={() => handleRateChange(rate)}
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: 11,
+                        fontFamily: 'var(--f-mono)',
+                        fontWeight: 700,
+                        borderRadius: 6,
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: playbackRate === rate ? '#3182F6' : 'transparent',
+                        color: playbackRate === rate ? '#fff' : 'rgba(255,255,255,0.7)',
+                        transition: 'all 0.15s',
+                      }}
+                      title={`${rate}x 배속`}
+                    >
+                      {rate}x
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Progress bar — directly under video */}
+              <div style={{ padding: '10px 14px', background: '#0F172A', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, fontFamily: 'var(--f-mono)', marginBottom: 6, color: 'rgba(255,255,255,0.7)' }}>
+                  <span>{watchedLabel} / {duration > 0 ? durationLabel : '로딩 중'}</span>
+                  <span style={{ color: '#60A5FA', fontWeight: 700 }}>{progress}%</span>
+                </div>
+                <div style={{ height: 3, background: 'rgba(255,255,255,0.15)', borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{ height: 3, background: '#3182F6', width: `${progress}%`, transition: 'width 0.3s' }} />
+                </div>
               </div>
             </div>
 
@@ -509,28 +615,6 @@ export default function CourseDetailPage() {
                 </button>
               </div>
 
-              {/* Progress + rate */}
-              <div style={{ marginTop: 14, padding: '12px 14px', background: 'var(--at-ivory)', border: '1px solid var(--at-ink-hair)', borderRadius: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, fontFamily: 'var(--f-mono)', marginBottom: 8 }}>
-                  <span>{watchedLabel} / {duration > 0 ? durationLabel : '로딩 중'}</span>
-                  <span style={{ color: '#3182F6', fontWeight: 700 }}>{progress}%</span>
-                </div>
-                <div style={{ height: 4, background: 'var(--at-ink-hair)', borderRadius: 2, overflow: 'hidden' }}>
-                  <div style={{ height: 4, background: '#3182F6', width: `${progress}%`, transition: 'width 0.3s' }} />
-                </div>
-                <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-                  {PLAYBACK_RATES.map(rate => (
-                    <button
-                      key={rate}
-                      onClick={() => handleRateChange(rate)}
-                      className={clsx('filter-chip', playbackRate === rate && 'active')}
-                      style={{ cursor: 'pointer', fontSize: 10 }}
-                    >
-                      {rate}x
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
 
             {/* Q&A */}
@@ -538,31 +622,45 @@ export default function CourseDetailPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700 }}>
                   <MessageSquare size={15} style={{ display: 'inline', marginRight: 6 }} />
-                  수강생 질문 · {qaSample.length * 12}
+                  수강생 질문 · {qaList.length}
                 </h3>
-                <button className="btn-compact">+ 질문하기</button>
+                <button className="btn-compact" onClick={() => setShowAskQ(true)}>+ 질문하기</button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {qaSample.map((q, i) => (
-                  <div key={i} className="at-card" style={{ padding: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                      <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#EEF4FE', color: '#3182F6', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 700 }}>
-                        {q.user.charAt(0)}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600 }}>{q.user}</div>
-                        <div style={{ fontSize: 10, color: 'var(--at-ink-mute)' }}>{q.date}</div>
-                      </div>
-                      <span style={{ padding: '2px 8px', background: '#10B981', color: '#fff', fontSize: 10, fontWeight: 600, borderRadius: 4 }}>{q.tag}</span>
-                    </div>
-                    <p style={{ fontSize: 12, color: 'var(--at-ink)', lineHeight: 1.55, marginLeft: 36 }}>{q.content}</p>
-                    <div style={{ display: 'flex', gap: 14, marginTop: 8, marginLeft: 36, fontSize: 11, color: 'var(--at-ink-mute)' }}>
-                      <span>👍 {12 + i * 5}</span>
-                      <span>💬 답글 {q.replies}</span>
-                      <span>📎 자료 첨부</span>
-                    </div>
+                {qaList.length === 0 ? (
+                  <div className="at-card" style={{ padding: 22, textAlign: 'center', color: 'var(--at-ink-mute)', fontSize: 13 }}>
+                    첫 번째 질문을 남겨보세요. 강사/관리자가 답변드립니다.
                   </div>
-                ))}
+                ) : (
+                  qaList.map((q) => (
+                    <button
+                      key={q.id}
+                      onClick={() => setDetailQ(q)}
+                      className="at-card"
+                      style={{ padding: 16, textAlign: 'left', border: '1px solid var(--at-ink-hair)', cursor: 'pointer', background: '#fff', transition: 'border-color 0.15s' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = '#3182F6' }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--at-ink-hair)' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                        <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#EEF4FE', color: '#3182F6', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 700 }}>
+                          {(q.user_name ?? '?').charAt(0)}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600 }}>{q.user_name}</div>
+                          <div style={{ fontSize: 10, color: 'var(--at-ink-mute)' }}>{new Date(q.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>
+                        {q.answer ? (
+                          <span style={{ padding: '2px 8px', background: '#10B981', color: '#fff', fontSize: 10, fontWeight: 600, borderRadius: 4 }}>답변완료</span>
+                        ) : (
+                          <span style={{ padding: '2px 8px', background: '#F59E0B', color: '#fff', fontSize: 10, fontWeight: 600, borderRadius: 4 }}>답변대기</span>
+                        )}
+                      </div>
+                      <p style={{ fontSize: 12, color: 'var(--at-ink)', lineHeight: 1.55, marginLeft: 36, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {q.question}
+                      </p>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -645,6 +743,85 @@ export default function CourseDetailPage() {
           open={quizOpen}
           onClose={() => setQuizOpen(false)}
         />
+      )}
+
+      {/* Ask a question popup */}
+      {showAskQ && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: 20 }}
+          onClick={() => setShowAskQ(false)}
+          onKeyDown={e => { if (e.key === 'Escape') setShowAskQ(false) }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ width: 'min(520px, 100%)', background: '#fff', borderRadius: 16, padding: 28, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--at-ink-mute)', letterSpacing: '0.12em', fontFamily: 'var(--f-mono)' }}>ASK</div>
+                <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>강사에게 질문하기</div>
+              </div>
+              <button onClick={() => setShowAskQ(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 6, fontSize: 16 }}>✕</button>
+            </div>
+            <textarea
+              value={newQText}
+              onChange={e => setNewQText(e.target.value)}
+              placeholder="이 강의에 대해 궁금한 점을 자유롭게 적어주세요."
+              rows={6}
+              style={{ width: '100%', padding: '12px 14px', border: '1px solid var(--at-ink-hair)', borderRadius: 10, fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }}
+            />
+            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--at-ink-mute)' }}>등록하면 관리자와 본인에게 알림이 전송됩니다.</div>
+            <button
+              onClick={submitQuestion}
+              disabled={qAsking || !newQText.trim()}
+              className="btn-compact primary"
+              style={{ width: '100%', padding: '12px 18px', justifyContent: 'center', fontSize: 13, marginTop: 16, opacity: qAsking || !newQText.trim() ? 0.5 : 1 }}
+            >
+              {qAsking ? '등록 중...' : '질문 등록'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Question detail popup */}
+      {detailQ && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: 20 }}
+          onClick={() => setDetailQ(null)}
+          onKeyDown={e => { if (e.key === 'Escape') setDetailQ(null) }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ width: 'min(560px, 100%)', background: '#fff', borderRadius: 16, padding: 28, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--at-ink-mute)', letterSpacing: '0.12em', fontFamily: 'var(--f-mono)' }}>QUESTION</div>
+                <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>{detailQ.user_name}님의 질문</div>
+              </div>
+              <button onClick={() => setDetailQ(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 6, fontSize: 16 }}>✕</button>
+            </div>
+
+            <div style={{ padding: 16, background: 'var(--at-ivory)', borderRadius: 10, marginBottom: 14 }}>
+              <div style={{ fontSize: 11, color: 'var(--at-ink-mute)', marginBottom: 6 }}>
+                {new Date(detailQ.created_at).toLocaleString('ko-KR')}
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--at-ink)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{detailQ.question}</p>
+            </div>
+
+            {detailQ.answer ? (
+              <div style={{ padding: 16, background: '#EEF4FE', border: '1px solid #DCE8FB', borderRadius: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#1E40AF', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ padding: '2px 8px', background: '#10B981', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 4 }}>답변</span>
+                  {detailQ.answered_at && (
+                    <span style={{ color: 'var(--at-ink-mute)', fontWeight: 400 }}>
+                      {new Date(detailQ.answered_at).toLocaleString('ko-KR')}
+                    </span>
+                  )}
+                </div>
+                <p style={{ fontSize: 13, color: 'var(--at-ink)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{detailQ.answer}</p>
+              </div>
+            ) : (
+              <div style={{ padding: 16, background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 10, color: '#92400E', fontSize: 12 }}>
+                아직 답변이 등록되지 않았습니다. 강사 또는 관리자가 답변할 예정입니다.
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </>
   )

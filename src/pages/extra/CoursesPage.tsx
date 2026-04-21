@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BookOpen, Play, Star, Award, ListChecks, Shield } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { BookOpen, Play, Star, Award, ListChecks, Shield, X, Send, Clock } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 
 type VideoRow = {
   id: string
@@ -53,9 +55,16 @@ const TAG_STYLES: Record<string, React.CSSProperties> = {
 }
 
 export default function CoursesPage() {
+  const navigate = useNavigate()
+  const { profile } = useAuth()
   const [videos, setVideos] = useState<VideoRow[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
+  const [showRegister, setShowRegister] = useState(false)
+  const [regCategory, setRegCategory] = useState('재무회계')
+  const [regTitle, setRegTitle] = useState('')
+  const [regReason, setRegReason] = useState('')
+  const [regSaving, setRegSaving] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -96,6 +105,47 @@ export default function CoursesPage() {
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
+  async function submitRegistration() {
+    if (!regTitle.trim()) { alert('신청할 강좌명을 입력해주세요.'); return }
+    if (!profile?.id) return
+    setRegSaving(true)
+    try {
+      await (supabase as any).from('course_registrations').insert({
+        user_id: profile.id,
+        requested_category: regCategory,
+        requested_title: regTitle.trim(),
+        reason: regReason.trim() || null,
+      })
+      // Notify all admins
+      const { data: admins } = await (supabase as any).from('profiles').select('id').eq('role', 'admin').eq('is_active', true)
+      if (admins?.length) {
+        const notes = admins.map((a: { id: string }) => ({
+          recipient_id: a.id,
+          sender_id: profile.id,
+          title: `강좌 신청 - ${profile.full_name ?? ''} (${profile.employee_id ?? ''})`,
+          body: `카테고리: ${regCategory}\n강좌명: ${regTitle.trim()}\n사유: ${regReason.trim() || '(없음)'}`,
+          is_read: false,
+        }))
+        await (supabase as any).from('notifications').insert(notes)
+      }
+      alert('강좌 신청이 접수되었습니다. 관리자에게 알림이 전송되었어요.')
+      setRegTitle(''); setRegReason('')
+      setShowRegister(false)
+    } catch (e: any) {
+      alert('신청 실패: ' + (e?.message ?? ''))
+    } finally {
+      setRegSaving(false)
+    }
+  }
+
+  // 수강기한 (deadline) — mock: end of current quarter
+  function deadlineFor(_idx: number): string {
+    const now = new Date()
+    const q = Math.floor(now.getMonth() / 3)
+    const end = new Date(now.getFullYear(), q * 3 + 3, 0)
+    return `${end.getMonth() + 1}/${end.getDate()}까지`
+  }
+
   return (
     <>
       <div className="pg-head">
@@ -108,10 +158,10 @@ export default function CoursesPage() {
             </p>
           </div>
           <div className="actions" style={{ display: 'flex', gap: 8 }}>
-            <button className="btn-compact">
+            <button className="btn-compact" onClick={() => navigate('/learning')}>
               <Award size={13} /> 내 이수내역
             </button>
-            <button className="btn-compact primary">
+            <button className="btn-compact primary" onClick={() => setShowRegister(true)}>
               <ListChecks size={13} /> 강좌 신청
             </button>
           </div>
@@ -143,7 +193,7 @@ export default function CoursesPage() {
           >
             <div>
               <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.7)', marginBottom: 12 }}>
-                FEATURED · 이번 달 추천
+                FEATURED · 필수 수강 강의
               </div>
               <div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.2, maxWidth: 700 }}>
                 {featured.title}
@@ -217,41 +267,48 @@ export default function CoursesPage() {
                     background: skin.bg,
                     color: skin.ink,
                     borderRadius: 14,
-                    border: 'none',
+                    border: '1px solid var(--at-ink-hair)',
                     padding: 0,
                     cursor: 'pointer',
                     textAlign: 'left',
                     overflow: 'hidden',
-                    transition: 'transform 0.15s, box-shadow 0.15s',
+                    transition: 'transform 0.15s, box-shadow 0.15s, border-color 0.15s',
                     boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                     display: 'flex',
                     flexDirection: 'column',
+                    minHeight: 280,
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.transform = 'translateY(-2px)'
                     e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)'
+                    e.currentTarget.style.borderColor = '#3182F6'
                   }}
                   onMouseLeave={e => {
                     e.currentTarget.style.transform = 'translateY(0)'
                     e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)'
+                    e.currentTarget.style.borderColor = 'var(--at-ink-hair)'
                   }}
                 >
-                  {/* Colored top half with tag only (no thumbnail image/emoji) */}
-                  <div style={{ padding: '20px 20px 26px', position: 'relative', minHeight: 100 }}>
+                  {/* Colored top half with tag only (fixed height so all cards align) */}
+                  <div style={{ padding: '20px 20px 26px', position: 'relative', height: 110, flexShrink: 0 }}>
                     <div style={{ position: 'absolute', top: 14, left: 14, padding: '4px 10px', fontSize: 10, fontWeight: 700, borderRadius: 999, ...tagStyle }}>
                       {tag}
                     </div>
                   </div>
 
-                  {/* White bottom half with title/info */}
-                  <div style={{ background: '#FFFFFF', color: 'var(--at-ink)', padding: '18px 18px 18px' }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--at-ink)', lineHeight: 1.35, minHeight: 38 }}>
+                  {/* White bottom half — fixed height so all cards align uniformly */}
+                  <div style={{ background: '#FFFFFF', color: 'var(--at-ink)', padding: '18px 18px 18px', borderTop: '1px solid var(--at-ink-hair)', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--at-ink)', lineHeight: 1.35, minHeight: 38, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {v.title}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--at-ink-mute)', marginTop: 6 }}>
                       강사 {instructor}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--at-ink-hair)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#1E40AF', marginTop: 8, padding: '4px 8px', background: '#EEF4FE', border: '1px solid #DCE8FB', borderRadius: 6, alignSelf: 'flex-start' }}>
+                      <Clock size={10} />
+                      수강기한 {deadlineFor(idx)}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: 10, borderTop: '1px solid var(--at-ink-hair)' }}>
                       <div style={{ fontSize: 11, color: 'var(--at-ink-mute)' }}>
                         ⏱ {duration} · {difficulty}
                       </div>
@@ -274,6 +331,75 @@ export default function CoursesPage() {
           강좌 카드를 클릭하면 새 창에서 영상이 재생됩니다. 배속은 최대 2배까지, 임의 건너뛰기는 제한됩니다.
         </div>
       </div>
+
+      {/* 강좌 신청 팝업 */}
+      {showRegister && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: 20 }}
+          onClick={() => setShowRegister(false)}
+          onKeyDown={e => { if (e.key === 'Escape') setShowRegister(false) }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ width: 'min(520px, 100%)', background: '#fff', borderRadius: 16, padding: 28, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--at-ink-mute)', letterSpacing: '0.12em', fontFamily: 'var(--f-mono)' }}>REQUEST</div>
+                <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>강좌 신청</div>
+              </div>
+              <button onClick={() => setShowRegister(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 6 }}><X size={18} /></button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--at-ink-mute)' }}>카테고리</span>
+                <select
+                  value={regCategory}
+                  onChange={e => setRegCategory(e.target.value)}
+                  style={{ padding: '10px 12px', border: '1px solid var(--at-ink-hair)', borderRadius: 8, fontSize: 13 }}
+                >
+                  {CATEGORIES.filter(c => c.key !== 'all').map(c => (
+                    <option key={c.key} value={c.label}>{c.label}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--at-ink-mute)' }}>신청할 강좌명</span>
+                <input
+                  type="text"
+                  value={regTitle}
+                  onChange={e => setRegTitle(e.target.value)}
+                  placeholder="예: ESG 회계 실무 심화"
+                  style={{ padding: '10px 12px', border: '1px solid var(--at-ink-hair)', borderRadius: 8, fontSize: 13 }}
+                />
+              </label>
+
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--at-ink-mute)' }}>신청 사유 (선택)</span>
+                <textarea
+                  value={regReason}
+                  onChange={e => setRegReason(e.target.value)}
+                  placeholder="왜 이 강좌가 필요한지 간단히 적어주세요."
+                  rows={4}
+                  style={{ padding: '10px 12px', border: '1px solid var(--at-ink-hair)', borderRadius: 8, fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }}
+                />
+              </label>
+
+              <div style={{ fontSize: 11, color: 'var(--at-ink-mute)', background: 'var(--at-ivory)', padding: '10px 12px', borderRadius: 8 }}>
+                신청 내용은 관리자에게 실시간 알림으로 전송됩니다.
+              </div>
+
+              <button
+                onClick={submitRegistration}
+                disabled={regSaving || !regTitle.trim()}
+                className="btn-compact primary"
+                style={{ width: '100%', padding: '12px 18px', justifyContent: 'center', fontSize: 13, opacity: regSaving || !regTitle.trim() ? 0.5 : 1 }}
+              >
+                <Send size={14} /> {regSaving ? '신청 중...' : '신청하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

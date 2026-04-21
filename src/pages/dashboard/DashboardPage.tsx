@@ -61,6 +61,7 @@ export default function DashboardPage() {
   const [pointsRanking, setPointsRanking] = useState<RankingUser[]>([])
   const [notices, setNotices] = useState<NoticeRow[]>([])
   const [bingoRecent, setBingoRecent] = useState(0) // 오늘 풀린 칸 수 (간이)
+  const [bingoRanking, setBingoRanking] = useState<Array<{ user_id: string; full_name?: string; team?: string; max_lines: number }>>([])
 
   useEffect(() => { void fetchAll() }, [profile?.id])
 
@@ -113,6 +114,22 @@ export default function DashboardPage() {
       const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
       const { count: bingoCnt } = await db.from('quiz_results').select('id', { count: 'exact', head: true }).gte('created_at', todayStart.toISOString())
       setBingoRecent(Math.min(25, bingoCnt ?? 0))
+
+      // 빙고 줄 완성 TOP 3
+      try {
+        const { data: bingoRows } = await db
+          .from('bingo_achievements')
+          .select('user_id, max_lines, profiles:profiles(full_name, department)')
+          .order('max_lines', { ascending: false })
+          .limit(3)
+        const mapped = (bingoRows ?? []).map((r: any) => ({
+          user_id: r.user_id,
+          full_name: r.profiles?.full_name ?? '익명',
+          team: r.profiles?.department ?? '',
+          max_lines: r.max_lines ?? 0,
+        }))
+        setBingoRanking(mapped)
+      } catch { /* silent */ }
     } catch (e) {
       console.warn('[Dashboard]', e)
     } finally {
@@ -162,29 +179,32 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Right side: 전해드릴 소식 — 공지/이벤트 + 실시간 랭킹 */}
-          <div className="at-hero-art ivory" style={{ position: 'relative', padding: '20px 0' }}>
-            <div className="at-card" style={{ padding: 22, background: 'var(--at-white)', border: '1px solid var(--at-ink-hair)', borderRadius: 14, boxShadow: 'var(--sh-card)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          {/* Right side: 공지사항 & 매뉴얼 (large card that covers the whole hero-art space) */}
+          <div className="at-hero-art ivory" style={{ position: 'relative', padding: 0, display: 'flex', alignItems: 'stretch' }}>
+            <div className="at-card" style={{ width: '100%', padding: 28, background: 'var(--at-white)', border: '1px solid var(--at-ink-hair)', borderRadius: 16, boxShadow: 'var(--sh-card)', minHeight: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <div>
-                  <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>DISPATCHES</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--at-ink)', marginTop: 2 }}>전해드릴 소식</div>
+                  <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>NOTICES · MANUALS</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--at-ink)', marginTop: 2 }}>공지사항 &amp; 매뉴얼</div>
                 </div>
-                <Link to="/news" style={{ textDecoration: 'none', fontSize: 11, color: 'var(--at-blue)', fontWeight: 600 }}>전체보기 →</Link>
+                <button
+                  onClick={() => window.open('/notices-all', '_blank', 'noopener,noreferrer')}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--at-blue)', fontWeight: 600 }}
+                >전체보기 →</button>
               </div>
 
               {notices.length === 0 ? (
                 <div style={{ padding: '12px 0', fontSize: 12, color: 'var(--at-ink-faint)' }}>등록된 공지가 없습니다</div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {notices.slice(0, 4).map(n => (
                     <Link
                       key={n.id}
                       to={`/notice/${n.id}`}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, background: 'var(--at-ivory)', textDecoration: 'none' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, background: 'var(--at-ivory)', textDecoration: 'none' }}
                     >
-                      <span className={`at-tag ${n.badge_color ?? 'blue'}`} style={{ fontSize: 9, padding: '2px 6px' }}>{n.badge ?? '공지'}</span>
-                      <span style={{ flex: 1, fontSize: 12, color: 'var(--at-ink)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.title}</span>
+                      <span className={`at-tag ${n.badge_color ?? 'blue'}`} style={{ fontSize: 9, padding: '2px 7px' }}>{n.badge ?? '공지'}</span>
+                      <span style={{ flex: 1, fontSize: 13, color: 'var(--at-ink)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.title}</span>
                       <span style={{ fontSize: 10, fontFamily: 'var(--f-mono)', color: 'var(--at-ink-faint)' }}>
                         {new Date(n.created_at).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' })}
                       </span>
@@ -193,26 +213,48 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {pointsRanking.length > 0 && (
-                <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--at-ink-hair)' }}>
+              {/* 실시간 랭킹 TOP 3: 포인트 + 빙고 줄 수 */}
+              <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--at-ink-hair)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--at-ink-mute)', letterSpacing: '0.04em' }}>🏆 실시간 랭킹 TOP 3</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--at-ink-mute)', letterSpacing: '0.04em' }}>🏆 포인트 TOP 3</div>
                     <Link to="/kpi" style={{ textDecoration: 'none', fontSize: 10, color: 'var(--at-blue)', fontWeight: 600 }}>전체</Link>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {pointsRanking.slice(0, 3).map((r, i) => (
-                      <div key={r.user_id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
-                        <span style={{ width: 18, height: 18, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 700, background: i === 0 ? '#FDE68A' : i === 1 ? '#E5E7EB' : '#FECACA', color: i === 0 ? '#92400E' : i === 1 ? '#374151' : '#991B1B' }}>
-                          {i + 1}
-                        </span>
-                        <span style={{ flex: 1, fontWeight: 600 }}>{r.full_name ?? '익명'}</span>
-                        {r.team && <span style={{ fontSize: 10, color: 'var(--at-ink-mute)' }}>{r.team}</span>}
-                        <span style={{ fontFamily: 'var(--f-mono)', fontWeight: 700, color: 'var(--at-blue)' }}>{r.total_points}P</span>
-                      </div>
-                    ))}
-                  </div>
+                  {pointsRanking.length === 0 ? (
+                    <div style={{ fontSize: 11, color: 'var(--at-ink-faint)', padding: '4px 0' }}>데이터 없음</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {pointsRanking.slice(0, 3).map((r, i) => (
+                        <div key={r.user_id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                          <span style={{ width: 18, height: 18, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 700, background: i === 0 ? '#FDE68A' : i === 1 ? '#E5E7EB' : '#FECACA', color: i === 0 ? '#92400E' : i === 1 ? '#374151' : '#991B1B' }}>
+                            {i + 1}
+                          </span>
+                          <span style={{ flex: 1, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.full_name ?? '익명'}</span>
+                          <span style={{ fontFamily: 'var(--f-mono)', fontWeight: 700, color: 'var(--at-blue)' }}>{r.total_points}P</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--at-ink-mute)', letterSpacing: '0.04em', marginBottom: 8 }}>🎯 빙고 줄 TOP 3</div>
+                  {bingoRanking.length === 0 ? (
+                    <div style={{ fontSize: 11, color: 'var(--at-ink-faint)', padding: '4px 0' }}>기록 없음</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {bingoRanking.slice(0, 3).map((r, i) => (
+                        <div key={r.user_id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                          <span style={{ width: 18, height: 18, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 700, background: i === 0 ? '#FDE68A' : i === 1 ? '#E5E7EB' : '#FECACA', color: i === 0 ? '#92400E' : i === 1 ? '#374151' : '#991B1B' }}>
+                            {i + 1}
+                          </span>
+                          <span style={{ flex: 1, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.full_name ?? '익명'}</span>
+                          <span style={{ fontFamily: 'var(--f-mono)', fontWeight: 700, color: '#F59E0B' }}>{r.max_lines}줄</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

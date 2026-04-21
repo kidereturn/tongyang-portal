@@ -139,6 +139,9 @@ export default function BingoPage() {
   const [lastMessage, setLastMessage] = useState<{ correct: boolean; text: string } | null>(null)
   const [showExplosion, setShowExplosion] = useState(false)
   const [dailyPlays, setDailyPlays] = useState(0)
+  const [showRewards, setShowRewards] = useState(false)
+  const [myTotalPoints, setMyTotalPoints] = useState<number>(0)
+  const [myMaxLines, setMyMaxLines] = useState<number>(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const activeIdxRef = useRef<number | null>(null)
   const notifiedRef = useRef(false)
@@ -152,6 +155,45 @@ export default function BingoPage() {
     const count = parseInt(localStorage.getItem(key) ?? '0', 10)
     setDailyPlays(count)
   }, [profile?.id])
+
+  // ESC closes the active quiz (cancels without scoring)
+  useEffect(() => {
+    if (activeIdx === null) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        if (timerRef.current) clearInterval(timerRef.current)
+        setActiveIdx(null)
+        setSubjectiveAnswer('')
+        setSelectedChoice('')
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [activeIdx])
+
+  // Load my rewards (points + max bingo lines)
+  useEffect(() => {
+    if (!profile?.id) return
+    ;(async () => {
+      try {
+        const { data: pts } = await (supabase as any)
+          .from('user_points')
+          .select('points')
+          .eq('user_id', profile.id)
+        const total = (pts ?? []).reduce((s: number, r: { points: number }) => s + (r.points ?? 0), 0)
+        setMyTotalPoints(total)
+      } catch { /* silent */ }
+      try {
+        const { data: ach } = await (supabase as any)
+          .from('bingo_achievements')
+          .select('max_lines')
+          .eq('user_id', profile.id)
+          .maybeSingle()
+        setMyMaxLines(ach?.max_lines ?? 0)
+      } catch { /* silent */ }
+    })()
+  }, [profile?.id, showRewards])
 
   function incrementDailyPlays() {
     if (!profile?.id) return
@@ -318,6 +360,26 @@ export default function BingoPage() {
     notifiedRef.current = false
   }
 
+  // Persist bingo achievement whenever bingoCount or correct count changes
+  useEffect(() => {
+    if (!profile?.id) return
+    if (bingoCount === 0 && correctSet.size === 0) return
+    ;(async () => {
+      try {
+        await (supabase as any).from('bingo_achievements').upsert({
+          user_id: profile.id,
+          max_lines: Math.max(myMaxLines, bingoCount),
+          lines_completed: bingoCount,
+          total_correct: correctSet.size,
+          total_wins: bingoCount >= 3 ? 1 : 0,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' })
+        if (bingoCount > myMaxLines) setMyMaxLines(bingoCount)
+      } catch { /* silent */ }
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bingoCount, correctSet.size])
+
   const activeQuestion = activeIdx !== null ? questions[activeIdx] : null
   const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase()
 
@@ -386,10 +448,10 @@ export default function BingoPage() {
             </p>
           </div>
           <div className="actions">
-            <button className="btn-compact" disabled={!canPlay} onClick={resetGame}>
+            <button className="btn-compact" onClick={resetGame}>
               <RefreshCw size={13} />새 게임
             </button>
-            <button className="btn-compact primary">
+            <button className="btn-compact primary" onClick={() => setShowRewards(true)}>
               <Gift size={13} />내 리워드
             </button>
           </div>
@@ -448,9 +510,10 @@ export default function BingoPage() {
                   cellStyle.color = 'var(--at-white)'
                   if (isBingoLine) cellStyle.boxShadow = '0 6px 16px -4px rgba(245,158,11,0.4)'
                 } else if (isWrong) {
-                  cellStyle.background = '#EEF4FE'
-                  cellStyle.border = '1px solid #C9DDFF'
-                  cellStyle.color = 'var(--at-ink-faint)'
+                  // Wrong answer: red box for clear distinction
+                  cellStyle.background = 'linear-gradient(135deg, #FEE2E2, #FCA5A5)'
+                  cellStyle.border = '1px solid #EF4444'
+                  cellStyle.color = '#991B1B'
                 } else {
                   // Light sky blue for untouched cells (per 2nd reference screenshot)
                   cellStyle.background = '#EEF4FE'
@@ -737,6 +800,46 @@ export default function BingoPage() {
               >
                 <RefreshCw size={15} /> 새 게임
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 내 리워드 popup */}
+      {showRewards && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: 20 }}
+          onClick={() => setShowRewards(false)}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ width: 'min(460px, 100%)', background: '#fff', borderRadius: 18, padding: 28, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--at-ink-mute)', letterSpacing: '0.12em', fontFamily: 'var(--f-mono)' }}>MY REWARDS</div>
+                <div style={{ fontSize: 20, fontWeight: 700, marginTop: 2 }}>🎁 내 리워드</div>
+              </div>
+              <button onClick={() => setShowRewards(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 6, fontSize: 18 }}>✕</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 18 }}>
+              <div style={{ padding: 18, background: 'linear-gradient(135deg, #EEF4FE, #DCE8FB)', borderRadius: 12, textAlign: 'center' }}>
+                <div style={{ fontSize: 11, color: '#1E40AF', fontWeight: 600, letterSpacing: '0.08em' }}>내 포인트</div>
+                <div style={{ fontSize: 32, fontWeight: 700, color: '#1E40AF', marginTop: 4, fontFamily: 'var(--f-display)' }}>{myTotalPoints}<span style={{ fontSize: 14, marginLeft: 4 }}>P</span></div>
+              </div>
+              <div style={{ padding: 18, background: 'linear-gradient(135deg, #FEF3C7, #FDE68A)', borderRadius: 12, textAlign: 'center' }}>
+                <div style={{ fontSize: 11, color: '#92400E', fontWeight: 600, letterSpacing: '0.08em' }}>빙고 줄 최고</div>
+                <div style={{ fontSize: 32, fontWeight: 700, color: '#92400E', marginTop: 4, fontFamily: 'var(--f-display)' }}>{Math.max(myMaxLines, bingoCount)}<span style={{ fontSize: 14, marginLeft: 4 }}>줄</span></div>
+              </div>
+            </div>
+
+            <div style={{ padding: 14, background: 'var(--at-ivory)', borderRadius: 10, fontSize: 12, color: 'var(--at-ink-mute)', lineHeight: 1.6 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--at-ink)', marginBottom: 4 }}>오늘의 진행</div>
+              맞힌 칸: <b style={{ color: 'var(--at-ink)' }}>{correctSet.size}/25</b><br />
+              현재 줄: <b style={{ color: '#3182F6' }}>{bingoCount}줄</b> · 다음 줄까지 <b style={{ color: 'var(--at-ink)' }}>{5 - (correctSet.size % 5)}칸</b><br />
+              오늘 도전 남은 횟수: <b style={{ color: 'var(--at-ink)' }}>{Math.max(0, MAX_DAILY_PLAYS - dailyPlays)}회</b>
+            </div>
+
+            <div style={{ marginTop: 14, fontSize: 11, color: 'var(--at-ink-faint)' }}>
+              🏆 3줄 이상 → 스타벅스 아메리카노 · 4줄 → 치킨 세트 · 5줄(풀빙고) → 상품권 10만원
             </div>
           </div>
         </div>

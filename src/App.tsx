@@ -51,6 +51,7 @@ const WebtoonPage     = lazyRetry(() => import('./pages/extra/WebtoonPage'))
 const ProfilePage     = lazyRetry(() => import('./pages/profile/ProfilePage'))
 const TellMePage      = lazyRetry(() => import('./pages/extra/TellMePage'))
 const NoticeDetailPage = lazyRetry(() => import('./pages/notices/NoticeDetailPage'))
+const NoticesListPage  = lazyRetry(() => import('./pages/notices/NoticesListPage'))
 
 // Silent loader — plain dark background, no branding, no lion.
 // Used while auth state is being checked or a lazy chunk is loading.
@@ -114,7 +115,8 @@ export default function App() {
               <Route path="bingo"      element={<ErrorBoundary><BingoPage /></ErrorBoundary>} />
               <Route path="webtoon"    element={<ErrorBoundary><WebtoonPage /></ErrorBoundary>} />
               <Route path="tellme"     element={<ErrorBoundary><TellMePage /></ErrorBoundary>} />
-              <Route path="notice/:id" element={<ErrorBoundary><NoticeDetailPage /></ErrorBoundary>} />
+              <Route path="notice/:id"  element={<ErrorBoundary><NoticeDetailPage /></ErrorBoundary>} />
+              <Route path="notices-all" element={<ErrorBoundary><NoticesListPage /></ErrorBoundary>} />
               <Route path="profile"    element={<ErrorBoundary><ProfilePage /></ErrorBoundary>} />
               <Route path="admin/*"    element={<AdminRoute><ErrorBoundary><AdminPage /></ErrorBoundary></AdminRoute>} />
             </Route>
