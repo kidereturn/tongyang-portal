@@ -70,6 +70,16 @@ export default function CourseQuizModal({ courseId, courseTitle, open, onClose }
     }
   }, [open, fetchQuestions])
 
+  // Close on ESC key
+  useEffect(() => {
+    if (!open) return
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') { e.preventDefault(); onClose() }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [open, onClose])
+
   const score = useMemo(() => {
     let s = 0
     questions.forEach((q, i) => {

@@ -14,7 +14,16 @@ interface IntroGateProps {
  * User can skip via button.
  */
 export default function IntroGate({ children }: IntroGateProps) {
-  const [showIntro, setShowIntro] = useState(true)
+  // Skip intro if user just logged out — check and consume the flag on mount
+  const [showIntro, setShowIntro] = useState(() => {
+    try {
+      if (sessionStorage.getItem('skipIntro') === '1') {
+        sessionStorage.removeItem('skipIntro')
+        return false
+      }
+    } catch { /* storage blocked — fall through */ }
+    return true
+  })
   const [muted, setMuted] = useState(true) // start muted so autoplay works on every browser
   const [progress, setProgress] = useState(0)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -87,29 +96,37 @@ export default function IntroGate({ children }: IntroGateProps) {
   if (!showIntro) return <>{children}</>
 
   return (
-    <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/95 backdrop-blur-sm p-6">
-      {/* Video frame — constrained size, centered, not fullscreen */}
-      <div className="relative w-[min(72vw,960px)] max-h-[72vh] overflow-hidden rounded-xl shadow-2xl ring-1 ring-white/10">
-        <video
-          ref={videoRef}
-          src={INTRO_SRC}
-          muted={muted}
-          playsInline
-          autoPlay
-          preload="auto"
-          className="block h-auto max-h-[72vh] w-full cursor-pointer bg-black object-contain"
-          onClick={handleTapToPlay}
-        >
-          <source src={INTRO_SRC} type="video/mp4" />
-        </video>
+    <div
+      className="fixed inset-0 z-[9998] flex items-center justify-center"
+      style={{ background: '#000' }}
+    >
+      {/* Fullscreen video — no frame, no border, no rounded corners.
+          Page background and video both dark → video blends, no "trapped" feel. */}
+      <video
+        ref={videoRef}
+        src={INTRO_SRC}
+        muted={muted}
+        playsInline
+        autoPlay
+        preload="auto"
+        onClick={handleTapToPlay}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          cursor: 'pointer',
+          background: '#000',
+        }}
+      >
+        <source src={INTRO_SRC} type="video/mp4" />
+      </video>
 
-        {/* Progress bar along the bottom of the video frame */}
-        <div className="pointer-events-none absolute bottom-0 left-0 h-1 w-full bg-white/10">
-          <div
-            className="h-full bg-white/70 transition-[width] duration-150 ease-linear"
-            style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-          />
-        </div>
+      {/* Progress bar — full width, bottom edge of viewport */}
+      <div className="pointer-events-none absolute bottom-0 left-0 h-0.5 w-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
+        <div
+          className="h-full transition-[width] duration-150 ease-linear"
+          style={{ width: `${Math.min(100, Math.max(0, progress))}%`, background: 'rgba(255,255,255,0.55)' }}
+        />
       </div>
 
       {/* Top-right controls (outside the frame so they don't block content) */}

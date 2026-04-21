@@ -40,6 +40,7 @@ export default function LearningPage() {
   const [selectedCourse, setSelectedCourse] = useState<string>('all')
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'not_started' | 'in_progress' | 'completed'>('all')
 
   useEffect(() => {
     async function load() {
@@ -164,6 +165,15 @@ export default function LearningPage() {
   const inProgressCount = flatRows.filter(fr => fr.progress?.status === 'in_progress').length
   const notStartedCount = flatRows.filter(fr => !fr.progress || fr.progress.status === 'not_started').length
 
+  // Status filter — admin can sort by 미시작 / 수강중 / 이수완료
+  const visibleRows = useMemo(() => {
+    if (statusFilter === 'all') return flatRows
+    if (statusFilter === 'not_started') return flatRows.filter(fr => !fr.progress || fr.progress.status === 'not_started')
+    if (statusFilter === 'in_progress') return flatRows.filter(fr => fr.progress?.status === 'in_progress')
+    if (statusFilter === 'completed') return flatRows.filter(fr => fr.progress?.status === 'completed')
+    return flatRows
+  }, [flatRows, statusFilter])
+
   function downloadExcel() {
     const rows = flatRows.map(fr => {
       const status = fr.progress?.status ?? 'not_started'
@@ -210,34 +220,54 @@ export default function LearningPage() {
       <div className="pg-body space-y-6">
 
       <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
-        <div className="rounded-[24px] border border-warm-200 bg-white p-5 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setStatusFilter('all')}
+          className="rounded-[24px] border bg-white p-5 shadow-sm text-left transition-all cursor-pointer"
+          style={{ borderColor: statusFilter === 'all' ? '#3182F6' : 'var(--at-ink-hair)', boxShadow: statusFilter === 'all' ? '0 0 0 3px rgba(49,130,246,0.1)' : 'none' }}
+        >
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warm-50 text-brand-700">
             <Users size={18} />
           </div>
           <p className="mt-4 text-sm text-warm-500">전체 강좌</p>
           <p className="mt-1 text-3xl font-bold text-brand-900">{(isAdmin ? flatRows.length : courses.length).toLocaleString()}</p>
-        </div>
-        <div className="rounded-[24px] border border-warm-200 bg-white p-5 shadow-sm">
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatusFilter('completed')}
+          className="rounded-[24px] border bg-white p-5 shadow-sm text-left transition-all cursor-pointer"
+          style={{ borderColor: statusFilter === 'completed' ? '#10B981' : 'var(--at-ink-hair)', boxShadow: statusFilter === 'completed' ? '0 0 0 3px rgba(16,185,129,0.12)' : 'none' }}
+        >
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
             <CheckCircle2 size={18} />
           </div>
           <p className="mt-4 text-sm text-warm-500">이수완료</p>
           <p className="mt-1 text-3xl font-bold text-emerald-600">{completedCount.toLocaleString()}</p>
-        </div>
-        <div className="rounded-[24px] border border-warm-200 bg-white p-5 shadow-sm">
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatusFilter('in_progress')}
+          className="rounded-[24px] border bg-white p-5 shadow-sm text-left transition-all cursor-pointer"
+          style={{ borderColor: statusFilter === 'in_progress' ? '#3182F6' : 'var(--at-ink-hair)', boxShadow: statusFilter === 'in_progress' ? '0 0 0 3px rgba(49,130,246,0.1)' : 'none' }}
+        >
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
             <Clock size={18} />
           </div>
           <p className="mt-4 text-sm text-warm-500">수강중</p>
           <p className="mt-1 text-3xl font-bold text-blue-600">{inProgressCount.toLocaleString()}</p>
-        </div>
-        <div className="rounded-[24px] border border-warm-200 bg-white p-5 shadow-sm">
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatusFilter('not_started')}
+          className="rounded-[24px] border bg-white p-5 shadow-sm text-left transition-all cursor-pointer"
+          style={{ borderColor: statusFilter === 'not_started' ? '#6B7280' : 'var(--at-ink-hair)', boxShadow: statusFilter === 'not_started' ? '0 0 0 3px rgba(107,114,128,0.12)' : 'none' }}
+        >
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warm-100 text-warm-500">
             <Users size={18} />
           </div>
           <p className="mt-4 text-sm text-warm-500">미시작</p>
           <p className="mt-1 text-3xl font-bold text-warm-500">{notStartedCount.toLocaleString()}</p>
-        </div>
+        </button>
       </div>
 
       {isAdmin && (
@@ -285,9 +315,9 @@ export default function LearningPage() {
               <div key={index} className="skeleton h-12 w-full rounded-lg" />
             ))}
           </div>
-        ) : filteredRows.length === 0 ? (
+        ) : visibleRows.length === 0 ? (
           <div className="px-5 py-16 text-center text-sm text-warm-400">
-            {search ? '검색 결과가 없습니다.' : '등록된 사용자가 없습니다.'}
+            {search ? '검색 결과가 없습니다.' : statusFilter !== 'all' ? `선택한 상태(${statusFilter === 'completed' ? '이수완료' : statusFilter === 'in_progress' ? '수강중' : '미시작'})의 데이터가 없습니다.` : '등록된 사용자가 없습니다.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -304,7 +334,7 @@ export default function LearningPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {flatRows.map((fr, idx) => {
+                {visibleRows.map((fr, idx) => {
                   const status = fr.progress?.status ?? 'not_started'
                   const percent = fr.progress?.progress_percent ?? 0
                   return (

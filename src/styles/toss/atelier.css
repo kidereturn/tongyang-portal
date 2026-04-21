@@ -542,7 +542,8 @@ html, body {
   display: grid; grid-template-columns: 1fr auto; gap: 24px;
   align-items: flex-end; margin-bottom: 44px;
 }
-.at-section-head .title { max-width: 18ch; }
+.at-section-head .title { max-width: none; }
+.at-section-head .title h2.at-h2 { white-space: nowrap; }
 .at-section-head .meta {
   font-size: 13px; color: var(--at-ink-mute); text-align: right;
   max-width: 360px;

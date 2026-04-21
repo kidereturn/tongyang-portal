@@ -52,9 +52,6 @@ const TAG_STYLES: Record<string, React.CSSProperties> = {
   진행중: { background: '#10B981', color: '#FFFFFF' },
 }
 
-// Icons per course (random emoji per card)
-const ICONS = ['📘', '🧭', '⚖️', '🛡️', '💰', '🔐', '📊', '🎯', '🧩', '🏛️']
-
 export default function CoursesPage() {
   const [videos, setVideos] = useState<VideoRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -203,7 +200,6 @@ export default function CoursesPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
             {filtered.map((v, idx) => {
               const skin = CARD_SKINS[idx % CARD_SKINS.length]
-              const emoji = ICONS[idx % ICONS.length]
               const tag = v.tag ?? (idx === 0 ? '진행중 42%' : idx % 3 === 0 ? '필수' : idx % 4 === 0 ? 'NEW' : idx % 5 === 0 ? '인기' : '추천')
               const tagKey = tag.replace(/\s+\d+%?/, '')
               const tagStyle = TAG_STYLES[tagKey] ?? TAG_STYLES['추천']
@@ -240,13 +236,10 @@ export default function CoursesPage() {
                     e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)'
                   }}
                 >
-                  {/* Colored top half with icon + tag */}
-                  <div style={{ padding: '20px 20px 26px', position: 'relative', minHeight: 140 }}>
+                  {/* Colored top half with tag only (no thumbnail image/emoji) */}
+                  <div style={{ padding: '20px 20px 26px', position: 'relative', minHeight: 100 }}>
                     <div style={{ position: 'absolute', top: 14, left: 14, padding: '4px 10px', fontSize: 10, fontWeight: 700, borderRadius: 999, ...tagStyle }}>
                       {tag}
-                    </div>
-                    <div style={{ fontSize: 48, textAlign: 'center', marginTop: 30, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' }}>
-                      {emoji}
                     </div>
                   </div>
 

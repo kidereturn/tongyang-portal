@@ -26,7 +26,7 @@ const MAIN_TABS = [
   { to: '/dashboard', icon: LayoutDashboard, label: '홈' },
   { to: '/evidence', icon: FileCheck2, label: '증빙', roles: ['admin', 'owner'] },
   { to: '/inbox', icon: Inbox, label: '승인함', roles: ['admin', 'controller'] },
-  { to: '/learning', icon: BarChart2, label: '학습' },
+  { to: '/learning', icon: BarChart2, label: '학습현황' },
 ]
 
 const MORE_ITEMS = [
@@ -52,6 +52,7 @@ export default function MobileTabBar() {
 
   async function handleSignOut() {
     setMoreOpen(false)
+    try { sessionStorage.setItem('skipIntro', '1') } catch { /* storage blocked */ }
     await signOut()
     navigate('/login')
   }

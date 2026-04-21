@@ -27,6 +27,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navigate = useNavigate()
 
   async function handleSignOut() {
+    try { sessionStorage.setItem('skipIntro', '1') } catch { /* storage blocked */ }
     await signOut()
     navigate('/login')
   }

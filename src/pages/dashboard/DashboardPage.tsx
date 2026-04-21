@@ -162,26 +162,57 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="at-hero-art ivory" style={{ aspectRatio: '1/1', position: 'relative' }}>
-            <div className="hero-orb" style={{ width: 280, height: 280, top: -40, right: -40, background: 'rgba(49,130,246,0.12)' }} />
-            <div className="hero-orb" style={{ width: 200, height: 200, bottom: 20, left: 30, background: 'rgba(11,13,18,0.06)' }} />
-
-            <div style={{ position: 'absolute', top: 48, left: 52, background: 'var(--at-white)', border: '1px solid var(--at-ink-hair)', borderRadius: 14, padding: '16px 20px', boxShadow: 'var(--sh-card)', minWidth: 160 }}>
-              <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>통제활동</div>
-              <div style={{ fontFamily: 'var(--f-display)', fontSize: 36, fontWeight: 500, letterSpacing: '-0.03em', lineHeight: 1 }}>{stats.total}<span style={{ fontSize: 13, color: 'var(--at-ink-mute)', marginLeft: 3 }}>개</span></div>
-            </div>
-            <div style={{ position: 'absolute', top: '44%', right: 40, background: 'var(--at-ink)', color: 'var(--at-white)', borderRadius: 14, padding: '18px 22px', boxShadow: '0 20px 40px -16px rgba(11,13,18,0.4)', minWidth: 170 }}>
-              <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-cyan)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>구성원</div>
-              <div style={{ fontFamily: 'var(--f-display)', fontSize: 36, fontWeight: 500, letterSpacing: '-0.03em', lineHeight: 1 }}>{userCount}<span style={{ fontSize: 13, color: 'var(--at-ink-dark-mute)', marginLeft: 3 }}>명</span></div>
-            </div>
-            <div style={{ position: 'absolute', bottom: 52, left: 80, background: 'var(--at-white)', border: '1px solid var(--at-ink-hair)', borderRadius: 14, padding: '16px 20px', boxShadow: 'var(--sh-card)', minWidth: 180 }}>
-              <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-blue)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>승인율</div>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
-                <div style={{ fontFamily: 'var(--f-display)', fontSize: 28, fontWeight: 500, letterSpacing: '-0.02em' }}>{approvalRate}<span style={{ fontSize: 12, color: 'var(--at-ink-mute)' }}>%</span></div>
-                <div style={{ flex: 1, height: 4, background: 'var(--at-ink-hair)', borderRadius: 2, position: 'relative', marginTop: 8 }}>
-                  <div style={{ position: 'absolute', inset: `0 ${100 - approvalRate}% 0 0`, background: 'var(--at-blue)', borderRadius: 2 }} />
+          {/* Right side: 전해드릴 소식 — 공지/이벤트 + 실시간 랭킹 */}
+          <div className="at-hero-art ivory" style={{ position: 'relative', padding: '20px 0' }}>
+            <div className="at-card" style={{ padding: 22, background: 'var(--at-white)', border: '1px solid var(--at-ink-hair)', borderRadius: 14, boxShadow: 'var(--sh-card)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>DISPATCHES</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--at-ink)', marginTop: 2 }}>전해드릴 소식</div>
                 </div>
+                <Link to="/news" style={{ textDecoration: 'none', fontSize: 11, color: 'var(--at-blue)', fontWeight: 600 }}>전체보기 →</Link>
               </div>
+
+              {notices.length === 0 ? (
+                <div style={{ padding: '12px 0', fontSize: 12, color: 'var(--at-ink-faint)' }}>등록된 공지가 없습니다</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {notices.slice(0, 4).map(n => (
+                    <Link
+                      key={n.id}
+                      to={`/notice/${n.id}`}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, background: 'var(--at-ivory)', textDecoration: 'none' }}
+                    >
+                      <span className={`at-tag ${n.badge_color ?? 'blue'}`} style={{ fontSize: 9, padding: '2px 6px' }}>{n.badge ?? '공지'}</span>
+                      <span style={{ flex: 1, fontSize: 12, color: 'var(--at-ink)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.title}</span>
+                      <span style={{ fontSize: 10, fontFamily: 'var(--f-mono)', color: 'var(--at-ink-faint)' }}>
+                        {new Date(n.created_at).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' })}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              {pointsRanking.length > 0 && (
+                <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--at-ink-hair)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--at-ink-mute)', letterSpacing: '0.04em' }}>🏆 실시간 랭킹 TOP 3</div>
+                    <Link to="/kpi" style={{ textDecoration: 'none', fontSize: 10, color: 'var(--at-blue)', fontWeight: 600 }}>전체</Link>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {pointsRanking.slice(0, 3).map((r, i) => (
+                      <div key={r.user_id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
+                        <span style={{ width: 18, height: 18, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 700, background: i === 0 ? '#FDE68A' : i === 1 ? '#E5E7EB' : '#FECACA', color: i === 0 ? '#92400E' : i === 1 ? '#374151' : '#991B1B' }}>
+                          {i + 1}
+                        </span>
+                        <span style={{ flex: 1, fontWeight: 600 }}>{r.full_name ?? '익명'}</span>
+                        {r.team && <span style={{ fontSize: 10, color: 'var(--at-ink-mute)' }}>{r.team}</span>}
+                        <span style={{ fontFamily: 'var(--f-mono)', fontWeight: 700, color: 'var(--at-blue)' }}>{r.total_points}P</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -251,66 +282,14 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Announcement + Ranking (paper) */}
-      <section className="at-section paper" style={{ padding: '88px 0' }}>
-        <div className="at-wrap-wide">
-          <div className="at-section-head">
-            <div className="title">
-              <div className="at-section-label">02 · DISPATCHES</div>
-              <h2 className="at-h2">전해드릴 소식</h2>
-            </div>
-            <div className="meta">공지·이벤트·교육 전체를 한 줄로.</div>
-          </div>
-
-          <div className="at-grid at-g-2-1">
-            <div className="at-card">
-              <div className="at-card-head">
-                <div className="at-card-title">공지 · 이벤트</div>
-                <Link to="/news" className="at-card-link" style={{ textDecoration: 'none' }}>전체보기</Link>
-              </div>
-              {notices.length === 0 && !loading && (
-                <p style={{ padding: '24px 0', textAlign: 'center', color: 'var(--at-ink-faint)', fontSize: 13 }}>등록된 공지가 없습니다</p>
-              )}
-              {notices.map(n => (
-                <Link
-                  key={n.id}
-                  to={`/notice/${n.id}`}
-                  className="at-ann-row"
-                  style={{ textDecoration: 'none' }}
-                >
-                  <span className={`at-tag ${n.badge_color ?? 'blue'}`}>{n.badge ?? '공지'}</span>
-                  <span className="title">{n.title}</span>
-                  <span className="date">{new Date(n.created_at).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }).replace(/\. /, ' · ').replace('.', '')}</span>
-                </Link>
-              ))}
-            </div>
-
-            <div className="at-card">
-              <div className="at-card-head">
-                <div className="at-card-title">실시간 랭킹</div>
-                <Link to="/kpi" className="at-card-link" style={{ textDecoration: 'none' }}>전체</Link>
-              </div>
-              {pointsRanking.length === 0 && !loading && (
-                <p style={{ padding: '24px 0', textAlign: 'center', color: 'var(--at-ink-faint)', fontSize: 13 }}>랭킹 데이터가 없습니다</p>
-              )}
-              {pointsRanking.map((r, i) => (
-                <div key={r.user_id} className="at-rank-item">
-                  <div className={`at-rank-num ${i < 3 ? `t${i + 1}` : ''}`}>{String(i + 1).padStart(2, '0')}</div>
-                  <div className="at-rank-name">{r.full_name ?? '익명'}<span className="team">{r.team ?? ''}</span></div>
-                  <div className="at-rank-pts">{r.total_points}<span className="unit">P</span></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* 전해드릴 소식 is now in the hero (right side), no separate section needed */}
 
       {/* Team progress + Bingo */}
       <section className="at-section ivory" style={{ padding: '88px 0' }}>
         <div className="at-wrap-wide">
           <div className="at-section-head">
             <div className="title">
-              <div className="at-section-label">03 · PROGRESS</div>
+              <div className="at-section-label">02 · PROGRESS</div>
               <h2 className="at-h2">팀별 진척도.</h2>
             </div>
             <div className="meta">상위 8개 팀의 승인율을 확인하세요.</div>
@@ -377,7 +356,7 @@ export default function DashboardPage() {
         <div className="at-wrap-wide">
           <div className="at-section-head">
             <div className="title">
-              <div className="at-section-label">04 · ACTIVITIES</div>
+              <div className="at-section-label">03 · ACTIVITIES</div>
               <h2 className="at-h2">통제활동별 현황.</h2>
             </div>
             <div className="meta">상위 6건 바로가기.</div>
@@ -426,7 +405,7 @@ export default function DashboardPage() {
         <div className="at-wrap-wide">
           <div className="at-section-head">
             <div className="title">
-              <div className="at-section-label">05 · SHORTCUTS</div>
+              <div className="at-section-label">04 · SHORTCUTS</div>
               <h2 className="at-h2">바로 갈 수 있는 곳.</h2>
             </div>
             <div className="meta">자주 쓰는 메뉴를 한 걸음 거리에.</div>

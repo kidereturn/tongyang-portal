@@ -47,7 +47,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/evidence', label: '증빙관리', icon: FileCheck2, roles: ['admin', 'owner'] },
   { to: '/inbox', label: '내 승인함', icon: Inbox, roles: ['admin', 'controller'] },
   { to: '/courses', label: '강좌', icon: BookOpen },
-  { to: '/learning', label: '학습', icon: BarChart2 },
+  { to: '/learning', label: '학습현황', icon: BarChart2 },
   { to: '/news', label: '회사소식', icon: Newspaper },
   { to: '/kpi', label: 'KPI', icon: TrendingUp },
   { to: '/map', label: '사업장', icon: Map, roles: ['admin'] },
@@ -157,6 +157,7 @@ export default function TopNav() {
 
   async function handleSignOut() {
     setProfileOpen(false)
+    try { sessionStorage.setItem('skipIntro', '1') } catch { /* storage blocked */ }
     await signOut()
     navigate('/login')
   }
