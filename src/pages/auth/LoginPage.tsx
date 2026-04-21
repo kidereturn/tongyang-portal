@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { AlertCircle, Eye, EyeOff, KeyRound, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 function buildEmployeeLoginEmail(employeeId: string) {
@@ -12,6 +12,47 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Real-time clock
+  const [now, setNow] = useState(new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  const dateLabel = now.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })
+  const timeLabel = now.toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+
+  // Password reset modal
+  const [showReset, setShowReset] = useState(false)
+  const [resetEmployeeId, setResetEmployeeId] = useState('')
+  const [resetMsg, setResetMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const [resetLoading, setResetLoading] = useState(false)
+
+  async function handlePasswordReset(e: React.FormEvent) {
+    e.preventDefault()
+    const id = resetEmployeeId.trim()
+    setResetMsg(null)
+    if (!id) { setResetMsg({ type: 'err', text: '사번을 입력해주세요.' }); return }
+    setResetLoading(true)
+    try {
+      const email = buildEmployeeLoginEmail(id)
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login`,
+      })
+      if (resetError) {
+        setResetMsg({ type: 'err', text: resetError.message })
+      } else {
+        setResetMsg({
+          type: 'ok',
+          text: `${email} 로 재설정 링크를 발송했습니다. 메일함을 확인해주세요. 메일이 도착하지 않으면 관리자(내부회계팀)에게 문의해주세요.`,
+        })
+      }
+    } catch (err: any) {
+      setResetMsg({ type: 'err', text: err?.message ?? '오류가 발생했습니다.' })
+    } finally {
+      setResetLoading(false)
+    }
+  }
 
   async function handleLogin(event: React.FormEvent) {
     event.preventDefault()
@@ -49,17 +90,10 @@ export default function LoginPage() {
   return (
     <div className="screen-frame">
       <nav className="at-nav">
-        <a href="/" className="at-nav-logo" style={{ textDecoration: 'none' }}>
-          <div className="mark">T</div>
-          <span>동양</span>
+        <a href="/" className="at-nav-logo" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+          <img src="/ci_영문_05_preview_rev_1.png" alt="동양" style={{ height: 30, width: 'auto', display: 'block' }} />
           <span className="en">INTERNAL CONTROLS</span>
         </a>
-        <div className="at-nav-items">
-          <div className="at-nav-item">소개</div>
-          <div className="at-nav-item">내부회계</div>
-          <div className="at-nav-item">뉴스</div>
-          <div className="at-nav-item">문의</div>
-        </div>
         <div className="at-nav-right">
           <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.14em' }}>KO · EN</div>
         </div>
@@ -74,25 +108,17 @@ export default function LoginPage() {
           <div className="login-hd">
             <div className="mini-logo">
               <div className="mk">T</div>
-              <span>INTERNAL CONTROLS · CYCLE 04</span>
-            </div>
-            <div className="eugene">
-              <span className="ico">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M12 2 L14.5 8.5 L21 10 L14.5 11.5 L12 18 L9.5 11.5 L3 10 L9.5 8.5 Z" />
-                </svg>
-              </span>
-              Powered by Eugene
+              <span>INTERNAL CONTROLS</span>
             </div>
           </div>
 
           <div className="login-hero">
-            <div className="cycle-tag">2026 · Q2 · Cycle 04 · In Progress</div>
-            <h1>고요하게<br />움직입니다.</h1>
-            <p className="en">
-              424개 통제활동, <b>477명</b>의 구성원, <b>28개 사업장</b>이 하나의 사이클로 연결되어 있습니다.
-              오늘도 당신의 기록이 조직의 신뢰를 만듭니다.
-            </p>
+            <div className="cycle-tag" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <span>{dateLabel}</span>
+              <span style={{ fontFamily: 'var(--f-mono)', color: '#60A5FA', fontWeight: 700 }}>{timeLabel}</span>
+            </div>
+            <h1>내부회계<br />Portal System</h1>
+            <p className="en">Internal Accounting Control System</p>
             <div className="quote">
               "Control is not a constraint — it's the quiet architecture of trust."
             </div>
@@ -116,7 +142,7 @@ export default function LoginPage() {
                   <circle cx="6" cy="9" r="2" />
                 </svg>
               </div>
-              <div className="bn">Ready-mix</div>
+              <div className="bn">Construction Materials Network</div>
               <div className="bl">레미콘</div>
             </div>
             <div className="b">
@@ -125,7 +151,7 @@ export default function LoginPage() {
                   <path d="M3 21 L3 9 L12 3 L21 9 L21 21 Z" /><path d="M9 21 V13 H15 V21" />
                 </svg>
               </div>
-              <div className="bn">Construction</div>
+              <div className="bn">Construction Services</div>
               <div className="bl">건설</div>
             </div>
             <div className="b">
@@ -134,8 +160,8 @@ export default function LoginPage() {
                   <path d="M12 2a9 9 0 1 0 9 9h-9z" /><path d="M12 2v9" />
                 </svg>
               </div>
-              <div className="bn">Environment</div>
-              <div className="bl">환경</div>
+              <div className="bn">Infrastructure Engineering</div>
+              <div className="bl">인프라</div>
             </div>
           </div>
 
@@ -144,14 +170,14 @@ export default function LoginPage() {
               <span className="dot" />
               <span>All systems · Normal</span>
             </div>
-            <div>© 2026 Tongyang Group · v4.2.1</div>
+            <div>COPYRIGHT(C) 2026 TONGYANG Inc. ALL RIGHT RESERVED.</div>
           </div>
         </div>
 
         {/* Right: ivory form */}
         <div className="login-right">
           <div className="eyebrow">01 · SIGN IN</div>
-          <h2>다시 만나 반갑습니다.</h2>
+          <h2>오늘 하루도 화이팅 하는 멋진 당신을 응원합니다!</h2>
           <p className="sub">사번으로 로그인하세요. 내부회계 포털 전용 계정입니다.</p>
 
           {error && (
@@ -220,9 +246,88 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="login-foot">비밀번호 재설정 · 관리자 문의 · 개인정보처리방침</div>
+          <div className="login-foot" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => { setShowReset(true); setResetEmployeeId(employeeId); setResetMsg(null) }}
+              style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', textDecoration: 'underline', fontSize: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+              <KeyRound size={12} /> 비밀번호 찾기
+            </button>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span>관리자 문의</span>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span>개인정보처리방침</span>
+          </div>
         </div>
       </div>
+
+      {/* 비밀번호 찾기 모달 */}
+      {showReset && (
+        <div
+          onClick={() => setShowReset(false)}
+          onKeyDown={e => { if (e.key === 'Escape') setShowReset(false) }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: 20 }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ width: 'min(460px, 100%)', background: '#fff', borderRadius: 16, padding: 28, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--at-ink-mute)', letterSpacing: '0.12em', fontFamily: 'var(--f-mono)' }}>RESET</div>
+                <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2, color: 'var(--at-ink)' }}>비밀번호 찾기</div>
+              </div>
+              <button onClick={() => setShowReset(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--at-ink-mute)' }}><X size={18} /></button>
+            </div>
+
+            <p style={{ fontSize: 13, color: 'var(--at-ink-mute)', lineHeight: 1.6, marginBottom: 14 }}>
+              등록된 업무 이메일(<b>사번@tongyanginc.co.kr</b>)로 비밀번호 재설정 링크를 보내드립니다.
+            </p>
+
+            <form onSubmit={handlePasswordReset}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--at-ink)' }}>사번</span>
+                <input
+                  type="text"
+                  value={resetEmployeeId}
+                  onChange={e => setResetEmployeeId(e.target.value)}
+                  placeholder="예: 101974"
+                  autoFocus
+                  style={{ padding: '10px 12px', border: '1px solid var(--at-ink-hair)', borderRadius: 8, fontSize: 13, color: 'var(--at-ink)' }}
+                />
+              </label>
+
+              {resetMsg && (
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  lineHeight: 1.55,
+                  marginBottom: 12,
+                  background: resetMsg.type === 'ok' ? '#ECFDF5' : '#FEF2F2',
+                  border: `1px solid ${resetMsg.type === 'ok' ? '#A7F3D0' : '#FCA5A5'}`,
+                  color: resetMsg.type === 'ok' ? '#065F46' : '#991B1B',
+                }}>
+                  {resetMsg.text}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={resetLoading || !resetEmployeeId.trim()}
+                className="login-submit"
+                style={{ width: '100%', justifyContent: 'center', opacity: (resetLoading || !resetEmployeeId.trim()) ? 0.5 : 1 }}
+              >
+                {resetLoading ? '발송 중...' : '재설정 링크 받기'}
+              </button>
+            </form>
+
+            <p style={{ marginTop: 12, fontSize: 11, color: 'var(--at-ink-faint)', lineHeight: 1.5 }}>
+              메일이 오지 않을 경우 내부회계팀(관리자)에게 문의해주세요.
+              초기 비밀번호는 <b>사번</b>입니다.
+            </p>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
