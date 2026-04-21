@@ -35,16 +35,20 @@ export default function LoginPage() {
     if (!id) { setResetMsg({ type: 'err', text: '사번을 입력해주세요.' }); return }
     setResetLoading(true)
     try {
-      const email = buildEmployeeLoginEmail(id)
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/login`,
+      // Call our server endpoint — it looks up the user's REAL contact_email
+      // from profiles and sends the reset link there via Resend.
+      const res = await fetch('/api/password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employeeId: id }),
       })
-      if (resetError) {
-        setResetMsg({ type: 'err', text: resetError.message })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data?.ok) {
+        setResetMsg({ type: 'err', text: data?.error ? `실패: ${data.error}` : '재설정 요청 중 오류가 발생했습니다. 관리자(내부회계팀)에게 문의해주세요.' })
       } else {
         setResetMsg({
           type: 'ok',
-          text: `${email} 로 재설정 링크를 발송했습니다. 메일함을 확인해주세요. 메일이 도착하지 않으면 관리자(내부회계팀)에게 문의해주세요.`,
+          text: data.message ?? '입력하신 사번으로 등록된 연락처 이메일이 있을 경우 재설정 링크를 발송했습니다.',
         })
       }
     } catch (err: any) {
@@ -279,7 +283,7 @@ export default function LoginPage() {
             </div>
 
             <p style={{ fontSize: 13, color: 'var(--at-ink-mute)', lineHeight: 1.6, marginBottom: 14 }}>
-              등록된 업무 이메일(<b>사번@tongyanginc.co.kr</b>)로 비밀번호 재설정 링크를 보내드립니다.
+              사번으로 등록된 <b>연락처 이메일</b>(내 정보에 저장된 실제 이메일)로 비밀번호 재설정 링크를 보내드립니다.
             </p>
 
             <form onSubmit={handlePasswordReset}>
