@@ -6,3 +6,10 @@ dist
 *.local
 .DS_Store
 .vercel
+.puppeteer-user-data
+screenshots
+screenshots-toss
+login-check.png
+login-new-logo.png
+logo-verify.png
+zoom-test.png
