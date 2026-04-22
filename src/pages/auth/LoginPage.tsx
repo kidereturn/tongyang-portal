@@ -22,41 +22,8 @@ export default function LoginPage() {
   const dateLabel = now.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })
   const timeLabel = now.toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
-  // Password reset modal
+  // Password reset — simplified to admin contact info only (no email flow)
   const [showReset, setShowReset] = useState(false)
-  const [resetEmployeeId, setResetEmployeeId] = useState('')
-  const [resetMsg, setResetMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
-  const [resetLoading, setResetLoading] = useState(false)
-
-  async function handlePasswordReset(e: React.FormEvent) {
-    e.preventDefault()
-    const id = resetEmployeeId.trim()
-    setResetMsg(null)
-    if (!id) { setResetMsg({ type: 'err', text: '사번을 입력해주세요.' }); return }
-    setResetLoading(true)
-    try {
-      // Call our server endpoint — it looks up the user's REAL contact_email
-      // from profiles and sends the reset link there via Resend.
-      const res = await fetch('/api/password-reset', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ employeeId: id }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok || !data?.ok) {
-        setResetMsg({ type: 'err', text: data?.error ? `실패: ${data.error}` : '재설정 요청 중 오류가 발생했습니다. 관리자(내부회계팀)에게 문의해주세요.' })
-      } else {
-        setResetMsg({
-          type: 'ok',
-          text: data.message ?? '입력하신 사번으로 등록된 연락처 이메일이 있을 경우 재설정 링크를 발송했습니다.',
-        })
-      }
-    } catch (err: any) {
-      setResetMsg({ type: 'err', text: err?.message ?? '오류가 발생했습니다.' })
-    } finally {
-      setResetLoading(false)
-    }
-  }
 
   async function handleLogin(event: React.FormEvent) {
     event.preventDefault()
@@ -95,7 +62,7 @@ export default function LoginPage() {
     <div className="screen-frame">
       <nav className="at-nav">
         <a href="/" className="at-nav-logo" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-          <img src="/ci_영문_05_preview_rev_1.png" alt="동양" style={{ height: 30, width: 'auto', display: 'block' }} />
+          <img src="/tongyang_logo_main.png" alt="동양" style={{ height: 30, width: 'auto', display: 'block' }} />
           <span className="en">INTERNAL CONTROLS</span>
         </a>
         <div className="at-nav-right">
@@ -110,8 +77,8 @@ export default function LoginPage() {
           <div className="stars-bg" />
 
           <div className="login-hd">
-            <div className="mini-logo">
-              <div className="mk">T</div>
+            <div className="mini-logo" style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+              <img src="/tongyang_logo_main.png" alt="동양" style={{ height: 28, width: 'auto', display: 'block' }} />
               <span>INTERNAL CONTROLS</span>
             </div>
           </div>
@@ -253,7 +220,7 @@ export default function LoginPage() {
           <div className="login-foot" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <button
               type="button"
-              onClick={() => { setShowReset(true); setResetEmployeeId(employeeId); setResetMsg(null) }}
+              onClick={() => setShowReset(true)}
               style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', textDecoration: 'underline', fontSize: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 4 }}
             >
               <KeyRound size={12} /> 비밀번호 찾기
@@ -266,7 +233,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* 비밀번호 찾기 모달 */}
+      {/* 비밀번호 찾기 안내 모달 — 관리자 연락 안내만 */}
       {showReset && (
         <div
           onClick={() => setShowReset(false)}
@@ -274,60 +241,38 @@ export default function LoginPage() {
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: 20 }}
         >
           <div onClick={e => e.stopPropagation()} style={{ width: 'min(460px, 100%)', background: '#fff', borderRadius: 16, padding: 28, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
               <div>
-                <div style={{ fontSize: 11, color: 'var(--at-ink-mute)', letterSpacing: '0.12em', fontFamily: 'var(--f-mono)' }}>RESET</div>
+                <div style={{ fontSize: 11, color: 'var(--at-ink-mute)', letterSpacing: '0.12em', fontFamily: 'var(--f-mono)' }}>PASSWORD</div>
                 <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2, color: 'var(--at-ink)' }}>비밀번호 찾기</div>
               </div>
               <button onClick={() => setShowReset(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--at-ink-mute)' }}><X size={18} /></button>
             </div>
 
-            <p style={{ fontSize: 13, color: 'var(--at-ink-mute)', lineHeight: 1.6, marginBottom: 14 }}>
-              사번으로 등록된 <b>연락처 이메일</b>(내 정보에 저장된 실제 이메일)로 비밀번호 재설정 링크를 보내드립니다.
+            <div style={{ padding: 18, background: '#EEF4FE', border: '1px solid #DCE8FB', borderRadius: 10, fontSize: 13, color: '#1E40AF', lineHeight: 1.7, marginBottom: 14 }}>
+              🔑 비밀번호를 잊으셨나요?
+              <br />
+              <b>내부회계팀 관리자</b>에게 문의해주세요.<br />
+              관리자가 초기화해드립니다.
+            </div>
+
+            <div style={{ padding: 14, background: 'var(--at-ivory)', border: '1px solid var(--at-ink-hair)', borderRadius: 10, fontSize: 12, color: 'var(--at-ink-mute)', lineHeight: 1.6 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--at-ink)', marginBottom: 6, letterSpacing: '0.04em' }}>📞 담당자 연락처</div>
+              내부회계팀 관리자<br />
+              이메일: <b style={{ color: 'var(--at-ink)' }}>junghoon.ha@tongyanginc.co.kr</b>
+            </div>
+
+            <p style={{ marginTop: 14, fontSize: 11, color: 'var(--at-ink-faint)', lineHeight: 1.5, textAlign: 'center' }}>
+              💡 최초 로그인 시 초기 비밀번호는 <b>사번</b>입니다.
             </p>
 
-            <form onSubmit={handlePasswordReset}>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--at-ink)' }}>사번</span>
-                <input
-                  type="text"
-                  value={resetEmployeeId}
-                  onChange={e => setResetEmployeeId(e.target.value)}
-                  placeholder="예: 101974"
-                  autoFocus
-                  style={{ padding: '10px 12px', border: '1px solid var(--at-ink-hair)', borderRadius: 8, fontSize: 13, color: 'var(--at-ink)' }}
-                />
-              </label>
-
-              {resetMsg && (
-                <div style={{
-                  padding: '10px 12px',
-                  borderRadius: 8,
-                  fontSize: 12,
-                  lineHeight: 1.55,
-                  marginBottom: 12,
-                  background: resetMsg.type === 'ok' ? '#ECFDF5' : '#FEF2F2',
-                  border: `1px solid ${resetMsg.type === 'ok' ? '#A7F3D0' : '#FCA5A5'}`,
-                  color: resetMsg.type === 'ok' ? '#065F46' : '#991B1B',
-                }}>
-                  {resetMsg.text}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={resetLoading || !resetEmployeeId.trim()}
-                className="login-submit"
-                style={{ width: '100%', justifyContent: 'center', opacity: (resetLoading || !resetEmployeeId.trim()) ? 0.5 : 1 }}
-              >
-                {resetLoading ? '발송 중...' : '재설정 링크 받기'}
-              </button>
-            </form>
-
-            <p style={{ marginTop: 12, fontSize: 11, color: 'var(--at-ink-faint)', lineHeight: 1.5 }}>
-              메일이 오지 않을 경우 내부회계팀(관리자)에게 문의해주세요.
-              초기 비밀번호는 <b>사번</b>입니다.
-            </p>
+            <button
+              onClick={() => setShowReset(false)}
+              className="login-submit"
+              style={{ width: '100%', justifyContent: 'center', marginTop: 16 }}
+            >
+              확인
+            </button>
           </div>
         </div>
       )}
