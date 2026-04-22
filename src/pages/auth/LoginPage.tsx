@@ -60,16 +60,7 @@ export default function LoginPage() {
 
   return (
     <div className="screen-frame">
-      <nav className="at-nav">
-        <a href="/" className="at-nav-logo" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-          <img src="/tongyang_logo_main.png" alt="동양" style={{ height: 30, width: 'auto', display: 'block' }} />
-          <span className="en">INTERNAL CONTROLS</span>
-        </a>
-        <div className="at-nav-right">
-          <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.14em' }}>KO · EN</div>
-        </div>
-      </nav>
-
+      {/* Top nav removed on login page — branding shown inside the blue cinematic panel */}
       <div className="login-wrap">
         {/* Left: cinematic dark */}
         <div className="login-left">
@@ -88,7 +79,7 @@ export default function LoginPage() {
               <span style={{ color: '#FFFFFF' }}>{dateLabel}</span>
               <span style={{ fontFamily: 'var(--f-mono)', color: '#FFFFFF', fontWeight: 700 }}>{timeLabel}</span>
             </div>
-            <h1 style={{ fontSize: 'clamp(51px, 6.4vw, 83px)', whiteSpace: 'nowrap' }}>내부회계 Portal System</h1>
+            <h1 style={{ fontSize: 'clamp(41px, 5.12vw, 66px)', whiteSpace: 'nowrap' }}>내부회계 Portal</h1>
             <p className="en">Internal Accounting Control System</p>
             <div className="quote">
               "Control is not a constraint — it's the quiet architecture of trust."
@@ -256,10 +247,10 @@ export default function LoginPage() {
               관리자가 초기화해드립니다.
             </div>
 
-            <div style={{ padding: 14, background: 'var(--at-ivory)', border: '1px solid var(--at-ink-hair)', borderRadius: 10, fontSize: 12, color: 'var(--at-ink-mute)', lineHeight: 1.6 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--at-ink)', marginBottom: 6, letterSpacing: '0.04em' }}>📞 담당자 연락처</div>
-              내부회계팀 관리자<br />
-              이메일: <b style={{ color: 'var(--at-ink)' }}>junghoon.ha@tongyanginc.co.kr</b>
+            <div style={{ padding: 14, background: 'var(--at-ivory)', border: '1px solid var(--at-ink-hair)', borderRadius: 10, fontSize: 12, color: 'var(--at-ink-mute)', lineHeight: 1.7 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--at-ink)', marginBottom: 6, letterSpacing: '0.04em' }}>📞 담당자</div>
+              <b style={{ color: 'var(--at-ink)' }}>박한진 과장</b><br />
+              <b style={{ color: 'var(--at-ink)' }}>최종현 대리</b>
             </div>
 
             <p style={{ marginTop: 14, fontSize: 11, color: 'var(--at-ink-faint)', lineHeight: 1.5, textAlign: 'center' }}>
