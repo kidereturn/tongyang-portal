@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { queryWithTimeout } from '../../lib/queryWithTimeout'
 import { useAuth } from '../../hooks/useAuth'
 
 interface Stats {
@@ -67,6 +68,19 @@ export default function DashboardPage() {
 
   useEffect(() => { void fetchAll() }, [profile?.id])
 
+  // 탭 복귀 시 스켈레톤 고착 방지
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && loading && profile) {
+        console.info('[Dashboard] tab returned — refetch')
+        void fetchAll()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, profile?.id])
+
   async function fetchAll() {
     if (!profile) { setLoading(false); return }
     setLoading(true)
@@ -84,12 +98,19 @@ export default function DashboardPage() {
         else q = q.eq('controller_id', profile.id)
       }
 
-      const [actRes, userCnt, rankRes, noticeRes] = await Promise.all([
+      const batchPromise = Promise.all([
         q,
         db.from('profiles').select('id', { count: 'exact', head: true }).eq('is_active', true),
         db.rpc('get_points_ranking').maybeSingle ? db.rpc('get_points_ranking') : Promise.resolve({ data: [] }),
         db.from('notices').select('id, type, title, badge, badge_color, created_at').order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(5),
       ])
+      let actRes: any, userCnt: any, rankRes: any, noticeRes: any
+      try {
+        [actRes, userCnt, rankRes, noticeRes] = await queryWithTimeout(batchPromise, 12_000, 'dashboard.batch')
+      } catch (e) {
+        console.warn('[Dashboard] batch timeout', e)
+        actRes = { data: [] }; userCnt = { count: 0 }; rankRes = { data: [] }; noticeRes = { data: [] }
+      }
 
       const records = (actRes?.data ?? []) as Activity[]
       const next: Stats = { total: records.length, pendingApproval: 0, approved: 0, rejected: 0 }
@@ -112,7 +133,11 @@ export default function DashboardPage() {
 
       // Fetch ALL activities org-wide for 전 부서 진행 현황 (admin or controller sees everything)
       try {
-        const { data: allAct } = await db.from('activities').select('department, submission_status').eq('active', true)
+        const { data: allAct } = await queryWithTimeout(
+          db.from('activities').select('department, submission_status').eq('active', true),
+          10_000,
+          'dashboard.allActivities',
+        ) as { data: Array<{ department: string | null; submission_status: string | null }> | null }
         const fullMap: Record<string, DeptData> = {}
         for (const r of allAct ?? []) {
           const s = getSubmissionStatus(r.submission_status)
@@ -130,16 +155,25 @@ export default function DashboardPage() {
 
       // 오늘 풀린 빙고 칸 수
       const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
-      const { count: bingoCnt } = await db.from('quiz_results').select('id', { count: 'exact', head: true }).gte('created_at', todayStart.toISOString())
-      setBingoRecent(Math.min(25, bingoCnt ?? 0))
+      try {
+        const { count: bingoCnt } = await queryWithTimeout(
+          db.from('quiz_results').select('id', { count: 'exact', head: true }).gte('created_at', todayStart.toISOString()),
+          8_000,
+          'dashboard.bingoCount',
+        ) as { count: number | null }
+        setBingoRecent(Math.min(25, bingoCnt ?? 0))
+      } catch { /* silent */ }
 
       // 빙고 줄 완성 TOP 3
       try {
-        const { data: bingoRows } = await db
-          .from('bingo_achievements')
-          .select('user_id, max_lines, profiles:profiles(full_name, department)')
-          .order('max_lines', { ascending: false })
-          .limit(3)
+        const { data: bingoRows } = await queryWithTimeout(
+          db.from('bingo_achievements')
+            .select('user_id, max_lines, profiles:profiles(full_name, department)')
+            .order('max_lines', { ascending: false })
+            .limit(3),
+          8_000,
+          'dashboard.bingoRanking',
+        ) as { data: any[] | null }
         const mapped = (bingoRows ?? []).map((r: any) => ({
           user_id: r.user_id,
           full_name: r.profiles?.full_name ?? '익명',
@@ -219,10 +253,13 @@ export default function DashboardPage() {
                   <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>NOTICES · MANUALS</div>
                   <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--at-ink)', marginTop: 2 }}>공지사항 &amp; 매뉴얼</div>
                 </div>
-                <button
-                  onClick={() => window.open('/notices-all', '_blank', 'noopener,noreferrer')}
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--at-blue)', fontWeight: 600 }}
-                >전체보기 →</button>
+                {/* anchor + target="_blank" 가 팝업 블로커에 가장 안전 — window.open 은 일부 환경에서 차단됨 */}
+                <a
+                  href="/notices-all"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--at-blue)', fontWeight: 600, textDecoration: 'none' }}
+                >전체보기 →</a>
               </div>
 
               {notices.length === 0 ? (

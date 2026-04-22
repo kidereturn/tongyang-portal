@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { BookOpen, Play, Star, Award, ListChecks, Shield, X, Send, Clock } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
+import { safeQuery } from '../../lib/queryWithTimeout'
 import { useAuth } from '../../hooks/useAuth'
 
 type VideoRow = {
@@ -67,21 +68,37 @@ export default function CoursesPage() {
   const [regSaving, setRegSaving] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
     async function load() {
       try {
-        const { data } = await (supabase as any)
-          .from('course_videos')
-          .select('*')
-          .eq('is_active', true)
-          .order('created_at', { ascending: false }) as { data: VideoRow[] | null }
-        setVideos(data ?? [])
+        const { data } = await safeQuery<VideoRow[]>(
+          (supabase as any)
+            .from('course_videos')
+            .select('*')
+            .eq('is_active', true)
+            .order('created_at', { ascending: false }),
+          12_000,
+          'courses.videos',
+        )
+        if (!cancelled) setVideos(data ?? [])
       } catch (e) {
         console.error('[CoursesPage] load error:', e)
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
-    load()
+    void load()
+
+    // 탭이 백그라운드로 갔다가 돌아왔을 때 스켈레톤 고착 방지
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && loading) void load()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      cancelled = true
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const counts = useMemo(() => {

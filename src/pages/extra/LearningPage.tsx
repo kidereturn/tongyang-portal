@@ -3,6 +3,7 @@ import { BarChart2, CheckCircle2, Clock, Download, Search, Users, BookOpen } fro
 import clsx from 'clsx'
 import * as XLSX from 'xlsx'
 import { supabase } from '../../lib/supabase'
+import { safeQuery } from '../../lib/queryWithTimeout'
 import { useAuth } from '../../hooks/useAuth'
 
 type ProfileRow = {
@@ -43,44 +44,63 @@ export default function LearningPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'not_started' | 'in_progress' | 'completed'>('all')
 
   useEffect(() => {
+    let cancelled = false
     async function load() {
       try {
-        // 1) 모든 활성 사용자 프로필 가져오기
-        const { data: profiles } = await (supabase as any)
-          .from('profiles')
-          .select('id, employee_id, full_name, department, role, is_active')
-          .eq('is_active', true)
-          .order('employee_id', { ascending: true }) as { data: ProfileRow[] | null }
-
-        setAllProfiles(profiles ?? [])
-
-        // 2) learning_progress 테이블에서 전체 진도 데이터 가져오기
-        const { data: progressData } = await (supabase as any)
-          .from('learning_progress')
-          .select('*') as { data: ProgressRow[] | null }
-
-        setAllProgress(progressData ?? [])
-
-        // 3) 전체 강좌 목록을 course_videos 테이블에서 가져오기
-        const { data: videoData } = await (supabase as any)
-          .from('course_videos')
-          .select('id, title')
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-        const courseList: CourseInfo[] = (videoData ?? []).map((v: { id: string; title: string }) => ({ id: v.id, name: v.title }))
+        // 3개 쿼리를 병렬로, 각각 타임아웃 래핑
+        const [profilesRes, progressRes, videoRes] = await Promise.all([
+          safeQuery<ProfileRow[]>(
+            (supabase as any)
+              .from('profiles')
+              .select('id, employee_id, full_name, department, role, is_active')
+              .eq('is_active', true)
+              .order('employee_id', { ascending: true }),
+            12_000,
+            'learning.profiles',
+          ),
+          safeQuery<ProgressRow[]>(
+            (supabase as any).from('learning_progress').select('*'),
+            12_000,
+            'learning.progress',
+          ),
+          safeQuery<Array<{ id: string; title: string }>>(
+            (supabase as any)
+              .from('course_videos')
+              .select('id, title')
+              .eq('is_active', true)
+              .order('created_at', { ascending: false }),
+            12_000,
+            'learning.videos',
+          ),
+        ])
+        if (cancelled) return
+        setAllProfiles(profilesRes.data ?? [])
+        setAllProgress(progressRes.data ?? [])
+        const courseList: CourseInfo[] = (videoRes.data ?? []).map(v => ({ id: v.id, name: v.title }))
         setCourses(courseList)
       } catch (err) {
         console.error('[LearningPage] load error:', err)
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     void load()
 
+    // 탭 복귀 시 스켈레톤 고착 방지
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && loading) void load()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+
     // 2분마다 자동 새로고침 (관리자용 실시간 반영)
     const interval = setInterval(load, 120_000)
-    return () => clearInterval(interval)
+    return () => {
+      cancelled = true
+      document.removeEventListener('visibilitychange', onVisible)
+      clearInterval(interval)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // 선택된 강좌에 맞는 progress 맵 생성

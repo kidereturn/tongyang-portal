@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../../lib/supabase'
+import { safeQuery, queryWithTimeout } from '../../lib/queryWithTimeout'
 import { useAuth } from '../../hooks/useAuth'
 import clsx from 'clsx'
 import EvidenceUploadModal from './EvidenceUploadModal'
@@ -79,26 +80,32 @@ export default function EvidenceListPage() {
       }
       q = q.order('control_code').order('department')
 
-      const timeout = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('evidence_timeout')), 15000)
-      })
-
-      const { data } = await Promise.race([q, timeout]) as { data: Activity[] | null }
+      const { data } = await safeQuery<Activity[]>(q, 12_000, 'evidence.activities')
       const rows = data ?? []
       setActivities(rows)
       setFiltered(rows)
 
-      // Load evidence counts, population totals, and approval statuses in parallel
+      // Load evidence counts, population totals, and approval statuses in parallel — 각 쿼리 타임아웃 래핑
       const activityIds = rows.map((r: Activity) => r.id)
       const uniqueKeys = rows.map((r: Activity) => r.unique_key).filter(Boolean) as string[]
       if (activityIds.length > 0) {
-        const [uploadsRes, approvalsRes, populationRes] = await Promise.all([
+        const batch = Promise.all([
           db.from('evidence_uploads').select('activity_id').in('activity_id', activityIds),
           db.from('approval_requests').select('activity_id, status').in('activity_id', activityIds),
           uniqueKeys.length > 0
             ? db.from('population_items').select('unique_key').in('unique_key', uniqueKeys)
             : Promise.resolve({ data: [] as { unique_key: string }[] }),
         ])
+        let uploadsRes: { data: Array<{ activity_id: string }> | null } = { data: [] }
+        let approvalsRes: { data: Array<{ activity_id: string; status: string }> | null } = { data: [] }
+        let populationRes: { data: Array<{ unique_key: string }> | null } = { data: [] }
+        try {
+          const result = await queryWithTimeout(batch, 12_000, 'evidence.batch')
+          ;[uploadsRes, approvalsRes, populationRes] = result as [typeof uploadsRes, typeof approvalsRes, typeof populationRes]
+        } catch (batchErr) {
+          console.warn('[evidence] batch timeout:', batchErr)
+          // 배치 실패해도 activities 는 이미 표시되므로 UI 가 멈추지 않는다
+        }
         const counts: Record<string, number> = {}
         for (const u of uploadsRes.data ?? []) {
           counts[u.activity_id] = (counts[u.activity_id] ?? 0) + 1
@@ -132,6 +139,18 @@ export default function EvidenceListPage() {
   }, [profile?.id, profile?.role, profile?.employee_id, profile?.full_name])
 
   useEffect(() => { fetchActivities() }, [fetchActivities])
+
+  // 탭 복귀 시 스켈레톤 상태 고착되면 자동 재조회
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && loading && profile) {
+        console.info('[evidence] tab returned, refetching stuck load')
+        fetchActivities()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [loading, profile, fetchActivities])
 
   // URL query param support: /evidence?status=pending|complete|approved|rejected|awaiting
   useEffect(() => {

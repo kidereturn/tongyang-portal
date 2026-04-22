@@ -63,11 +63,11 @@ export default function LoginPage() {
       {/* Top nav removed on login page — branding shown inside the blue cinematic panel */}
       <div className="login-wrap" style={{ minHeight: '100vh' }}>
         {/* Left: cinematic dark */}
-        <div className="login-left">
+        <div className="login-left" style={{ padding: '28px 72px 56px' }}>
           <div className="bg-orbit" />
           <div className="stars-bg" />
 
-          <div className="login-hd">
+          <div className="login-hd" style={{ marginTop: 0 }}>
             <div className="mini-logo" style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
               <img src="/tongyang_logo_main.png" alt="동양" style={{ height: 84, width: 'auto', display: 'block' }} />
               <span>INTERNAL CONTROLS</span>
