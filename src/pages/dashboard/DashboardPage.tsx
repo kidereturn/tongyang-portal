@@ -198,8 +198,8 @@ export default function DashboardPage() {
               <span className="soft">{firstName}님.</span>
             </h1>
             <p className="at-hero-lead">
-              오늘의 내부회계 현황입니다. {stats.total}개 통제활동과 {userCount}명의 구성원이
-              하나의 사이클로 움직이고 있어요. 준비되셨나요.
+              오늘의 내부회계 현황입니다. <b>{firstName}</b>님의 {stats.total}개 통제활동과 {userCount}명 구성원의
+              모든 통제활동이 하나의 사이클로 움직이고 있어요. 준비되셨나요.
             </p>
             <div className="at-hero-ctas">
               <Link to="/evidence" className="at-btn" style={{ textDecoration: 'none' }}>

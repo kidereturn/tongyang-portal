@@ -129,7 +129,7 @@ export default function ChatbotPage() {
           <div>
             <div className="eyebrow">AI Assistant<span className="sep" />챗봇</div>
             <h1>AI 챗봇. <span className="soft">묻고 배우세요.</span></h1>
-            <p className="lead">내부회계관리 문서 기반으로 답변합니다. 문서에 없는 내용은 답하지 않습니다.</p>
+            <p className="lead">사내 문서를 최우선으로 답변합니다. 문서에 없는 내용은 Gemini 2.5 Flash 일반 지식으로 보조 답변합니다.</p>
           </div>
           <div className="actions">
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: 10, fontSize: 12, color: '#065F46' }}>
@@ -275,7 +275,7 @@ export default function ChatbotPage() {
               </div>
               <div className="flex justify-between">
                 <span>답변 방식</span>
-                <span className="font-medium text-brand-900">문서 소스만</span>
+                <span className="font-medium text-brand-900">문서 우선 + AI 보조</span>
               </div>
               <div className="flex justify-between">
                 <span>이번 세션</span>
@@ -283,8 +283,8 @@ export default function ChatbotPage() {
               </div>
               <div className="mt-2 pt-2 border-t border-brand-100/50">
                 <p className="text-[10px] text-brand-700 leading-relaxed">
-                  내부회계관리제도 관련 문서를 기반으로 답변합니다.
-                  문서에 없는 내용은 답변하지 않습니다.
+                  1순위로 사내 문서에서 답변을 찾고, 문서에 없는 경우
+                  Gemini 2.5 Flash의 일반 지식으로 보조 답변합니다.
                 </p>
               </div>
             </div>

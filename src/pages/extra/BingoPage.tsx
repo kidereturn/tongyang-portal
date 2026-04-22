@@ -309,10 +309,8 @@ export default function BingoPage() {
       alert(`오늘의 도전 기회 ${MAX_DAILY_PLAYS}회를 모두 사용했습니다.\n내일 다시 도전하세요!`)
       return
     }
-    // 게임 시작 시(첫 셀 클릭) 도전 횟수 증가
-    if (Object.keys(answers).length === 0) {
-      incrementDailyPlays()
-    }
+    // 도전 횟수 증가는 submitAnswer()에서 첫 정답/오답 제출 시에만 발생.
+    // ESC로 창을 닫아도 카운트되지 않음.
     setActiveIdx(idx)
     setLastMessage(null)
     setSubjectiveAnswer('')
@@ -332,11 +330,14 @@ export default function BingoPage() {
       ? `정답! ${q.explanation}`
       : `오답. 정답: "${q.answer}". ${q.explanation}`
 
+    // 실제 답을 제출한 시점에 첫 정답이면 도전 횟수 증가 (ESC 취소엔 카운트 X)
+    const isFirstAnswerInSession = Object.keys(answers).length === 0
     setAnswers(prev => ({ ...prev, [activeIdx]: { correct, explanation } }))
     setLastMessage({ correct, text: correct ? '정답입니다!' : `오답. 정답: "${q.answer}"` })
     setActiveIdx(null)
     setSubjectiveAnswer('')
     setSelectedChoice('')
+    if (isFirstAnswerInSession) incrementDailyPlays()
   }
 
   async function notifyAdminBingoWin() {
@@ -379,6 +380,11 @@ export default function BingoPage() {
   }
 
   function resetGame() {
+    // 오늘 도전 한도 소진 시 경고 후 리셋 진행 X
+    if (!canPlay && dailyPlays >= MAX_DAILY_PLAYS) {
+      alert(`오늘 도전 ${MAX_DAILY_PLAYS}회를 모두 사용했습니다.\n내일 다시 도전하세요!`)
+      return
+    }
     setQuestions(buildBingoQuestions())
     setAnswers({})
     setActiveIdx(null)
@@ -577,17 +583,10 @@ export default function BingoPage() {
                       <div style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: '#FCA5A5', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 11, fontWeight: 700 }}>×</div>
                     )}
 
-                    <div style={{ fontSize: 18, lineHeight: 1 }}>{tpl?.emoji ?? '⭐'}</div>
-                    <div>
-                      <div style={{ fontSize: 10, lineHeight: 1.25, fontWeight: isFree || isCorrect ? 600 : 500, textAlign: isFree ? 'center' : 'left' }}>
-                        {tpl?.label ?? `#${idx + 1}`}
-                      </div>
-                      {!isFree && tpl?.points && tpl.points > 0 && (
-                        <div style={{ fontFamily: 'var(--f-mono)', fontSize: 8, letterSpacing: '0.14em', marginTop: 3, opacity: isCorrect ? 0.85 : 0.6 }}>
-                          {tpl.points}P
-                        </div>
-                      )}
-                    </div>
+                    <div style={{ fontSize: 36, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>{tpl?.emoji ?? '⭐'}</div>
+                    {isFree && (
+                      <div style={{ fontSize: 10, lineHeight: 1.25, fontWeight: 600, textAlign: 'center' }}>FREE</div>
+                    )}
                   </button>
                 )
               })}

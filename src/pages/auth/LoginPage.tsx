@@ -69,7 +69,7 @@ export default function LoginPage() {
 
           <div className="login-hd">
             <div className="mini-logo" style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-              <img src="/tongyang_logo_main.png" alt="동양" style={{ height: 28, width: 'auto', display: 'block' }} />
+              <img src="/tongyang_logo_main.png" alt="동양" style={{ height: 84, width: 'auto', display: 'block' }} />
               <span>INTERNAL CONTROLS</span>
             </div>
           </div>
@@ -139,7 +139,7 @@ export default function LoginPage() {
         {/* Right: ivory form */}
         <div className="login-right">
           <div className="eyebrow">01 · SIGN IN</div>
-          <h2>오늘 하루도 화이팅 하는 멋진 당신을 응원합니다!</h2>
+          <h2>오늘 하루도 노력하는 멋진 당신을 응원합니다!</h2>
           <p className="sub">사번으로 로그인하세요. 내부회계 포털 전용 계정입니다.</p>
 
           {error && (

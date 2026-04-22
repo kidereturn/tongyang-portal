@@ -622,13 +622,52 @@ function NewsTabs({
   const currentItems = tabNews[tab] ?? []
   const isLoading = tab === 'finance' ? loading : (tabLoading[tab] ?? false)
 
+  function refreshCurrentTab() {
+    // 현재 탭의 캐시를 비우면 useEffect가 자동 재요청 → 강제 새로고침 효과
+    setTabNews(prev => {
+      const next = { ...prev }
+      delete next[tab]
+      return next
+    })
+    // finance는 상위 loadFeed()가 주기적으로 전달. tab 전환 시 재요청됨.
+    setTabLoading(prev => ({ ...prev, [tab]: true }))
+    const tabDef = NEWS_TABS.find(t => t.key === tab)
+    if (!tabDef) return
+    fetch(`/api/news-feed?news_query=${encodeURIComponent(tabDef.query)}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then((d: FeedResponse) => {
+        setTabNews(prev => ({
+          ...prev,
+          [tab]: (d.newsItems ?? []).map(n => ({ id: n.id, title: n.title, url: n.url })),
+        }))
+      })
+      .catch(() => {
+        setTabNews(prev => ({ ...prev, [tab]: [] }))
+      })
+      .finally(() => {
+        setTabLoading(prev => ({ ...prev, [tab]: false }))
+      })
+  }
+
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-brand-900">News &amp; Coverage</h2>
-        {refreshedAt && (
-          <p className="text-[11px] text-warm-400">{new Date(refreshedAt).toLocaleString('ko-KR')}</p>
-        )}
+        <div className="flex items-center gap-3">
+          {refreshedAt && (
+            <p className="text-[11px] text-warm-400">{new Date(refreshedAt).toLocaleString('ko-KR')}</p>
+          )}
+          <button
+            type="button"
+            onClick={refreshCurrentTab}
+            disabled={isLoading}
+            className="inline-flex items-center gap-1 rounded-md border border-warm-200 bg-white px-2 py-1 text-[11px] font-semibold text-brand-700 hover:border-brand-300 disabled:opacity-50"
+            title="현재 탭 새로고침"
+          >
+            <RefreshCw size={11} className={isLoading ? 'animate-spin' : ''} />
+            새로고침
+          </button>
+        </div>
       </div>
 
       {/* Tab buttons */}

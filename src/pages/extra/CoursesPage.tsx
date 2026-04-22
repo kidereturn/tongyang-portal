@@ -158,7 +158,7 @@ export default function CoursesPage() {
             <div className="eyebrow">강좌<span className="sep" />사내 러닝 카탈로그</div>
             <h1>강좌. <span className="soft">한 강좌, 한 걸음.</span></h1>
             <p className="lead">
-              내부회계·재무·규제 대응 강좌 {videos.length}개. 필수 강좌는 포인트 가산, 이수증은 LinkedIn에 공유할 수 있습니다.
+              내부회계·재무·규제 대응 강좌 {videos.length}개. 필수 강좌는 포인트가 가산됩니다.
             </p>
           </div>
           <div className="actions" style={{ display: 'flex', gap: 8 }}>
@@ -199,7 +199,7 @@ export default function CoursesPage() {
               <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.7)', marginBottom: 12 }}>
                 FEATURED · 필수 수강 강의
               </div>
-              <div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.2, maxWidth: 700 }}>
+              <div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.2, maxWidth: '90%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {featured.title}
               </div>
               {featured.description && (

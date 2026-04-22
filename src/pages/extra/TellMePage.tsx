@@ -86,15 +86,9 @@ export default function TellMePage() {
     }
   }
 
-  function openInNewTab(postId: string) {
-    // Open current /tellme URL with ?post=<id> in a new tab — the page will render a single post detail.
-    const url = `${window.location.origin}/tellme?post=${postId}`
-    window.open(url, '_blank', 'noopener,noreferrer')
-  }
-
-  // Detail view when URL has ?post=<id>
-  const detailPostId = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('post') : null
-  const detailPost = detailPostId ? posts.find(p => p.id === detailPostId) : null
+  // In-page detail modal state (replaces new-window approach — new window was
+  // getting blocked by popup blockers)
+  const [detailPost, setDetailPost] = useState<Post | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -203,9 +197,9 @@ export default function TellMePage() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => openInNewTab(post.id)}
+                      onClick={() => setDetailPost(post)}
                       className="text-left text-sm font-bold text-brand-900 hover:text-brand-600 transition-colors inline-flex items-center gap-1 group/title"
-                      title="새창에서 전체 내용 보기"
+                      title="클릭해서 전체 내용 보기"
                     >
                       {post.title}
                       <ExternalLink size={12} className="text-warm-400 opacity-0 group-hover/title:opacity-100 transition-opacity" />
@@ -258,10 +252,14 @@ export default function TellMePage() {
         </div>
       )}
 
-      {/* Detail overlay — shown when URL has ?post=<id> (새창으로 연 경우) */}
+      {/* Detail modal — in-page popup (기존에는 새창으로 열렸는데 팝업 차단됐었음) */}
       {detailPost && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
-          <div className="w-full max-w-2xl rounded-lg bg-white shadow-2xl max-h-[90vh] overflow-auto">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6"
+          onClick={() => setDetailPost(null)}
+          onKeyDown={e => { if (e.key === 'Escape') setDetailPost(null) }}
+        >
+          <div onClick={e => e.stopPropagation()} className="w-full max-w-2xl rounded-lg bg-white shadow-2xl max-h-[90vh] overflow-auto">
             <div className="flex items-start justify-between gap-4 border-b border-warm-100 bg-warm-50 px-6 py-4">
               <div className="min-w-0 flex-1">
                 <span className={clsx('px-2 py-0.5 rounded-full text-[11px] font-semibold inline-block mb-2', catColor(detailPost.category))}>
@@ -276,9 +274,9 @@ export default function TellMePage() {
                 </p>
               </div>
               <button
-                onClick={() => window.close()}
+                onClick={() => setDetailPost(null)}
                 className="shrink-0 rounded-lg p-1.5 text-warm-400 hover:bg-warm-100 hover:text-warm-600 transition"
-                title="창 닫기"
+                title="닫기 (ESC)"
               >
                 <X size={18} />
               </button>
