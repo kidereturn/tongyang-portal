@@ -67,7 +67,8 @@ export default function LoginPage() {
           <div className="bg-orbit" />
           <div className="stars-bg" />
 
-          <div className="login-hd" style={{ marginTop: 0 }}>
+          {/* marginLeft: -45px ≈ 왼쪽으로 1.2cm 이동 (1cm ≈ 37.8px, 1.2cm ≈ 45px) */}
+          <div className="login-hd" style={{ marginTop: 0, marginLeft: -45 }}>
             <div className="mini-logo" style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
               <img src="/tongyang_logo_main.png" alt="동양" style={{ height: 84, width: 'auto', display: 'block' }} />
               <span>INTERNAL CONTROLS</span>

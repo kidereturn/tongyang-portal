@@ -476,7 +476,7 @@ export default function BingoPage() {
         <div className="pg-head-row">
           <div>
             <div className="eyebrow">이벤트<span className="sep" />월 빙고퀴즈</div>
-            <h1>빙고. <span className="soft">한 줄이면 커피, 네 줄이면 전설.</span></h1>
+            <h1>빙고. <span className="soft">한 줄이면 커피, 세 줄이면 선물, 다섯 줄이면 전설.</span></h1>
             <p className="lead">
               이번 달 25개 미션. 완료하면 포인트가 적립되고, 가로·세로·대각선 3줄 이상이면 기프티콘이 지급됩니다.
               문제당 <b>10초</b> · 하루 <b>{MAX_DAILY_PLAYS}회</b> 도전.
@@ -583,7 +583,8 @@ export default function BingoPage() {
                       <div style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: '#FCA5A5', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 11, fontWeight: 700 }}>×</div>
                     )}
 
-                    <div style={{ fontSize: 36, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>{tpl?.emoji ?? '⭐'}</div>
+                    {/* 아이콘 크기 50% 축소 (36 → 18) */}
+                    <div style={{ fontSize: 18, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>{tpl?.emoji ?? '⭐'}</div>
                     {isFree && (
                       <div style={{ fontSize: 10, lineHeight: 1.25, fontWeight: 600, textAlign: 'center' }}>FREE</div>
                     )}
@@ -629,26 +630,26 @@ export default function BingoPage() {
               <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>REWARDS</div>
               <div style={{ fontFamily: 'var(--f-display)', fontSize: 16, fontWeight: 600, marginBottom: 16 }}>리워드</div>
               <div style={{ display: 'flex', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--at-ink-hair)', alignItems: 'center' }}>
-                <div style={{ fontSize: 28, width: 36, textAlign: 'center' }}>🥉</div>
+                <div style={{ fontSize: 28, width: 36, textAlign: 'center' }}>☕</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'var(--f-display)', fontSize: 14, fontWeight: 600 }}>3줄</div>
-                  <div style={{ fontSize: 12, color: 'var(--at-ink-mute)' }}>스타벅스 아메리카노</div>
+                  <div style={{ fontFamily: 'var(--f-display)', fontSize: 14, fontWeight: 600 }}>1줄</div>
+                  <div style={{ fontSize: 12, color: 'var(--at-ink-mute)' }}>스타벅스 커피 한 잔</div>
                 </div>
-                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--at-blue)', fontWeight: 500, letterSpacing: '0.08em' }}>+100P</div>
+                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--at-blue)', fontWeight: 500, letterSpacing: '0.08em' }}>+50P</div>
               </div>
               <div style={{ display: 'flex', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--at-ink-hair)', alignItems: 'center' }}>
-                <div style={{ fontSize: 28, width: 36, textAlign: 'center' }}>🥈</div>
+                <div style={{ fontSize: 28, width: 36, textAlign: 'center' }}>🎁</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'var(--f-display)', fontSize: 14, fontWeight: 600 }}>4줄</div>
-                  <div style={{ fontSize: 12, color: 'var(--at-ink-mute)' }}>치킨 세트 교환권</div>
+                  <div style={{ fontFamily: 'var(--f-display)', fontSize: 14, fontWeight: 600 }}>3줄</div>
+                  <div style={{ fontSize: 12, color: 'var(--at-ink-mute)' }}>치킨·피자 세트 교환권</div>
                 </div>
                 <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--at-blue)', fontWeight: 500, letterSpacing: '0.08em' }}>+200P</div>
               </div>
               <div style={{ display: 'flex', gap: 14, padding: '14px 0', alignItems: 'center' }}>
-                <div style={{ fontSize: 28, width: 36, textAlign: 'center' }}>🥇</div>
+                <div style={{ fontSize: 28, width: 36, textAlign: 'center' }}>🏆</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontFamily: 'var(--f-display)', fontSize: 14, fontWeight: 600 }}>5줄 (풀 빙고)</div>
-                  <div style={{ fontSize: 12, color: 'var(--at-ink-mute)' }}>상품권 10만원</div>
+                  <div style={{ fontSize: 12, color: 'var(--at-ink-mute)' }}>신세계 상품권 20만원 + 반차 쿠폰</div>
                 </div>
                 <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--at-blue)', fontWeight: 500, letterSpacing: '0.08em' }}>+500P</div>
               </div>

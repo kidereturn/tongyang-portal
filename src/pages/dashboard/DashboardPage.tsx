@@ -25,6 +25,13 @@ interface Activity {
   department: string | null
   owner_name: string | null
   submission_status: string | null
+  review_status?: string | null
+}
+
+interface ReviewStats {
+  notReviewed: number
+  reviewing: number
+  done: number
 }
 
 interface RankingUser {
@@ -55,6 +62,7 @@ function getSubmissionStatus(raw: string | null): 'pendingApproval' | 'approved'
 export default function DashboardPage() {
   const { profile } = useAuth()
   const [stats, setStats] = useState<Stats>({ total: 0, pendingApproval: 0, approved: 0, rejected: 0 })
+  const [reviewStats, setReviewStats] = useState<ReviewStats>({ notReviewed: 0, reviewing: 0, done: 0 })
   const [, setDeptStats] = useState<DeptData[]>([])
   const [allDeptStats, setAllDeptStats] = useState<DeptData[]>([])
   const [, setActivities] = useState<Activity[]>([])
@@ -88,8 +96,8 @@ export default function DashboardPage() {
     const db = supabase as any
 
     try {
-      // 통제활동
-      let q = db.from('activities').select('id, control_code, title, department, owner_name, submission_status, owner_id, controller_id, owner_employee_id, controller_employee_id').eq('active', true)
+      // 통제활동 (review_status 포함)
+      let q = db.from('activities').select('id, control_code, title, department, owner_name, submission_status, review_status, owner_id, controller_id, owner_employee_id, controller_employee_id').eq('active', true)
       if (profile.role === 'owner') {
         if (profile.employee_id) q = q.eq('owner_employee_id', profile.employee_id)
         else q = q.eq('owner_id', profile.id)
@@ -114,12 +122,17 @@ export default function DashboardPage() {
 
       const records = (actRes?.data ?? []) as Activity[]
       const next: Stats = { total: records.length, pendingApproval: 0, approved: 0, rejected: 0 }
+      const rv: ReviewStats = { notReviewed: 0, reviewing: 0, done: 0 }
       const deptMap: Record<string, DeptData> = {}
       for (const r of records) {
         const s = getSubmissionStatus(r.submission_status)
         if (s === 'pendingApproval') next.pendingApproval += 1
         if (s === 'approved') next.approved += 1
         if (s === 'rejected') next.rejected += 1
+        const rs = (r.review_status ?? '미검토').trim()
+        if (rs === '검토중') rv.reviewing += 1
+        else if (rs === '완료') rv.done += 1
+        else rv.notReviewed += 1
         const dept = r.department ?? '미지정'
         if (!deptMap[dept]) deptMap[dept] = { name: dept, total: 0, approved: 0, pending: 0 }
         deptMap[dept].total += 1
@@ -127,6 +140,7 @@ export default function DashboardPage() {
         if (s === 'pendingApproval') deptMap[dept].pending += 1
       }
       setStats(next)
+      setReviewStats(rv)
       setActivities(records.slice(0, 6))
       setAllActivities(records)
       setDeptStats(Object.values(deptMap).filter(d => d.total > 0).sort((a, b) => b.total - a.total).slice(0, 8))
@@ -390,6 +404,48 @@ export default function DashboardPage() {
               </Link>
             </div>
           )}
+
+          {/* 검토 상태 3타일 — 미검토 / 검토중 / 완료 (관리자의 activities.review_status 기반) */}
+          <div className="at-grid" style={{ marginTop: 16, gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            {(() => {
+              const rvTotal = reviewStats.notReviewed + reviewStats.reviewing + reviewStats.done
+              const pct = (v: number) => (rvTotal > 0 ? Math.round((v / rvTotal) * 100) : 0)
+              return (
+                <>
+                  <div className="at-kpi">
+                    <div className="kpi-label">
+                      <div className="kpi-icon" style={{ background: '#F2F4F6', color: 'var(--at-ink-mute)' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M8 12h8" /></svg>
+                      </div>
+                      검토 상태 · 미검토
+                    </div>
+                    <div className="kpi-value">{reviewStats.notReviewed}<span className="unit">건</span></div>
+                    <div className="kpi-sub">비율 {pct(reviewStats.notReviewed)}% · 관리자 검토 전</div>
+                  </div>
+                  <div className="at-kpi">
+                    <div className="kpi-label">
+                      <div className="kpi-icon" style={{ background: '#E8F2FE', color: 'var(--at-blue)' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                      </div>
+                      검토 상태 · 검토중
+                    </div>
+                    <div className="kpi-value" style={{ color: 'var(--at-blue)' }}>{reviewStats.reviewing}<span className="unit">건</span></div>
+                    <div className="kpi-sub">비율 {pct(reviewStats.reviewing)}% · 진행 중</div>
+                  </div>
+                  <div className="at-kpi">
+                    <div className="kpi-label">
+                      <div className="kpi-icon" style={{ background: '#E8F5ED', color: 'var(--at-green)' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M5 12l5 5L20 7" /></svg>
+                      </div>
+                      검토 상태 · 완료
+                    </div>
+                    <div className="kpi-value" style={{ color: 'var(--at-green)' }}>{reviewStats.done}<span className="unit">건</span></div>
+                    <div className="kpi-sub">비율 {pct(reviewStats.done)}% · 검토 완료</div>
+                  </div>
+                </>
+              )
+            })()}
+          </div>
         </div>
       </section>
 

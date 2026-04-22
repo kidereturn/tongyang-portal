@@ -136,15 +136,7 @@ export default function NewsPage() {
             <h1>뉴스 · 공시 · 재무. <span className="soft">숫자와 흐름을 한 번에.</span></h1>
             <p className="lead">DART 공시, 실시간 주가, 재무제표, 네이버 금융 뉴스를 통합 조회합니다.</p>
           </div>
-          <div className="actions">
-            <button
-              onClick={() => loadFeed()}
-              className="btn-compact"
-            >
-              <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-              새로 고침
-            </button>
-          </div>
+          {/* 상단 큰 "새로 고침" 버튼 제거 — 탭별 새로고침은 하단 NewsTabs에 이미 존재 */}
         </div>
       </div>
 

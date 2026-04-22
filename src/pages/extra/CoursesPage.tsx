@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BookOpen, Play, Star, Award, ListChecks, Shield, X, Send, Clock } from 'lucide-react'
+import { BookOpen, Play, Award, ListChecks, Shield, X, Send, Clock } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
 import { safeQuery } from '../../lib/queryWithTimeout'
@@ -212,15 +212,15 @@ export default function CoursesPage() {
               justifyContent: 'space-between',
             }}
           >
-            <div>
+            <div style={{ paddingRight: 140 /* 우측 재생 원형 버튼(84px)+여백 확보 */ }}>
               <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.7)', marginBottom: 12 }}>
                 FEATURED · 필수 수강 강의
               </div>
-              <div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.2, maxWidth: '90%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {featured.title}
               </div>
               {featured.description && (
-                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 12, maxWidth: 700, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 12, lineHeight: 1.6 }}>
                   {featured.description.slice(0, 90)}
                 </div>
               )}
@@ -274,8 +274,6 @@ export default function CoursesPage() {
               const tag = v.tag ?? (idx === 0 ? '진행중 42%' : idx % 3 === 0 ? '필수' : idx % 4 === 0 ? 'NEW' : idx % 5 === 0 ? '인기' : '추천')
               const tagKey = tag.replace(/\s+\d+%?/, '')
               const tagStyle = TAG_STYLES[tagKey] ?? TAG_STYLES['추천']
-              const rating = v.rating ?? (4.5 + Math.random() * 0.5).toFixed(1)
-              const ratingCount = v.rating_count ?? Math.floor(100 + Math.random() * 400)
               const instructor = v.instructor ?? '박지훈'
               const duration = v.duration ?? '4h 20m'
               const difficulty = v.difficulty ?? (idx % 3 === 0 ? '초급' : idx % 3 === 1 ? '중급' : '고급')
@@ -312,13 +310,14 @@ export default function CoursesPage() {
                 >
                   {/* Colored top half with tag only (fixed height so all cards align) */}
                   <div style={{ padding: '20px 20px 26px', position: 'relative', height: 110, flexShrink: 0 }}>
-                    <div style={{ position: 'absolute', top: 14, left: 14, padding: '4px 10px', fontSize: 10, fontWeight: 700, borderRadius: 999, ...tagStyle }}>
+                    {/* 태그는 가로 한 줄로 — whiteSpace:nowrap 과 넉넉한 좌우 패딩 */}
+                    <div style={{ position: 'absolute', top: 14, left: 14, padding: '5px 14px', fontSize: 11, fontWeight: 700, borderRadius: 999, whiteSpace: 'nowrap', lineHeight: 1.2, ...tagStyle }}>
                       {tag}
                     </div>
                   </div>
 
-                  {/* White bottom half — fixed height so all cards align uniformly */}
-                  <div style={{ background: '#FFFFFF', color: 'var(--at-ink)', padding: '18px 18px 18px', borderTop: '1px solid var(--at-ink-hair)', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                  {/* White bottom half — 고정 높이 + 컬럼 균일 정렬 */}
+                  <div style={{ background: '#FFFFFF', color: 'var(--at-ink)', padding: '18px', borderTop: '1px solid var(--at-ink-hair)', display: 'flex', flexDirection: 'column', height: 170 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--at-ink)', lineHeight: 1.35, minHeight: 38, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {v.title}
                     </div>
@@ -329,14 +328,10 @@ export default function CoursesPage() {
                       <Clock size={10} />
                       수강기한 {deadlineFor(v, idx)}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: 10, borderTop: '1px solid var(--at-ink-hair)' }}>
+                    {/* 별점 제거 — 하단 정보줄만 유지 */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginTop: 'auto', paddingTop: 10, borderTop: '1px solid var(--at-ink-hair)' }}>
                       <div style={{ fontSize: 11, color: 'var(--at-ink-mute)' }}>
                         ⏱ {duration} · {difficulty}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--at-ink)' }}>
-                        <Star size={10} fill="#F59E0B" stroke="#F59E0B" />
-                        <span style={{ fontWeight: 600 }}>{rating}</span>
-                        <span style={{ color: 'var(--at-ink-mute)' }}>({ratingCount})</span>
                       </div>
                     </div>
                   </div>

@@ -436,9 +436,13 @@
 .tbl-scroll { max-height: 640px; overflow: auto; }
 .at-table.compact th, .at-table.compact td {
   padding: 12px 12px; font-size: 13px;
+  /* 담당자/승인자/상태태그 등이 줄바꿈 없이 한 줄로 나오도록 */
+  white-space: nowrap;
 }
 .at-table.compact th:first-child, .at-table.compact td:first-child { padding-left: 24px; }
 .at-table.compact th:last-child, .at-table.compact td:last-child { padding-right: 24px; }
+/* 통제활동명 열(두 번째)은 긴 문장이므로 줄바꿈 허용(ellipsis 처리는 인라인 스타일로 이미 적용됨) */
+.at-table.compact td:nth-child(2) { white-space: normal; }
 .at-table tr.sel { background: var(--at-blue-pale); }
 .at-table .ck {
   width: 15px; height: 15px; border-radius: 3px;

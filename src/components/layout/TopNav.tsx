@@ -165,12 +165,12 @@ export default function TopNav() {
   return (
     <nav className="at-nav">
       <Link to="/dashboard" className="at-nav-logo" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-        {/* 흰색 원본 PNG를 하늘색(#3182F6, Toss blue — '오늘의 할 일' 버튼과 동일)으로 tint */}
+        {/* 흰색 원본 PNG를 하늘색(#3182F6, Toss blue)으로 tint — 크기 300% 증가 (30px → 90px) */}
         <img
           src="/tongyang_logo_main.png"
           alt="동양"
           style={{
-            height: 30,
+            height: 90,
             width: 'auto',
             display: 'block',
             filter: 'brightness(0) saturate(100%) invert(42%) sepia(93%) saturate(2307%) hue-rotate(205deg) brightness(100%) contrast(95%)',
