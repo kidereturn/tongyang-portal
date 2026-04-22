@@ -691,21 +691,72 @@ function NewsTabs({
           ))}
         </div>
       ) : (
-        <div className="space-y-1">
+        /* 카드뉴스 형태 — 한 행 3개, 4×5 비율, 스크롤 */
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 14,
+            maxHeight: 560,
+            overflowY: 'auto',
+            paddingRight: 6,
+          }}
+        >
           {currentItems.slice(0, 30).map((item, i) => (
             <a
               key={item.id + '-' + i}
               href={item.url}
               target="_blank"
               rel="noreferrer"
-              className="group flex items-start gap-3 rounded-xl border border-warm-100 bg-white px-4 py-2 transition hover:border-brand-100 hover:shadow-md"
+              style={{
+                aspectRatio: '4 / 5',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                padding: '14px 14px 12px',
+                borderRadius: 12,
+                border: '1px solid var(--at-ink-hair)',
+                background: `linear-gradient(135deg, #F2F4F6 0%, #E8F2FE 55%, #BDD7F7 100%)`,
+                textDecoration: 'none',
+                color: 'inherit',
+                transition: 'transform .15s ease, box-shadow .15s ease',
+                overflow: 'hidden',
+                position: 'relative',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 28px -12px rgba(49,130,246,0.35)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
             >
-              <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-bold leading-5 text-brand-900 transition group-hover:text-brand-700 line-clamp-1">
+              {/* 상단: 뉴스 번호 배지 */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontFamily: 'var(--f-mono)', fontSize: 10, fontWeight: 700, color: '#1E40AF', letterSpacing: '0.08em', background: 'rgba(255,255,255,0.6)', padding: '2px 8px', borderRadius: 999 }}>
+                  #{String(i + 1).padStart(2, '0')}
+                </span>
+                <ExternalLink size={12} style={{ color: '#3182F6' }} />
+              </div>
+
+              {/* 중앙: 제목 */}
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '8px 0' }}>
+                <h3
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    lineHeight: 1.45,
+                    color: '#1E293B',
+                    margin: 0,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 5,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}
+                >
                   {item.title}
                 </h3>
               </div>
-              <ExternalLink size={13} className="mt-0.5 shrink-0 text-warm-300 transition group-hover:text-brand-700" />
+
+              {/* 하단: 카테고리 라벨 */}
+              <div style={{ fontSize: 10, color: '#475569', fontWeight: 600, letterSpacing: '0.02em' }}>
+                {NEWS_TABS.find(t => t.key === tab)?.label ?? ''}
+              </div>
             </a>
           ))}
           {currentItems.length === 0 && (

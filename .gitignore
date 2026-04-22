@@ -12,6 +12,8 @@ screenshots-toss
 screenshots-longsession
 screenshots-uibatch
 screenshots-e2e-approval
+screenshots-dual-browser
+screenshots-network-50x3
 long-session.log
 login-check.png
 login-new-logo.png
