@@ -10,6 +10,7 @@ dist
 screenshots
 screenshots-toss
 screenshots-longsession
+screenshots-uibatch
 long-session.log
 login-check.png
 login-new-logo.png

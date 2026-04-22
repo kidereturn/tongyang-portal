@@ -152,7 +152,8 @@ export default function EvidenceListPage() {
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [loading, profile, fetchActivities])
 
-  // URL query param support: /evidence?status=pending|complete|approved|rejected|awaiting
+  // URL query param support: /evidence?status=pending|complete|approved|rejected
+  // awaiting 은 상신완료(complete)로 통합
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get('status')
     if (q && q !== statusFilter) {
@@ -162,7 +163,7 @@ export default function EvidenceListPage() {
         complete: '완료',
         approved: '승인',
         rejected: '반려',
-        awaiting: 'awaiting', // 결재대기
+        awaiting: '완료', // 결재대기 → 상신완료로 리다이렉트
       }
       if (map[q]) setStatusFilter(map[q])
     }
@@ -180,23 +181,19 @@ export default function EvidenceListPage() {
         a.owner_name?.toLowerCase().includes(s)
       )
     }
-    if (statusFilter === 'awaiting') {
-      // 결재대기 = 상신완료되었으나 아직 승인/반려 결정 전 (approval_requests.status='submitted')
-      r = r.filter(a => approvalStatuses[a.id] === 'submitted')
-    } else if (statusFilter !== 'all') {
+    if (statusFilter !== 'all') {
       r = r.filter(a => a.submission_status === statusFilter)
     }
+    // 결재대기(awaiting) 필터는 상신완료와 의미가 동일하여 제거됨
     setFiltered(r)
-  }, [search, statusFilter, activities, approvalStatuses])
+  }, [search, statusFilter, activities])
 
-  const awaitingCount = activities.filter(a => approvalStatuses[a.id] === 'submitted').length
   const stats = {
     total:    activities.length,
     pending:  activities.filter(a => a.submission_status === '미완료').length,
     complete: activities.filter(a => a.submission_status === '완료').length,
     approved: activities.filter(a => a.submission_status === '승인').length,
     rejected: activities.filter(a => a.submission_status === '반려').length,
-    awaiting: awaitingCount,
   }
   // 승인율 = 전체 증빙 중 승인자의 승인이 완료된 비율 (per user spec #11)
   const rate = stats.total > 0 ? Math.round(stats.approved / stats.total * 100) : 0
@@ -303,7 +300,7 @@ export default function EvidenceListPage() {
         <div className="sum-strip">
           <div className="cell"><div className="l"><span className="ic blue">●</span>전체</div><div className="v">{stats.total}<span className="u">건</span></div><div className="sub">이번 주기 누적</div></div>
           <div className="cell"><div className="l"><span className="ic green">●</span>완료</div><div className="v">{stats.approved}<span className="u">건</span></div><div className="sub">승인 완료 · {rate}%</div></div>
-          <div className="cell"><div className="l"><span className="ic amber">●</span>대기</div><div className="v">{stats.awaiting + stats.complete}<span className="u">건</span></div><div className="sub">담당자/승인자 작업 중</div></div>
+          <div className="cell"><div className="l"><span className="ic amber">●</span>대기</div><div className="v">{stats.complete}<span className="u">건</span></div><div className="sub">담당자/승인자 작업 중</div></div>
           <div className="cell"><div className="l"><span className="ic red">●</span>반려</div><div className="v">{stats.rejected}<span className="u">건</span></div><div className="sub">재작성 필요</div></div>
         </div>
 
@@ -327,7 +324,6 @@ export default function EvidenceListPage() {
                 { key: '미완료', label: '미완료', count: stats.pending },
                 { key: '완료', label: '상신완료', count: stats.complete },
                 { key: '승인', label: '승인완료', count: stats.approved },
-                { key: 'awaiting', label: '결재대기', count: stats.awaiting },
                 { key: '반려', label: '반려', count: stats.rejected },
               ].map(f => (
                 <span

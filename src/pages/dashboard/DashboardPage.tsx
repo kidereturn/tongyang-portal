@@ -364,13 +364,13 @@ export default function DashboardPage() {
               <div className="kpi-sub">전체 통제활동</div>
             </Link>
 
-            <Link to="/evidence?status=awaiting" className="at-kpi" style={{ textDecoration: 'none' }}>
+            <Link to="/evidence?status=complete" className="at-kpi" style={{ textDecoration: 'none' }}>
               <div className="kpi-label">
                 <div className="kpi-icon" style={{ background: '#FAF1DF', color: 'var(--at-amber)' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></div>
-                결재대기
+                상신완료
               </div>
               <div className="kpi-value">{stats.pendingApproval}<span className="unit">건</span></div>
-              <div className="kpi-sub">담당자 작업 중</div>
+              <div className="kpi-sub">승인자 검토 대기</div>
             </Link>
 
             <Link to="/evidence?status=approved" className="at-kpi" style={{ textDecoration: 'none' }}>
