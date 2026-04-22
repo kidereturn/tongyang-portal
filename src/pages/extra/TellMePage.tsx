@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { MessageCircle, Plus, Send, User, X, Trash2, EyeOff, Eye, ExternalLink } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
+import { safeQuery } from '../../lib/queryWithTimeout'
 import { useAuth } from '../../hooks/useAuth'
 
 type Post = {
@@ -57,7 +58,7 @@ export default function TellMePage() {
       if (profile?.role !== 'admin') {
         query = query.eq('is_hidden', false)
       }
-      const { data } = await query
+      const { data } = await safeQuery<Post[]>(query, 10_000, 'tellme.posts')
       setPosts(data ?? [])
     } catch {
       setPosts([])

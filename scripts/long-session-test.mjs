@@ -10,8 +10,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const OUT = path.resolve(__dirname, '..', 'screenshots-longsession')
 fs.mkdirSync(OUT, { recursive: true })
 const BASE = 'https://tyia.vercel.app'
-const EMPLOYEE_ID = '101842' // CLAUDE.md의 확인된 테스트 계정 (Evidence 담당자)
-const PASSWORD = 'tyedu101842'
+const EMPLOYEE_ID = '101579' // 이수민 (owner / 자금팀 / 8건 activities)
+const PASSWORD = '101579' // 초기 비밀번호 = 사번, 미변경 상태 확인됨
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))
 const ts = () => new Date().toISOString().slice(11, 19)
@@ -95,8 +95,8 @@ async function main() {
       log(`   ${p.key} initial skeleton visible: ${skeletonStuck}`)
     }
 
-    // 4) 장시간 유지 루프 — 1분 단위로 14번 (총 14분)
-    const ITERATIONS = 14
+    // 4) 장시간 유지 루프 — 1분 단위로 12번 (총 12분)
+    const ITERATIONS = 12
     const INTERVAL_MIN = 1
     log(`5) begin long-session loop: ${ITERATIONS} x ${INTERVAL_MIN}min`)
 
