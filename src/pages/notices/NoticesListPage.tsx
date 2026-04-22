@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Megaphone, BookOpen, FileText, AlertCircle } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
+import { safeQuery } from '../../lib/queryWithTimeout'
 
 type Notice = {
   id: string
@@ -43,11 +44,15 @@ export default function NoticesListPage() {
   async function load() {
     setLoading(true)
     try {
-      const { data } = await (supabase as any)
-        .from('notices')
-        .select('id, type, title, body, badge, badge_color, is_pinned, created_at')
-        .order('is_pinned', { ascending: false })
-        .order('created_at', { ascending: false })
+      const { data } = await safeQuery<Notice[]>(
+        (supabase as any)
+          .from('notices')
+          .select('id, type, title, body, badge, badge_color, is_pinned, created_at')
+          .order('is_pinned', { ascending: false })
+          .order('created_at', { ascending: false }),
+        12_000,
+        'notices.list',
+      )
       setItems(data ?? [])
     } catch {
       setItems([])

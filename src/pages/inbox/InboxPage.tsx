@@ -4,6 +4,7 @@ import {
   RefreshCw, Eye, Loader2, CheckSquare, Square
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { safeQuery } from '../../lib/queryWithTimeout'
 import { useAuth } from '../../hooks/useAuth'
 import clsx from 'clsx'
 import EvidenceUploadModal from '../evidence/EvidenceUploadModal'
@@ -77,7 +78,7 @@ export default function InboxPage() {
       // admin은 전체
 
       q = q.order('submitted_at', { ascending: false })
-      const { data: rawData } = await q
+      const { data: rawData } = await safeQuery<ApprovalItem[]>(q, 12_000, 'inbox.approvals')
       if (!rawData) { setItems([]); return }
 
       // activity_id가 없는 경우 unique_key로 activities를 별도 조회
@@ -87,15 +88,19 @@ export default function InboxPage() {
 
       const actByKey: Record<string, ApprovalItem['activity']> = {}
       if (missingKeys.length > 0) {
-        const { data: acts } = await db.from('activities').select('*').in('unique_key', missingKeys)
-        ;(acts ?? []).forEach((a: NonNullable<ApprovalItem['activity']>) => {
+        const { data: acts } = await safeQuery<Array<NonNullable<ApprovalItem['activity']>>>(
+          db.from('activities').select('*').in('unique_key', missingKeys),
+          10_000,
+          'inbox.activities',
+        )
+        ;(acts ?? []).forEach((a) => {
           if (a.unique_key) actByKey[a.unique_key] = a
         })
       }
 
-      const merged = rawData.map((r: ApprovalItem) => ({
+      const merged: ApprovalItem[] = rawData.map((r: ApprovalItem) => ({
         ...r,
-        activity: r.activity ?? (r.unique_key ? actByKey[r.unique_key] : null)
+        activity: r.activity ?? (r.unique_key ? (actByKey[r.unique_key] ?? undefined) : undefined),
       }))
       setItems(merged)
     } catch (err) {
