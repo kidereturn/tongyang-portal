@@ -37,11 +37,10 @@ const BINGO_CELL_TEMPLATES: Array<{ emoji: string; label: string; points: number
 ]
 
 // ────────────────────────────────────────────
-// 25문제를 랜덤 배치, 주관식 위치도 매번 랜덤
+// 25문제 랜덤 배치 — 객관식만 (주관식 제거 — 사용자 요청)
 // ────────────────────────────────────────────
 function buildBingoQuestions(): QuizQuestion[] {
   const multiples = ALL_QUESTIONS.filter(q => q.type === 'multiple')
-  const subjectives = ALL_QUESTIONS.filter(q => q.type === 'subjective')
 
   const shuffleArr = <T,>(arr: T[]): T[] => {
     const a = [...arr]
@@ -53,27 +52,10 @@ function buildBingoQuestions(): QuizQuestion[] {
   }
 
   const shuffledMulti = shuffleArr(multiples)
-  const shuffledSub = shuffleArr(subjectives)
-
-  // 주관식 3개 위치를 0~24 중 랜덤 선택
-  const allPositions = Array.from({ length: 25 }, (_, i) => i)
-  const shuffledPositions = shuffleArr(allPositions)
-  const subjectivePositions = new Set(shuffledPositions.slice(0, 3))
-
   const result: QuizQuestion[] = []
-  let mi = 0
-  let si = 0
-
   for (let pos = 0; pos < 25; pos++) {
-    if (subjectivePositions.has(pos)) {
-      result.push(shuffledSub[si % shuffledSub.length])
-      si++
-    } else {
-      result.push(shuffledMulti[mi % shuffledMulti.length])
-      mi++
-    }
+    result.push(shuffledMulti[pos % shuffledMulti.length])
   }
-
   return result
 }
 
@@ -337,7 +319,18 @@ export default function BingoPage() {
     setActiveIdx(null)
     setSubjectiveAnswer('')
     setSelectedChoice('')
-    if (isFirstAnswerInSession) incrementDailyPlays()
+    if (isFirstAnswerInSession) {
+      incrementDailyPlays()
+      // 빙고 참여 1회당 10점 포인트 적립 (세션별 1회) — 사용자 요청
+      if (profile?.id) {
+        void (supabase as any).from('user_points').insert({
+          user_id: profile.id,
+          action: 'bingo_attempt',
+          points: 10,
+          description: '빙고 참여 포인트',
+        })
+      }
+    }
   }
 
   async function notifyAdminBingoWin() {
@@ -476,7 +469,7 @@ export default function BingoPage() {
         <div className="pg-head-row">
           <div>
             <div className="eyebrow">이벤트<span className="sep" />월 빙고퀴즈</div>
-            <h1>빙고. <span className="soft">한 줄이면 커피, 세 줄이면 선물, 다섯 줄이면 전설.</span></h1>
+            <h1>빙고. <span className="soft">1줄 완성 = 1회 · 월간 TOP 3 시상.</span></h1>
             <p className="lead">
               이번 달 25개 미션. 완료하면 포인트가 적립되고, 가로·세로·대각선 3줄 이상이면 기프티콘이 지급됩니다.
               문제당 <b>10초</b> · 하루 <b>{MAX_DAILY_PLAYS}회</b> 도전.
@@ -629,29 +622,37 @@ export default function BingoPage() {
             <div className="at-card" style={{ padding: 24 }}>
               <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>REWARDS</div>
               <div style={{ fontFamily: 'var(--f-display)', fontSize: 16, fontWeight: 600, marginBottom: 16 }}>리워드</div>
-              <div style={{ display: 'flex', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--at-ink-hair)', alignItems: 'center' }}>
-                <div style={{ fontSize: 28, width: 36, textAlign: 'center' }}>☕</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'var(--f-display)', fontSize: 14, fontWeight: 600 }}>1줄</div>
-                  <div style={{ fontSize: 12, color: 'var(--at-ink-mute)' }}>스타벅스 커피 한 잔</div>
-                </div>
-                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--at-blue)', fontWeight: 500, letterSpacing: '0.08em' }}>+50P</div>
+              <div style={{ fontSize: 11, color: 'var(--at-ink-mute)', marginBottom: 10, lineHeight: 1.5 }}>
+                빙고 1줄 완성 = 1회 카운트. 월 누적 완성 횟수 기준 월간 TOP 3 에게 시상.
               </div>
               <div style={{ display: 'flex', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--at-ink-hair)', alignItems: 'center' }}>
-                <div style={{ fontSize: 28, width: 36, textAlign: 'center' }}>🎁</div>
+                <div style={{ fontSize: 28, width: 36, textAlign: 'center' }}>🥇</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'var(--f-display)', fontSize: 14, fontWeight: 600 }}>3줄</div>
-                  <div style={{ fontSize: 12, color: 'var(--at-ink-mute)' }}>치킨·피자 세트 교환권</div>
+                  <div style={{ fontFamily: 'var(--f-display)', fontSize: 14, fontWeight: 600 }}>월간 1등</div>
+                  <div style={{ fontSize: 12, color: 'var(--at-ink-mute)' }}>치킨 세트</div>
                 </div>
-                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--at-blue)', fontWeight: 500, letterSpacing: '0.08em' }}>+200P</div>
+              </div>
+              <div style={{ display: 'flex', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--at-ink-hair)', alignItems: 'center' }}>
+                <div style={{ fontSize: 28, width: 36, textAlign: 'center' }}>🥈</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: 'var(--f-display)', fontSize: 14, fontWeight: 600 }}>월간 2등</div>
+                  <div style={{ fontSize: 12, color: 'var(--at-ink-mute)' }}>배민 상품권 1만원</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--at-ink-hair)', alignItems: 'center' }}>
+                <div style={{ fontSize: 28, width: 36, textAlign: 'center' }}>🥉</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: 'var(--f-display)', fontSize: 14, fontWeight: 600 }}>월간 3등</div>
+                  <div style={{ fontSize: 12, color: 'var(--at-ink-mute)' }}>스타벅스 아아</div>
+                </div>
               </div>
               <div style={{ display: 'flex', gap: 14, padding: '14px 0', alignItems: 'center' }}>
-                <div style={{ fontSize: 28, width: 36, textAlign: 'center' }}>🏆</div>
+                <div style={{ fontSize: 28, width: 36, textAlign: 'center' }}>⭐</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'var(--f-display)', fontSize: 14, fontWeight: 600 }}>5줄 (풀 빙고)</div>
-                  <div style={{ fontSize: 12, color: 'var(--at-ink-mute)' }}>신세계 상품권 20만원 + 반차 쿠폰</div>
+                  <div style={{ fontFamily: 'var(--f-display)', fontSize: 14, fontWeight: 600 }}>참여 포인트</div>
+                  <div style={{ fontSize: 12, color: 'var(--at-ink-mute)' }}>빙고 1회 참여당 자동 적립</div>
                 </div>
-                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--at-blue)', fontWeight: 500, letterSpacing: '0.08em' }}>+500P</div>
+                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--at-blue)', fontWeight: 500, letterSpacing: '0.08em' }}>+10P</div>
               </div>
             </div>
           </div>

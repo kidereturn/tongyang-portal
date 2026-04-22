@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Award, Clock, Download, Search, Trophy, User } from 'lucide-react'
+import { Award, Clock, Download, Search, Trophy, User, RotateCcw, Gamepad2 } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../../lib/supabase'
 import * as XLSX from 'xlsx'
@@ -41,7 +41,23 @@ export default function QuizResultsTab() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selectedCourse, setSelectedCourse] = useState('all')
-  const [view, setView] = useState<'quiz' | 'learning'>('learning')
+  const [view, setView] = useState<'quiz' | 'learning' | 'bingo'>('learning')
+  const [bingoRows, setBingoRows] = useState<Array<{ user_id: string; user_name: string | null; user_dept: string | null; employee_id: string | null; lines_this_month: number; total_attempts: number; total_correct: number }>>([])
+
+  async function resetUserData(userId: string, userName: string, type: 'quiz' | 'bingo' | 'all') {
+    const label = type === 'quiz' ? '퀴즈 결과' : type === 'bingo' ? '빙고 기록' : '모든 포인트·퀴즈·빙고 기록'
+    if (!window.confirm(`${userName}님의 ${label}을(를) 초기화합니다.\n\n복구 불가. 계속할까요?`)) return
+    const db = supabase as any
+    try {
+      if (type === 'quiz' || type === 'all') await db.from('quiz_results').delete().eq('user_id', userId)
+      if (type === 'bingo' || type === 'all') await db.from('bingo_achievements').delete().eq('user_id', userId)
+      if (type === 'all') await db.from('user_points').delete().eq('user_id', userId)
+      window.alert('초기화 완료')
+      fetchData()
+    } catch (e) {
+      window.alert('초기화 실패: ' + (e instanceof Error ? e.message : ''))
+    }
+  }
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -105,6 +121,39 @@ export default function QuizResultsTab() {
 
       setQuizResults(mappedQuiz)
       setLearningData(mappedLearning)
+
+      // Fetch bingo monthly stats — 이달 빙고 1줄 완성 누적 + 참여 정답 수
+      const firstDayOfMonth = new Date(); firstDayOfMonth.setDate(1); firstDayOfMonth.setHours(0, 0, 0, 0)
+      const { data: bingoAch } = await (supabase as any)
+        .from('bingo_achievements')
+        .select('user_id, max_lines, created_at')
+        .gte('created_at', firstDayOfMonth.toISOString())
+      const { data: quizHits } = await (supabase as any)
+        .from('quiz_results')
+        .select('user_id, score, total_questions')
+        .gte('created_at', firstDayOfMonth.toISOString())
+      const bingoByUser: Record<string, { lines: number; total: number; correct: number }> = {}
+      for (const r of bingoAch ?? []) {
+        const u = r.user_id
+        if (!bingoByUser[u]) bingoByUser[u] = { lines: 0, total: 0, correct: 0 }
+        bingoByUser[u].lines += r.max_lines ?? 0
+      }
+      for (const r of quizHits ?? []) {
+        const u = r.user_id
+        if (!bingoByUser[u]) bingoByUser[u] = { lines: 0, total: 0, correct: 0 }
+        bingoByUser[u].total += r.total_questions ?? 0
+        bingoByUser[u].correct += r.score ?? 0
+      }
+      const bingoSum = (profilesList ?? []).map((p: any) => ({
+        user_id: p.id,
+        user_name: p.full_name,
+        user_dept: p.department,
+        employee_id: p.employee_id,
+        lines_this_month: bingoByUser[p.id]?.lines ?? 0,
+        total_attempts: bingoByUser[p.id]?.total ?? 0,
+        total_correct: bingoByUser[p.id]?.correct ?? 0,
+      })).sort((a: any, b: any) => b.lines_this_month - a.lines_this_month)
+      setBingoRows(bingoSum)
     } catch (err) {
       console.error('Fetch error:', err)
     } finally {
@@ -256,6 +305,14 @@ export default function QuizResultsTab() {
           >
             퀴즈 결과
           </button>
+          <button
+            onClick={() => setView('bingo')}
+            className={clsx('rounded-lg px-4 py-2 text-sm font-semibold transition flex items-center gap-1',
+              view === 'bingo' ? 'bg-brand-800 text-white shadow' : 'text-warm-600 hover:bg-warm-50'
+            )}
+          >
+            <Gamepad2 size={14} /> 빙고 현황
+          </button>
         </div>
 
         {view === 'learning' && (
@@ -289,6 +346,58 @@ export default function QuizResultsTab() {
 
       {loading ? (
         <div className="py-16 text-center text-sm text-warm-400">데이터를 불러오는 중...</div>
+      ) : view === 'bingo' ? (
+        /* Bingo Monthly Leaderboard */
+        <div className="overflow-x-auto rounded-lg border border-warm-200 bg-white shadow-sm">
+          <div className="border-b border-warm-100 bg-amber-50 px-4 py-2 text-xs text-amber-700">
+            이번 달 빙고 1줄 완성 누적 (내림차순). 월말 TOP 3 에게 상품 지급: 🥇치킨세트 · 🥈배민 1만원 · 🥉스타벅스 아아
+          </div>
+          <table className="data-table text-xs w-full">
+            <thead>
+              <tr>
+                <th className="text-center">순위</th>
+                <th>사번</th>
+                <th>이름</th>
+                <th>부서</th>
+                <th className="text-center">이달 완성 줄</th>
+                <th className="text-center">이달 참여</th>
+                <th className="text-center">이달 정답</th>
+                <th className="text-center">초기화</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bingoRows.filter(r =>
+                !search ||
+                (r.user_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+                (r.employee_id ?? '').toLowerCase().includes(search.toLowerCase()) ||
+                (r.user_dept ?? '').toLowerCase().includes(search.toLowerCase())
+              ).slice(0, 200).map((r, idx) => {
+                const rank = idx + 1
+                const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : ''
+                return (
+                  <tr key={r.user_id}>
+                    <td className="text-center font-bold">{medal || rank}</td>
+                    <td className="font-mono text-xs">{r.employee_id ?? '-'}</td>
+                    <td className="font-semibold">{r.user_name ?? '-'}</td>
+                    <td>{r.user_dept ?? '-'}</td>
+                    <td className="text-center font-bold text-brand-700">{r.lines_this_month}</td>
+                    <td className="text-center">{r.total_attempts}</td>
+                    <td className="text-center text-emerald-600 font-bold">{r.total_correct}</td>
+                    <td className="text-center">
+                      <button
+                        onClick={() => resetUserData(r.user_id, r.user_name ?? '', 'bingo')}
+                        className="inline-flex items-center gap-1 rounded bg-red-50 border border-red-100 text-red-600 text-[11px] px-2 py-1 hover:bg-red-100"
+                        title="이 사용자의 빙고 기록 초기화"
+                      >
+                        <RotateCcw size={10} /> 초기화
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       ) : view === 'learning' ? (
         /* Learning Progress Table */
         <div className="overflow-x-auto rounded-lg border border-warm-200 bg-white shadow-sm">
@@ -355,11 +464,12 @@ export default function QuizResultsTab() {
                 <th className="text-center">정답률</th>
                 <th className="text-center">소요시간</th>
                 <th>응시일</th>
+                <th className="text-center">관리</th>
               </tr>
             </thead>
             <tbody>
               {filteredQuiz.length === 0 ? (
-                <tr><td colSpan={8} className="py-12 text-center text-warm-400">퀴즈 응시 데이터 없음</td></tr>
+                <tr><td colSpan={9} className="py-12 text-center text-warm-400">퀴즈 응시 데이터 없음</td></tr>
               ) : (
                 filteredQuiz.map(r => {
                   const pct = Math.round((r.score / r.total_questions) * 100)
@@ -379,6 +489,15 @@ export default function QuizResultsTab() {
                       </td>
                       <td className="text-center">{formatTime(r.time_seconds)}</td>
                       <td className="text-xs text-warm-500">{formatDate(r.created_at)}</td>
+                      <td className="text-center">
+                        <button
+                          onClick={() => resetUserData(r.user_id, r.user_name ?? '', 'quiz')}
+                          className="inline-flex items-center gap-1 rounded bg-red-50 border border-red-100 text-red-600 text-[11px] px-2 py-1 hover:bg-red-100"
+                          title="이 사용자의 모든 퀴즈 기록 초기화"
+                        >
+                          <RotateCcw size={10} /> 초기화
+                        </button>
+                      </td>
                     </tr>
                   )
                 })

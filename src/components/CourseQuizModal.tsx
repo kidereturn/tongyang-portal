@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Award, CheckCircle2, Clock, Trophy, XCircle } from 'lucide-react'
+import { Award, CheckCircle2, Clock, Trophy, XCircle, X } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
@@ -117,17 +117,30 @@ export default function CourseQuizModal({ courseId, courseTitle, open, onClose }
           description: `퀴즈 ${score}/${questions.length}점 (${courseTitle})`,
         })
       }
-      // 수료 처리: 3문제 이상 맞히면 learning_progress를 completed로 업그레이드
+      // 수료 처리: 퀴즈 통과 + 영상 100% 시청 둘 다 필요 (사용자 요청)
+      // 퀴즈만 풀어서 100% 수강완료 처리되던 버그 수정
       if (score >= PASS_SCORE) {
         try {
-          await (supabase as any).rpc('upsert_learning_progress', {
-            p_user_id: profile.id,
-            p_course_id: courseId,
-            p_watched_seconds: 0,
-            p_duration_seconds: 0,
-            p_progress_percent: 100,
-            p_status: 'completed',
-          })
+          // 현재 progress 조회
+          const { data: cur } = await (supabase as any)
+            .from('learning_progress')
+            .select('progress_percent, watched_seconds, duration_seconds')
+            .eq('user_id', profile.id)
+            .eq('course_id', courseId)
+            .maybeSingle()
+          const currentPct = cur?.progress_percent ?? 0
+          const onlyIfFullyWatched = currentPct >= 95 // 영상 95% 이상 시청 시에만 수료
+          if (onlyIfFullyWatched) {
+            await (supabase as any).rpc('upsert_learning_progress', {
+              p_user_id: profile.id,
+              p_course_id: courseId,
+              p_watched_seconds: cur?.watched_seconds ?? 0,
+              p_duration_seconds: cur?.duration_seconds ?? 0,
+              p_progress_percent: 100,
+              p_status: 'completed',
+            })
+          }
+          // 영상 안 봤으면 퀴즈 점수만 저장되고 수료는 안 됨 (안내는 result 화면에서)
         } catch { /* silent */ }
       }
     } catch {
@@ -153,17 +166,28 @@ export default function CourseQuizModal({ courseId, courseTitle, open, onClose }
       <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-md">
         {/* Header */}
         <div className="sticky top-0 z-10 rounded-t-3xl border-b border-warm-100 bg-gradient-to-r from-brand-800 to-brand-700 px-6 py-4 text-white">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold opacity-80">COURSE QUIZ</p>
               <h2 className="mt-1 text-lg font-bold">수료 퀴즈</h2>
             </div>
-            {!showResult && !loading && (
-              <div className="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5">
-                <Clock size={14} />
-                <span className="text-sm font-bold">{currentIdx + 1} / {questions.length}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {!showResult && !loading && (
+                <div className="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5">
+                  <Clock size={14} />
+                  <span className="text-sm font-bold">{currentIdx + 1} / {questions.length}</span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="닫기"
+                title="닫기 (Esc)"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
           {!showResult && !loading && (
             <div className="mt-3 h-1.5 rounded-full bg-white/20">
@@ -199,21 +223,34 @@ export default function CourseQuizModal({ courseId, courseTitle, open, onClose }
                 </div>
               </div>
 
-              {/* Answer review */}
-              <div className="mt-4 max-h-52 overflow-y-auto space-y-2 text-left">
+              {/* Answer review — 오답 시 보기 번호 + 본문 둘 다 표시 */}
+              <div className="mt-4 max-h-64 overflow-y-auto space-y-2 text-left">
                 {questions.map((q, i) => {
                   const correct = answers[i] === q.correct_answer
+                  const optionText = (opt: string | null | undefined) => {
+                    if (!opt) return '미응답'
+                    if (opt === 'A') return `A. ${q.option_a}`
+                    if (opt === 'B') return `B. ${q.option_b}`
+                    if (opt === 'C') return `C. ${q.option_c}`
+                    if (opt === 'D') return `D. ${q.option_d}`
+                    return opt
+                  }
                   return (
-                    <div key={q.id} className={clsx('flex items-start gap-2 rounded-xl px-3 py-2 text-sm',
+                    <div key={q.id} className={clsx('flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm',
                       correct ? 'bg-emerald-50' : 'bg-red-50'
                     )}>
                       {correct ? <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-emerald-500" /> : <XCircle size={16} className="mt-0.5 shrink-0 text-red-500" />}
-                      <div className="min-w-0">
-                        <p className="font-medium text-brand-700 line-clamp-1">Q{i + 1}. {q.question}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-brand-700 line-clamp-2">Q{i + 1}. {q.question}</p>
                         {!correct && (
-                          <p className="text-xs text-red-500 mt-0.5">
-                            내 답: {answers[i] ?? '미응답'} → 정답: {q.correct_answer}
-                          </p>
+                          <div className="mt-1.5 space-y-1">
+                            <p className="text-xs text-red-600">
+                              ✗ 내 답: <span className="font-semibold">{optionText(answers[i])}</span>
+                            </p>
+                            <p className="text-xs text-emerald-700">
+                              ✓ 정답: <span className="font-semibold">{optionText(q.correct_answer)}</span>
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>

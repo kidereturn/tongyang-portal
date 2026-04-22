@@ -55,6 +55,8 @@ const TAG_STYLES: Record<string, React.CSSProperties> = {
   진행중: { background: '#10B981', color: '#FFFFFF' },
 }
 
+type ProgressMap = Record<string, number> // course_id → progress_percent (0-100)
+
 export default function CoursesPage() {
   const navigate = useNavigate()
   const { profile } = useAuth()
@@ -66,21 +68,36 @@ export default function CoursesPage() {
   const [regTitle, setRegTitle] = useState('')
   const [regReason, setRegReason] = useState('')
   const [regSaving, setRegSaving] = useState(false)
+  const [progressMap, setProgressMap] = useState<ProgressMap>({})
 
   useEffect(() => {
     let cancelled = false
     async function load() {
       try {
-        const { data } = await safeQuery<VideoRow[]>(
-          (supabase as any)
-            .from('course_videos')
-            .select('*')
-            .eq('is_active', true)
-            .order('created_at', { ascending: false }),
-          12_000,
-          'courses.videos',
-        )
-        if (!cancelled) setVideos(data ?? [])
+        const [vidsRes, progRes] = await Promise.all([
+          safeQuery<VideoRow[]>(
+            (supabase as any).from('course_videos').select('*').eq('is_active', true).order('created_at', { ascending: false }),
+            12_000,
+            'courses.videos',
+          ),
+          profile?.id
+            ? safeQuery<Array<{ course_id: string; progress_percent: number; status: string }>>(
+                (supabase as any).from('learning_progress').select('course_id, progress_percent, status').eq('user_id', profile.id),
+                10_000,
+                'courses.progress',
+              )
+            : Promise.resolve({ data: [], error: null }),
+        ])
+        if (!cancelled) {
+          setVideos(vidsRes.data ?? [])
+          const pm: ProgressMap = {}
+          for (const row of progRes.data ?? []) {
+            // 같은 course 여러 행이면 최고치 채택
+            const prev = pm[row.course_id] ?? 0
+            pm[row.course_id] = Math.max(prev, Math.round(row.progress_percent ?? 0))
+          }
+          setProgressMap(pm)
+        }
       } catch (e) {
         console.error('[CoursesPage] load error:', e)
       } finally {
@@ -271,8 +288,15 @@ export default function CoursesPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
             {filtered.map((v, idx) => {
               const skin = CARD_SKINS[idx % CARD_SKINS.length]
-              const tag = v.tag ?? (idx === 0 ? '진행중 42%' : idx % 3 === 0 ? '필수' : idx % 4 === 0 ? 'NEW' : idx % 5 === 0 ? '인기' : '추천')
-              const tagKey = tag.replace(/\s+\d+%?/, '')
+              const progress = progressMap[v.id] ?? 0
+              // 실제 진도율에 따라 태그 결정 — 가짜 값 제거
+              let tag: string
+              let tagKey: string
+              if (progress >= 100) { tag = '이수완료'; tagKey = '추천' }
+              else if (progress > 0) { tag = `진행중 ${progress}%`; tagKey = '진행중' }
+              else if (v.tag) { tag = v.tag; tagKey = v.tag.replace(/\s+\d+%?/, '') }
+              else if ((v.category ?? '') === '필수') { tag = '필수'; tagKey = '필수' }
+              else { tag = '신규'; tagKey = 'NEW' }
               const tagStyle = TAG_STYLES[tagKey] ?? TAG_STYLES['추천']
               const instructor = v.instructor ?? '박지훈'
               const duration = v.duration ?? '4h 20m'
@@ -316,8 +340,8 @@ export default function CoursesPage() {
                     </div>
                   </div>
 
-                  {/* White bottom half — 고정 높이 + 컬럼 균일 정렬 */}
-                  <div style={{ background: '#FFFFFF', color: 'var(--at-ink)', padding: '18px', borderTop: '1px solid var(--at-ink-hair)', display: 'flex', flexDirection: 'column', height: 170 }}>
+                  {/* White bottom half — 100% 폭 고정 흰색 (박스별 폭 차이 제거) */}
+                  <div style={{ background: '#FFFFFF', color: 'var(--at-ink)', padding: '18px', borderTop: '1px solid var(--at-ink-hair)', display: 'flex', flexDirection: 'column', height: 170, width: '100%', boxSizing: 'border-box' }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--at-ink)', lineHeight: 1.35, minHeight: 38, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {v.title}
                     </div>
