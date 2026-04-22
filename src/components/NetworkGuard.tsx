@@ -15,35 +15,41 @@ export default function NetworkGuard() {
   const failCount = useRef(0)
   const pingTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // 가벼운 HEAD 요청으로 연결 상태만 확인 (Supabase auth 호출 안 함)
+  // 가벼운 GET 요청으로 연결 상태만 확인.
+  // (이전에는 HEAD를 썼는데 Supabase가 HEAD 응답을 안정적으로 주지 않아
+  //  5초 타임아웃이 반복되고 false positive 경고가 뜨던 문제 수정)
   const ping = useCallback(async () => {
     if (!navigator.onLine) return
     try {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 5000)
 
+      // profiles?limit=1은 RLS가 막아도 200(빈 배열) 또는 401을 빠르게 반환 —
+      // 어느 쪽이든 "서버가 살아있다"는 증거이므로 성공으로 간주
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`,
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`,
         {
-          method: 'HEAD',
-          headers: { apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+          method: 'GET',
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Accept-Profile': 'public',
+          },
           signal: controller.signal,
         },
       )
       clearTimeout(timeoutId)
 
-      if (res.ok || res.status === 400) {
-        // 서버가 응답하면 연결 OK (400도 서버 살아있음)
+      // 어떤 응답이든 (200, 400, 401, 403, 404, 500...) 서버가 살아있다는 뜻
+      // 네트워크 실패만 문제로 간주
+      if (res.status > 0) {
         if (failCount.current > 0) {
-          console.info('[NetworkGuard] connection restored')
+          console.info('[NetworkGuard] connection restored (status=' + res.status + ')')
         }
         failCount.current = 0
         setApiDown(false)
-      } else {
-        failCount.current += 1
-        if (failCount.current >= 3) setApiDown(true)
       }
     } catch {
+      // fetch 자체가 실패 = 네트워크 단절
       failCount.current += 1
       if (failCount.current >= 3) setApiDown(true)
     }
