@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Loader2, PlayCircle, Trash2, Upload, Pencil, X, Save } from 'lucide-react'
+import { Loader2, PlayCircle, Trash2, Upload, Pencil, X, Save, RotateCcw } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../../lib/supabase'
 import { extractYoutubeId } from '../adminShared'
@@ -92,6 +92,33 @@ export default function VideosTab() {
     fetchVideos()
   }
 
+  // 강좌 개별 전체 사용자 진도율 + 퀴즈 결과 초기화 (사용자 요청)
+  async function resetCourseProgressAll(videoId: string, title: string) {
+    if (!window.confirm(`"${title}" 강좌의 **전체 사용자** 진도율 + 퀴즈 결과를 초기화합니다.\n\n복구 불가. 계속할까요?`)) return
+    const db = supabase as any
+    try {
+      await db.from('learning_progress').delete().eq('course_id', videoId)
+      await db.from('quiz_results').delete().eq('course_id', videoId)
+      window.alert('해당 강좌의 전체 사용자 진도/퀴즈 초기화 완료')
+    } catch (e) {
+      window.alert('초기화 실패: ' + (e instanceof Error ? e.message : ''))
+    }
+  }
+
+  // 전체 강좌의 전체 사용자 진도율 초기화 (매우 파괴적 — 상단 버튼)
+  async function resetAllCoursesAllUsers() {
+    if (!window.confirm('⚠ 전체 강좌의 모든 사용자 진도율과 퀴즈 결과를 초기화합니다.\n\n이 작업은 복구할 수 없습니다. 진행할까요?')) return
+    if (!window.confirm('정말로 전체 초기화 하시겠습니까? 한 번 더 확인합니다.')) return
+    const db = supabase as any
+    try {
+      await db.from('learning_progress').delete().neq('user_id', '00000000-0000-0000-0000-000000000000')
+      await db.from('quiz_results').delete().neq('user_id', '00000000-0000-0000-0000-000000000000')
+      window.alert('전체 강좌 · 전체 사용자 진도 초기화 완료')
+    } catch (e) {
+      window.alert('초기화 실패: ' + (e instanceof Error ? e.message : ''))
+    }
+  }
+
   async function deleteVideo(id: string) {
     if (!confirm('이 동영상을 삭제하시겠습니까?\n해당 강좌의 수강기록도 함께 초기화됩니다.')) return
     // Clear learning_progress for this course first, then delete the video
@@ -131,8 +158,15 @@ export default function VideosTab() {
       </div>
 
       <div className="card overflow-hidden">
-        <div className="px-5 py-3 border-b border-warm-100">
+        <div className="px-5 py-3 border-b border-warm-100 flex items-center justify-between">
           <h3 className="text-sm font-bold text-brand-900">등록된 동영상 ({videos.length}개) — 순번순</h3>
+          <button
+            onClick={resetAllCoursesAllUsers}
+            className="text-xs px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 inline-flex items-center gap-1.5 font-semibold"
+            title="전체 강좌의 모든 사용자 진도율·퀴즈 초기화 (위험)"
+          >
+            <RotateCcw size={12} />전체 진도/퀴즈 초기화
+          </button>
         </div>
         {loading ? (
           <div className="p-8 text-center text-sm text-warm-400">불러오는 중...</div>
@@ -176,6 +210,14 @@ export default function VideosTab() {
                     className={clsx('text-xs px-3 py-1.5 rounded-lg border font-semibold', v.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-warm-200 bg-warm-50 text-warm-500')}
                   >
                     {v.is_active ? '활성' : '비활성'}
+                  </button>
+                  <button
+                    onClick={() => resetCourseProgressAll(v.id, v.title)}
+                    className="text-xs px-2 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 inline-flex items-center gap-1"
+                    title="이 강좌의 전체 사용자 진도/퀴즈 초기화"
+                  >
+                    <RotateCcw size={13} />
+                    진도 초기화
                   </button>
                   <button
                     onClick={() => deleteVideo(v.id)}

@@ -44,13 +44,14 @@ export default function QuizResultsTab() {
   const [view, setView] = useState<'quiz' | 'learning' | 'bingo'>('learning')
   const [bingoRows, setBingoRows] = useState<Array<{ user_id: string; user_name: string | null; user_dept: string | null; employee_id: string | null; lines_this_month: number; total_attempts: number; total_correct: number }>>([])
 
-  async function resetUserData(userId: string, userName: string, type: 'quiz' | 'bingo' | 'all') {
-    const label = type === 'quiz' ? '퀴즈 결과' : type === 'bingo' ? '빙고 기록' : '모든 포인트·퀴즈·빙고 기록'
+  async function resetUserData(userId: string, userName: string, type: 'quiz' | 'bingo' | 'all' | 'learning') {
+    const label = type === 'quiz' ? '퀴즈 결과' : type === 'bingo' ? '빙고 기록' : type === 'learning' ? '강좌 진도율' : '모든 포인트·퀴즈·빙고·진도'
     if (!window.confirm(`${userName}님의 ${label}을(를) 초기화합니다.\n\n복구 불가. 계속할까요?`)) return
     const db = supabase as any
     try {
       if (type === 'quiz' || type === 'all') await db.from('quiz_results').delete().eq('user_id', userId)
       if (type === 'bingo' || type === 'all') await db.from('bingo_achievements').delete().eq('user_id', userId)
+      if (type === 'learning' || type === 'all') await db.from('learning_progress').delete().eq('user_id', userId)
       if (type === 'all') await db.from('user_points').delete().eq('user_id', userId)
       window.alert('초기화 완료')
       fetchData()
@@ -413,11 +414,12 @@ export default function QuizResultsTab() {
                 <th className="text-center">진도율</th>
                 <th className="text-center">상태</th>
                 <th>최종수강일</th>
+                <th className="text-center">관리</th>
               </tr>
             </thead>
             <tbody>
               {filteredLearning.length === 0 ? (
-                <tr><td colSpan={9} className="py-12 text-center text-warm-400">데이터 없음</td></tr>
+                <tr><td colSpan={10} className="py-12 text-center text-warm-400">데이터 없음</td></tr>
               ) : (
                 filteredLearning.map(r => (
                   <tr key={`${r.user_id}-${r.course_id}`}>
@@ -444,6 +446,15 @@ export default function QuizResultsTab() {
                       </span>
                     </td>
                     <td className="text-xs text-warm-500">{r.updated_at ? formatDate(r.updated_at) : '-'}</td>
+                    <td className="text-center">
+                      <button
+                        onClick={() => resetUserData(r.user_id, r.user_name ?? '', 'learning')}
+                        className="inline-flex items-center gap-1 rounded bg-red-50 border border-red-100 text-red-600 text-[11px] px-2 py-1 hover:bg-red-100"
+                        title="이 사용자의 강좌 진도율 초기화"
+                      >
+                        <RotateCcw size={10} /> 초기화
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
