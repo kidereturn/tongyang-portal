@@ -10,7 +10,7 @@ type Notice = {
   id: string
   type: string | null
   title: string
-  body?: string | null
+  content?: string | null   // DB 칼럼은 content (이전 body 참조는 오류)
   badge?: string | null
   badge_color?: string | null
   is_pinned?: boolean | null
@@ -52,7 +52,7 @@ export default function NoticesListPage() {
       const { data, error } = await safeQuery<Notice[]>(
         (supabase as any)
           .from('notices')
-          .select('id, type, title, body, badge, badge_color, is_pinned, created_at')
+          .select('id, type, title, content, badge, badge_color, is_pinned, created_at')
           .order('is_pinned', { ascending: false })
           .order('created_at', { ascending: false }),
         12_000,
@@ -163,9 +163,9 @@ export default function NoticesListPage() {
                     <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--at-ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {n.title}
                     </div>
-                    {n.body && (
+                    {n.content && (
                       <p style={{ marginTop: 4, fontSize: 12, color: 'var(--at-ink-mute)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {n.body.slice(0, 120)}
+                        {n.content.slice(0, 120)}
                       </p>
                     )}
                   </div>

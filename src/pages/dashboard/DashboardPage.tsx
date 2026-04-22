@@ -269,13 +269,11 @@ export default function DashboardPage() {
                   <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>NOTICES · MANUALS</div>
                   <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--at-ink)', marginTop: 2 }}>공지사항 &amp; 매뉴얼</div>
                 </div>
-                {/* anchor + target="_blank" 가 팝업 블로커에 가장 안전 — window.open 은 일부 환경에서 차단됨 */}
-                <a
-                  href="/notices-all"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                {/* 현재 창에서 이동 (사용자 요청) */}
+                <Link
+                  to="/notices-all"
                   style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--at-blue)', fontWeight: 600, textDecoration: 'none' }}
-                >전체보기 →</a>
+                >전체보기 →</Link>
               </div>
 
               {notices.length === 0 ? (
@@ -301,9 +299,8 @@ export default function DashboardPage() {
               {/* 실시간 랭킹 TOP 3: 포인트 + 빙고 줄 수 */}
               <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--at-ink-hair)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ marginBottom: 8 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--at-ink-mute)', letterSpacing: '0.04em' }}>🏆 포인트 TOP 3</div>
-                    <Link to="/kpi" style={{ textDecoration: 'none', fontSize: 10, color: 'var(--at-blue)', fontWeight: 600 }}>전체</Link>
                   </div>
                   {pointsRanking.length === 0 ? (
                     <div style={{ fontSize: 14, color: 'var(--at-ink-faint)', padding: '4px 0' }}>데이터 없음</div>

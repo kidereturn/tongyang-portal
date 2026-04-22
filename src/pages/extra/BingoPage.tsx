@@ -167,21 +167,41 @@ export default function BingoPage() {
     setDailyPlays(count)
   }, [profile?.id])
 
-  // ESC closes the active quiz (cancels without scoring)
+  // ESC: 팝업 닫기 + 오답 처리 (사용자 요청)
   useEffect(() => {
     if (activeIdx === null) return
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         e.preventDefault()
+        const idx = activeIdx
+        if (idx === null) return
         if (timerRef.current) clearInterval(timerRef.current)
+        const q = questions[idx]
+        // 오답으로 마킹
+        const explanation = `ESC 로 취소 → 오답. 정답: "${q.answer}". ${q.explanation}`
+        const isFirstAnswerInSession = Object.keys(answers).length === 0
+        setAnswers(prev => ({ ...prev, [idx]: { correct: false, explanation } }))
+        setLastMessage({ correct: false, text: `취소 처리 → 오답. 정답: "${q.answer}"` })
         setActiveIdx(null)
         setSubjectiveAnswer('')
         setSelectedChoice('')
+        if (isFirstAnswerInSession) {
+          incrementDailyPlays()
+          if (profile?.id) {
+            void (supabase as any).from('user_points').insert({
+              user_id: profile.id,
+              action: 'bingo_attempt',
+              points: 10,
+              description: '빙고 참여 포인트',
+            })
+          }
+        }
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [activeIdx])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIdx, questions])
 
   // Load my rewards (points + max bingo lines)
   useEffect(() => {
@@ -471,7 +491,7 @@ export default function BingoPage() {
             <div className="eyebrow">이벤트<span className="sep" />월 빙고퀴즈</div>
             <h1>빙고. <span className="soft">1줄 완성 = 1회 · 월간 TOP 3 시상.</span></h1>
             <p className="lead">
-              이번 달 25개 미션. 완료하면 포인트가 적립되고, 가로·세로·대각선 3줄 이상이면 기프티콘이 지급됩니다.
+              이번 달 25개 미션. 참여 1회당 +10P 적립. 월간 빙고 1줄 완성 누적 TOP 3 에게 시상합니다 (🥇 치킨 / 🥈 배민 1만원 / 🥉 스타벅스 아아).
               문제당 <b>10초</b> · 하루 <b>{MAX_DAILY_PLAYS}회</b> 도전.
               {aiQuestionsSource === 'ai' && (
                 <span style={{ marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', background: '#EEF4FE', border: '1px solid #DCE8FB', borderRadius: 6, fontSize: 11, fontWeight: 600, color: '#1E40AF' }}>
@@ -601,9 +621,9 @@ export default function BingoPage() {
                 <div style={{ fontSize: 11, color: 'var(--at-ink-mute)' }}>정답 맞히기</div>
               </div>
               <div style={{ padding: '14px 16px', background: 'var(--at-ink)', color: 'var(--at-white)', borderRadius: 10 }}>
-                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-dark-mute)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>BONUS</div>
-                <div style={{ fontFamily: 'var(--f-display)', fontSize: 20, fontWeight: 600 }}>3줄 달성 시</div>
-                <div style={{ fontSize: 11, color: 'var(--at-ink-dark-soft)' }}>스타벅스 아메리카노</div>
+                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-dark-mute)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>MONTHLY RANK</div>
+                <div style={{ fontFamily: 'var(--f-display)', fontSize: 18, fontWeight: 600 }}>TOP 3 시상</div>
+                <div style={{ fontSize: 11, color: 'var(--at-ink-dark-soft)' }}>매월 1줄 누적 최다</div>
               </div>
             </div>
           </div>

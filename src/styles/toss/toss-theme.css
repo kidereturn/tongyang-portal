@@ -178,7 +178,8 @@
 .theme-toss .at-hero-bg { display: none; }
 .theme-toss .at-hero-title {
   font-weight: 800; letter-spacing: -0.04em;
-  font-size: clamp(48px, 6vw, 72px);
+  /* 페이지 큰제목 20% 축소 (48->38, 6vw->4.8vw, 72->58) */
+  font-size: clamp(38px, 4.8vw, 58px);
 }
 .theme-toss .at-hero-lead { color: rgba(255,255,255,0.88); }
 .theme-toss .at-hero.ivory .at-hero-lead { color: var(--at-ink-mute); }
@@ -204,7 +205,9 @@
 }
 .theme-toss .at-h1 { font-weight: 800; }
 .theme-toss .at-h3 { font-size: 24px; }
-.theme-toss .pg-head h1 { font-size: 38px; font-weight: 800; }
+/* 페이지 타이틀 20% 축소 — 증빙 목록, 통제활동별 현황 등 */
+.theme-toss .pg-head h1 { font-size: 30px; font-weight: 800; }
+.theme-toss .at-h2 { font-size: clamp(32px, 3.6vw, 45px) !important; }
 .theme-toss .pg-head h1 .soft { color: var(--at-ink-faint); font-weight: 600; }
 .theme-toss .at-eyebrow,
 .theme-toss .pg-head .eyebrow {

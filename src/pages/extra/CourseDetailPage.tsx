@@ -248,7 +248,9 @@ export default function CourseDetailPage() {
     // Do NOT downgrade the DB value — only save when current pass exceeds previous max
     if (pct < maxProgressRef.current) return
     maxProgressRef.current = pct
-    const st = pct >= 95 ? 'completed' : pct > 0 ? 'in_progress' : 'not_started'
+    // 이수완료(status=completed) 는 영상 95%+퀴즈 통과 둘 다 필요 → CourseQuizModal 에서만 완료 처리
+    // 여기서는 최대 in_progress 로만 기록 (사용자 요청: 영상만 보고 완료 처리되던 버그 수정)
+    const st = pct > 0 ? 'in_progress' : 'not_started'
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -278,7 +280,8 @@ export default function CourseDetailPage() {
       if (watchLimitRef.current <= 0 || !profile?.id || !selectedVideo?.id) return
       const d = duration || 0
       const pct = d > 0 ? Math.min(100, Math.round((watchLimitRef.current / d) * 100)) : 0
-      const status = pct >= 95 ? 'completed' : pct > 0 ? 'in_progress' : 'not_started'
+      // 영상만 보고 completed 로 처리하던 로직 제거 — 퀴즈 통과까지 거쳐야 completed
+      const status = pct > 0 ? 'in_progress' : 'not_started'
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
       try {
@@ -319,18 +322,18 @@ export default function CourseDetailPage() {
   useEffect(() => {
     if (!profile?.id || !selectedVideo?.id || progress < 95) return
     if (quizTriggeredRef.current.has(selectedVideo.id)) return
-    // Check if user already took quiz for this course
+    // Check if user already took quiz for this course OR already completed the course
     ;(async () => {
       try {
-        const { data } = await (supabase as any)
-          .from('quiz_results')
-          .select('id')
-          .eq('user_id', profile.id)
-          .eq('course_id', selectedVideo.id)
-          .limit(1)
-        if (data && data.length > 0) {
+        const [quizRes, progRes] = await Promise.all([
+          (supabase as any).from('quiz_results').select('id').eq('user_id', profile.id).eq('course_id', selectedVideo.id).limit(1),
+          (supabase as any).from('learning_progress').select('status').eq('user_id', profile.id).eq('course_id', selectedVideo.id).maybeSingle(),
+        ])
+        const alreadyQuizzed = quizRes?.data && quizRes.data.length > 0
+        const alreadyCompleted = progRes?.data?.status === 'completed'
+        if (alreadyQuizzed || alreadyCompleted) {
           quizTriggeredRef.current.add(selectedVideo.id)
-          return // Already took quiz
+          return // 퀴즈 이미 봤거나 완료된 강좌 → 재방문 시 자동 popup X
         }
         quizTriggeredRef.current.add(selectedVideo.id)
         setQuizOpen(true)

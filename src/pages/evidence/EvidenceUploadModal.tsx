@@ -307,20 +307,30 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
   }
 
   async function handleDeletePersisted(uploadId: string, filePath: string) {
+    // 결재상신이 완료(활동 상태 '완료' 이상)면 삭제 불가 — 사용자 요청
+    const locked = activity.submission_status === '완료' || activity.submission_status === '승인'
+    if (locked) {
+      setError('결재상신이 완료된 증빙은 삭제할 수 없습니다. 관리자에게 취소를 요청하세요.')
+      setTimeout(() => setError(''), 4000)
+      return
+    }
     if (!window.confirm('이 증빙 파일을 삭제하시겠습니까?')) return
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = supabase as any
 
-      await (supabase.storage as any).from('evidence').remove([filePath])
-
+      // 1) DB 레코드 먼저 삭제 (RLS/권한 문제로 인한 실패 조기 감지)
       const { error: deleteError } = await db
         .from('evidence_uploads')
         .delete()
         .eq('id', uploadId)
-
       if (deleteError) throw deleteError
+
+      // 2) Storage 파일 삭제 (실패해도 DB 삭제는 이미 반영됨 — 고아 파일만 남음)
+      try {
+        await (supabase.storage as any).from('evidence').remove([filePath])
+      } catch { /* storage cleanup 실패 무시 */ }
 
       await reloadItems()
       setSavedMsg('파일이 삭제되었습니다.')

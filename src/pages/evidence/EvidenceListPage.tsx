@@ -426,19 +426,19 @@ export default function EvidenceListPage() {
           ) : (
           <div className="tbl-scroll">
             <table className="at-table compact" style={{ width: '100%', tableLayout: 'fixed' }}>
-              {/* 고정 폭 컬럼 정의로 header/row 정렬 보장 */}
+              {/* 고정 폭 — 승인자 컬럼 항상 노출 (owner/controller/admin 모두) */}
               <colgroup>
-                <col style={{ width: 96 }} />
-                <col />{/* 통제활동명 flex */}
                 <col style={{ width: 90 }} />
-                <col style={{ width: 70 }} />
-                {profile?.role === 'admin' && <col style={{ width: 70 }} />}
-                <col style={{ width: 60 }} />
-                <col style={{ width: 50 }} />
+                <col />{/* 통제활동명 flex */}
                 <col style={{ width: 80 }} />
-                <col style={{ width: 80 }} />
-                {profile?.role === 'admin' && <col style={{ width: 250 }} />}
-                <col style={{ width: 80 }} />
+                <col style={{ width: 66 }} />
+                <col style={{ width: 66 }} />{/* 승인자 (항상 노출) */}
+                <col style={{ width: 56 }} />
+                <col style={{ width: 46 }} />
+                <col style={{ width: 72 }} />
+                <col style={{ width: 72 }} />
+                {profile?.role === 'admin' && <col style={{ width: 240 }} />}
+                <col style={{ width: 76 }} />
               </colgroup>
               <thead>
                 <tr>
@@ -446,7 +446,7 @@ export default function EvidenceListPage() {
                   <th>통제활동명</th>
                   <th>담당부서</th>
                   <th>담당자</th>
-                  {profile?.role === 'admin' && <th>승인자</th>}
+                  <th>승인자</th>
                   <th className="num">건수</th>
                   <th>KPI</th>
                   <th>상신</th>
@@ -471,7 +471,7 @@ export default function EvidenceListPage() {
                       </td>
                       <td>{act.department ?? '-'}</td>
                       <td>{act.owner_name ?? '-'}</td>
-                      {profile?.role === 'admin' && <td>{act.controller_name ?? '-'}</td>}
+                      <td>{act.controller_name ?? '-'}</td>
                       <td className="num">
                         <span style={{ fontFamily: 'var(--f-mono)', fontWeight: 600, color: total > 0 && uploaded >= total ? 'var(--at-green)' : uploaded > 0 ? 'var(--at-blue)' : 'var(--at-ink-faint)' }}>
                           {uploaded}/{total}
