@@ -9,6 +9,8 @@ dist
 .puppeteer-user-data
 screenshots
 screenshots-toss
+screenshots-longsession
+long-session.log
 login-check.png
 login-new-logo.png
 logo-verify.png
