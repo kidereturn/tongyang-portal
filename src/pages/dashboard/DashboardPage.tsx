@@ -32,6 +32,7 @@ interface ReviewStats {
   notReviewed: number
   reviewing: number
   done: number
+  modifyReq: number  // 수정제출 (담당자·관리자에게만 의미)
 }
 
 interface RankingUser {
@@ -62,7 +63,7 @@ function getSubmissionStatus(raw: string | null): 'pendingApproval' | 'approved'
 export default function DashboardPage() {
   const { profile } = useAuth()
   const [stats, setStats] = useState<Stats>({ total: 0, pendingApproval: 0, approved: 0, rejected: 0 })
-  const [reviewStats, setReviewStats] = useState<ReviewStats>({ notReviewed: 0, reviewing: 0, done: 0 })
+  const [reviewStats, setReviewStats] = useState<ReviewStats>({ notReviewed: 0, reviewing: 0, done: 0, modifyReq: 0 })
   const [, setDeptStats] = useState<DeptData[]>([])
   const [allDeptStats, setAllDeptStats] = useState<DeptData[]>([])
   const [, setActivities] = useState<Activity[]>([])
@@ -122,7 +123,7 @@ export default function DashboardPage() {
 
       const records = (actRes?.data ?? []) as Activity[]
       const next: Stats = { total: records.length, pendingApproval: 0, approved: 0, rejected: 0 }
-      const rv: ReviewStats = { notReviewed: 0, reviewing: 0, done: 0 }
+      const rv: ReviewStats = { notReviewed: 0, reviewing: 0, done: 0, modifyReq: 0 }
       const deptMap: Record<string, DeptData> = {}
       for (const r of records) {
         const s = getSubmissionStatus(r.submission_status)
@@ -132,6 +133,7 @@ export default function DashboardPage() {
         const rs = (r.review_status ?? '미검토').trim()
         if (rs === '검토중') rv.reviewing += 1
         else if (rs === '완료') rv.done += 1
+        else if (rs === '수정제출') rv.modifyReq += 1
         else rv.notReviewed += 1
         const dept = r.department ?? '미지정'
         if (!deptMap[dept]) deptMap[dept] = { name: dept, total: 0, approved: 0, pending: 0 }
@@ -405,47 +407,60 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* 검토 상태 3타일 — 미검토 / 검토중 / 완료 (관리자의 activities.review_status 기반) */}
-          <div className="at-grid" style={{ marginTop: 16, gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-            {(() => {
-              const rvTotal = reviewStats.notReviewed + reviewStats.reviewing + reviewStats.done
-              const pct = (v: number) => (rvTotal > 0 ? Math.round((v / rvTotal) * 100) : 0)
-              return (
-                <>
-                  <div className="at-kpi">
-                    <div className="kpi-label">
-                      <div className="kpi-icon" style={{ background: '#F2F4F6', color: 'var(--at-ink-mute)' }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M8 12h8" /></svg>
+          {/* 검토 상태 타일 — 미검토 / 검토중 / 완료 / 수정제출 */}
+          {/* 관리자·담당자에게만 노출 (수정제출 액션 대상) */}
+          {(profile?.role === 'admin' || profile?.role === 'owner') && (
+            <div className="at-grid" style={{ marginTop: 16, gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+              {(() => {
+                const rvTotal = reviewStats.notReviewed + reviewStats.reviewing + reviewStats.done + reviewStats.modifyReq
+                const pct = (v: number) => (rvTotal > 0 ? Math.round((v / rvTotal) * 100) : 0)
+                return (
+                  <>
+                    <div className="at-kpi">
+                      <div className="kpi-label">
+                        <div className="kpi-icon" style={{ background: '#F2F4F6', color: 'var(--at-ink-mute)' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M8 12h8" /></svg>
+                        </div>
+                        검토 · 미검토
                       </div>
-                      검토 상태 · 미검토
+                      <div className="kpi-value">{reviewStats.notReviewed}<span className="unit">건</span></div>
+                      <div className="kpi-sub">비율 {pct(reviewStats.notReviewed)}%</div>
                     </div>
-                    <div className="kpi-value">{reviewStats.notReviewed}<span className="unit">건</span></div>
-                    <div className="kpi-sub">비율 {pct(reviewStats.notReviewed)}% · 관리자 검토 전</div>
-                  </div>
-                  <div className="at-kpi">
-                    <div className="kpi-label">
-                      <div className="kpi-icon" style={{ background: '#E8F2FE', color: 'var(--at-blue)' }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                    <div className="at-kpi">
+                      <div className="kpi-label">
+                        <div className="kpi-icon" style={{ background: '#E8F2FE', color: 'var(--at-blue)' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                        </div>
+                        검토 · 검토중
                       </div>
-                      검토 상태 · 검토중
+                      <div className="kpi-value" style={{ color: 'var(--at-blue)' }}>{reviewStats.reviewing}<span className="unit">건</span></div>
+                      <div className="kpi-sub">비율 {pct(reviewStats.reviewing)}%</div>
                     </div>
-                    <div className="kpi-value" style={{ color: 'var(--at-blue)' }}>{reviewStats.reviewing}<span className="unit">건</span></div>
-                    <div className="kpi-sub">비율 {pct(reviewStats.reviewing)}% · 진행 중</div>
-                  </div>
-                  <div className="at-kpi">
-                    <div className="kpi-label">
-                      <div className="kpi-icon" style={{ background: '#E8F5ED', color: 'var(--at-green)' }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M5 12l5 5L20 7" /></svg>
+                    <div className="at-kpi">
+                      <div className="kpi-label">
+                        <div className="kpi-icon" style={{ background: '#E8F5ED', color: 'var(--at-green)' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M5 12l5 5L20 7" /></svg>
+                        </div>
+                        검토 · 완료
                       </div>
-                      검토 상태 · 완료
+                      <div className="kpi-value" style={{ color: 'var(--at-green)' }}>{reviewStats.done}<span className="unit">건</span></div>
+                      <div className="kpi-sub">비율 {pct(reviewStats.done)}%</div>
                     </div>
-                    <div className="kpi-value" style={{ color: 'var(--at-green)' }}>{reviewStats.done}<span className="unit">건</span></div>
-                    <div className="kpi-sub">비율 {pct(reviewStats.done)}% · 검토 완료</div>
-                  </div>
-                </>
-              )
-            })()}
-          </div>
+                    <Link to="/evidence?status=modifyReq" className="at-kpi" style={{ textDecoration: 'none' }}>
+                      <div className="kpi-label">
+                        <div className="kpi-icon" style={{ background: '#FEF3C7', color: '#92400E' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                        </div>
+                        검토 · 수정제출
+                      </div>
+                      <div className="kpi-value" style={{ color: '#92400E' }}>{reviewStats.modifyReq}<span className="unit">건</span></div>
+                      <div className="kpi-sub">비율 {pct(reviewStats.modifyReq)}% · {profile?.role === 'admin' ? '담당자에게 수정 요청' : '수정 후 재상신 필요'}</div>
+                    </Link>
+                  </>
+                )
+              })()}
+            </div>
+          )}
         </div>
       </section>
 
