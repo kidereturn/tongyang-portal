@@ -89,21 +89,20 @@ export default function FilesTab() {
   }
 
   async function downloadFile(path: string, name: string, clickedFile?: FileRow) {
-    // If the clicked file shares its unique_key with other files, auto-merge them into a ZIP.
-    // Per spec #7: 유니크 키 1개에 증빙파일이 여러개면 다운로드시 자동으로 병합되어 다운로드.
+    // 사용자 요청: ZIP 압축 X. 고유키별 여러 파일은 개별 파일로 순차 다운로드.
     try {
       if (clickedFile) {
         const uk = getFileUniqueKey(clickedFile)
         if (uk) {
           const sameKeyFiles = files.filter(f => getFileUniqueKey(f) === uk)
           if (sameKeyFiles.length > 1) {
-            await downloadFilesAsMergedZip(sameKeyFiles, uk)
+            await downloadGroupSequential(sameKeyFiles, uk)
             return
           }
         }
       }
 
-      // Fallback: single-file download via blob to prevent browsers from auto-opening PDF/image.
+      // 단일 파일
       const { data, error } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 3600)
       if (error || !data?.signedUrl) {
         toast.error('다운로드 실패', error?.message ?? '파일 URL 생성 실패')
@@ -119,64 +118,36 @@ export default function FilesTab() {
     }
   }
 
-  async function downloadFilesAsMergedZip(groupFiles: FileRow[], uniqueKey: string) {
+  // 사용자 요청: 압축하지 말고 고유키별 여러 파일을 개별 파일로 순차 다운로드.
+  //            각 파일명은 "고유키_원파일명".
+  async function downloadGroupSequential(groupFiles: FileRow[], uniqueKey: string) {
     const toastId = toast.loading(
-      '병합 다운로드 준비 중...',
-      `고유키 "${uniqueKey}"의 ${groupFiles.length.toLocaleString()}개 파일을 ZIP으로 병합`,
+      `고유키 "${uniqueKey}" · ${groupFiles.length}개 파일 개별 다운로드 시작`,
+      '브라우저가 각 파일을 순차적으로 저장합니다',
     )
-    try {
-      const zip = new JSZip()
-      const nameCount: Record<string, number> = {}
-      let failed = 0
-
-      for (const file of groupFiles) {
-        try {
-          const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(file.file_path, 3600)
-          if (!data?.signedUrl) throw new Error('URL 생성 실패')
-          const response = await fetch(data.signedUrl)
-          if (!response.ok) throw new Error(`HTTP ${response.status}`)
-          const blob = await response.blob()
-
-          let name = file.original_file_name ?? file.file_name
-          if (nameCount[name]) {
-            nameCount[name]++
-            const ext = name.lastIndexOf('.')
-            if (ext > 0) name = `${name.slice(0, ext)}_(${nameCount[name]})${name.slice(ext)}`
-            else name = `${name}_(${nameCount[name]})`
-          } else {
-            nameCount[name] = 1
-          }
-          zip.file(name, blob)
-        } catch {
-          failed++
-        }
+    let ok = 0
+    let failed = 0
+    for (const f of groupFiles) {
+      try {
+        const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(f.file_path, 3600)
+        if (!data?.signedUrl) throw new Error('URL 생성 실패')
+        const res = await fetch(data.signedUrl)
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const blob = await res.blob()
+        const filename = buildDownloadName(f)
+        await downloadBlobAsFile(blob, filename)
+        ok++
+        // 브라우저가 여러 다운로드를 너무 빨리 trigger 하면 일부 drop 됨 — 짧은 간격
+        await new Promise(r => setTimeout(r, 250))
+      } catch {
+        failed++
       }
-
-      const content = await zip.generateAsync({ type: 'blob' })
-      const zipName = `${uniqueKey}_증빙파일_${new Date().toISOString().slice(0, 10)}.zip`
-      await downloadBlobAsFile(content, zipName)
-
-      const sizeLabel = `${(content.size / (1024 * 1024)).toFixed(1)}MB`
-      if (failed === 0) {
-        toast.update(toastId, {
-          kind: 'success',
-          title: '병합 다운로드 완료',
-          description: `${zipName}\n${groupFiles.length.toLocaleString()}개 파일 · ${sizeLabel}`,
-        })
-      } else {
-        toast.update(toastId, {
-          kind: 'info',
-          title: '병합 다운로드 부분 완료',
-          description: `성공 ${(groupFiles.length - failed).toLocaleString()} · 실패 ${failed.toLocaleString()}`,
-        })
-      }
-    } catch (err) {
-      toast.update(toastId, {
-        kind: 'error',
-        title: '병합 다운로드 실패',
-        description: err instanceof Error ? err.message : String(err),
-      })
     }
+    toast.update(toastId, {
+      kind: failed === 0 ? 'success' : 'info',
+      title: failed === 0 ? '다운로드 완료' : '부분 다운로드 완료',
+      description: `성공 ${ok}건 · 실패 ${failed}건 (파일명 = 고유키_원파일명)`,
+    })
   }
 
   function getFileUniqueKey(file: FileRow): string {
@@ -247,25 +218,22 @@ export default function FilesTab() {
             if (!response.ok) throw new Error(`HTTP ${response.status}`)
             const blob = await response.blob()
 
-            // Per spec #7: group files by unique_key into a sub-folder, using original filename inside.
-            const uk = getFileUniqueKey(file) || '_no_key'
-            const safeFolder = uk.replace(/[\\/:*?"<>|]/g, '_')
-            const originalName = file.original_file_name ?? file.file_name
-
-            const folderMap = nameCountByFolder[safeFolder] ?? (nameCountByFolder[safeFolder] = {})
-            let finalName = originalName
-            if (folderMap[finalName]) {
-              folderMap[finalName]++
+            // 사용자 요청: 파일명 = 고유키_원파일명 (폴더 분리 없이 flat)
+            const baseName = buildDownloadName(file).replace(/[\\/:*?"<>|]/g, '_')
+            const rootMap = nameCountByFolder['_root'] ?? (nameCountByFolder['_root'] = {})
+            let finalName = baseName
+            if (rootMap[finalName]) {
+              rootMap[finalName]++
               const ext = finalName.lastIndexOf('.')
               if (ext > 0) {
-                finalName = `${finalName.slice(0, ext)}_(${folderMap[finalName]})${finalName.slice(ext)}`
+                finalName = `${finalName.slice(0, ext)}_(${rootMap[finalName]})${finalName.slice(ext)}`
               } else {
-                finalName = `${finalName}_(${folderMap[finalName]})`
+                finalName = `${finalName}_(${rootMap[finalName]})`
               }
             } else {
-              folderMap[finalName] = 1
+              rootMap[finalName] = 1
             }
-            zip.file(`${safeFolder}/${finalName}`, blob)
+            zip.file(finalName, blob)
           })
         )
 
