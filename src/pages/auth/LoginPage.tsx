@@ -61,7 +61,7 @@ export default function LoginPage() {
   return (
     <div className="screen-frame">
       {/* Top nav removed on login page — branding shown inside the blue cinematic panel */}
-      <div className="login-wrap">
+      <div className="login-wrap" style={{ minHeight: '100vh' }}>
         {/* Left: cinematic dark */}
         <div className="login-left">
           <div className="bg-orbit" />
