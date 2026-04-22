@@ -88,16 +88,6 @@ export default function LoginPage() {
           </div>
 
           <div className="login-bus">
-            <div className="b active">
-              <div className="bi">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-                  <rect x="3" y="10" width="18" height="11" rx="1" />
-                  <path d="M7 10V7a5 5 0 0 1 10 0v3" />
-                </svg>
-              </div>
-              <div className="bn">Finance</div>
-              <div className="bl">금융</div>
-            </div>
             <div className="b">
               <div className="bi">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
@@ -125,6 +115,17 @@ export default function LoginPage() {
               </div>
               <div className="bn">Infrastructure Engineering</div>
               <div className="bl">인프라</div>
+            </div>
+            <div className="b active">
+              <div className="bi">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                  <rect x="3" y="10" width="18" height="11" rx="1" />
+                  <path d="M7 10V7a5 5 0 0 1 10 0v3" />
+                </svg>
+              </div>
+              <div className="bn">Finance</div>
+              <div className="bl">금융</div>
+              <div className="bl" style={{ fontSize: 10, opacity: 0.8, marginTop: 2 }}>ICFR Tech</div>
             </div>
           </div>
 

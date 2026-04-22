@@ -241,7 +241,7 @@ export default function DashboardPage() {
               <span>{dateLabel}</span>
               <span style={{ fontFamily: 'var(--f-mono)', color: 'var(--at-blue)', fontSize: 13, fontWeight: 700, letterSpacing: '0.04em' }}>{timeLabel}</span>
               <span>·</span>
-              <span>2026 · Q2 · Cycle 04 · 진행 중</span>
+              <span>2026 Cycle 07th in Progress</span>
             </div>
             <h1 className="at-hero-title">
               {greeting()},<br />

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { SkipForward, Volume2, VolumeX } from 'lucide-react'
+import { SkipForward } from 'lucide-react'
 
 const INTRO_SRC = '/intro.mp4'
 
@@ -24,7 +24,8 @@ export default function IntroGate({ children }: IntroGateProps) {
     } catch { /* storage blocked — fall through */ }
     return true
   })
-  const [muted, setMuted] = useState(true) // start muted so autoplay works on every browser
+  // 인트로 영상은 항상 음소거 (사용자 요청)
+  const muted = true
   const [progress, setProgress] = useState(0)
   const videoRef = useRef<HTMLVideoElement>(null)
 
@@ -78,13 +79,6 @@ export default function IntroGate({ children }: IntroGateProps) {
     setShowIntro(false)
   }
 
-  function handleToggleMute() {
-    const video = videoRef.current
-    if (!video) return
-    video.muted = !video.muted
-    setMuted(video.muted)
-  }
-
   function handleTapToPlay() {
     const video = videoRef.current
     if (!video) return
@@ -136,14 +130,7 @@ export default function IntroGate({ children }: IntroGateProps) {
 
       {/* Top-right controls (outside the frame so they don't block content) */}
       <div className="absolute top-4 right-4 flex items-center gap-2">
-        <button
-          onClick={handleToggleMute}
-          className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm transition hover:bg-black/80"
-          aria-label={muted ? '소리 켜기' : '소리 끄기'}
-        >
-          {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-          {muted ? '소리 켜기' : '소리 끄기'}
-        </button>
+        {/* 음소거 토글 버튼 제거 — 인트로 영상은 항상 음소거 (사용자 요청) */}
         <button
           onClick={handleSkip}
           className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm transition hover:bg-black/80"

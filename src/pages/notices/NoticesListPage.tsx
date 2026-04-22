@@ -4,6 +4,7 @@ import { Megaphone, BookOpen, FileText, AlertCircle } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
 import { safeQuery } from '../../lib/queryWithTimeout'
+import { useAuth } from '../../hooks/useAuth'
 
 type Notice = {
   id: string
@@ -32,19 +33,23 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
 }
 
 export default function NoticesListPage() {
+  const { user, loading: authLoading } = useAuth()
   const [items, setItems] = useState<Notice[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
 
   useEffect(() => {
+    // 세션 복원 완료 후에만 fetch (새 탭에서 새창 열림 시 타이밍 문제 회피)
+    if (authLoading) return
     void load()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user?.id])
 
-  async function load() {
+  async function load(attempt = 0) {
     setLoading(true)
     try {
-      const { data } = await safeQuery<Notice[]>(
+      const { data, error } = await safeQuery<Notice[]>(
         (supabase as any)
           .from('notices')
           .select('id, type, title, body, badge, badge_color, is_pinned, created_at')
@@ -53,6 +58,12 @@ export default function NoticesListPage() {
         12_000,
         'notices.list',
       )
+      // 빈 결과 + 에러 없음이면서 첫 시도였다면 1초 뒤 한 번 재시도
+      // (세션이 막 복원됐을 때 RLS 평가 실패하는 엣지케이스 대응)
+      if (!error && (!data || data.length === 0) && attempt === 0) {
+        setTimeout(() => load(1), 1000)
+        return
+      }
       setItems(data ?? [])
     } catch {
       setItems([])

@@ -425,7 +425,21 @@ export default function EvidenceListPage() {
             </div>
           ) : (
           <div className="tbl-scroll">
-            <table className="at-table compact" style={{ width: '100%', tableLayout: 'auto' }}>
+            <table className="at-table compact" style={{ width: '100%', tableLayout: 'fixed' }}>
+              {/* 고정 폭 컬럼 정의로 header/row 정렬 보장 */}
+              <colgroup>
+                <col style={{ width: 96 }} />
+                <col />{/* 통제활동명 flex */}
+                <col style={{ width: 90 }} />
+                <col style={{ width: 70 }} />
+                {profile?.role === 'admin' && <col style={{ width: 70 }} />}
+                <col style={{ width: 60 }} />
+                <col style={{ width: 50 }} />
+                <col style={{ width: 80 }} />
+                <col style={{ width: 80 }} />
+                {profile?.role === 'admin' && <col style={{ width: 250 }} />}
+                <col style={{ width: 80 }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th>통제번호</th>
