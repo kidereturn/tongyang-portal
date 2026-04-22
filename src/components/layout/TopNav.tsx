@@ -141,6 +141,68 @@ export default function TopNav() {
     setUnreadCount(0)
   }
 
+  async function deleteNotification(id: string) {
+    if (!window.confirm('이 알림을 삭제할까요?')) return
+    await (supabase as any).from('notifications').delete().eq('id', id)
+    setNotifications(prev => prev.filter(n => n.id !== id))
+    setUnreadCount(prev => Math.max(0, prev - (notifications.find(n => n.id === id && !n.is_read) ? 1 : 0)))
+  }
+
+  // 답장 / 전달 상태
+  const [composeOpen, setComposeOpen] = useState<null | { mode: 'reply' | 'forward'; original: Notification }>(null)
+  const [composeBody, setComposeBody] = useState('')
+  const [composeRecipient, setComposeRecipient] = useState('')
+  const [composeSending, setComposeSending] = useState(false)
+
+  function openReply(n: Notification) {
+    setComposeOpen({ mode: 'reply', original: n })
+    setComposeBody('')
+    setComposeRecipient('') // 답장은 원래 발신자에게 자동
+  }
+  function openForward(n: Notification) {
+    setComposeOpen({ mode: 'forward', original: n })
+    setComposeBody(`[전달된 메시지]\n${n.title}\n${n.body ?? ''}`)
+    setComposeRecipient('')
+  }
+  async function sendCompose() {
+    if (!composeOpen || !profile?.id) return
+    setComposeSending(true)
+    try {
+      const db = supabase as any
+      if (composeOpen.mode === 'reply') {
+        // 원본 보낸 사람에게 답장 — sender_id 를 찾아야 함. notifications 테이블에서 조회
+        const { data: orig } = await db.from('notifications').select('sender_id').eq('id', composeOpen.original.id).maybeSingle()
+        const to = orig?.sender_id
+        if (!to) { window.alert('원 발신자 정보가 없습니다.'); setComposeSending(false); return }
+        await db.from('notifications').insert({
+          recipient_id: to,
+          sender_id: profile.id,
+          title: `RE: ${composeOpen.original.title}`,
+          body: composeBody,
+          is_read: false,
+        })
+      } else {
+        // 전달: 사번으로 수신자 조회
+        if (!composeRecipient.trim()) { window.alert('수신자 사번을 입력해주세요.'); setComposeSending(false); return }
+        const { data: target } = await db.from('profiles').select('id').eq('employee_id', composeRecipient.trim()).maybeSingle()
+        if (!target?.id) { window.alert('해당 사번의 사용자를 찾을 수 없습니다.'); setComposeSending(false); return }
+        await db.from('notifications').insert({
+          recipient_id: target.id,
+          sender_id: profile.id,
+          title: `FW: ${composeOpen.original.title}`,
+          body: composeBody,
+          is_read: false,
+        })
+      }
+      window.alert('전송 완료')
+      setComposeOpen(null); setComposeBody(''); setComposeRecipient('')
+    } catch (e) {
+      window.alert('전송 실패: ' + (e instanceof Error ? e.message : ''))
+    } finally {
+      setComposeSending(false)
+    }
+  }
+
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
@@ -249,9 +311,11 @@ export default function TopNav() {
                   <div style={{ padding: '40px 20px', textAlign: 'center', fontSize: 13, color: '#8B95A1' }}>알림이 없습니다</div>
                 ) : (
                   notifications.map(n => (
-                    <button
+                    <div
                       key={n.id}
                       onClick={() => { if (!n.is_read) markAsRead(n.id) }}
+                      role="button"
+                      tabIndex={0}
                       style={{
                         width: '100%',
                         display: 'flex',
@@ -288,8 +352,23 @@ export default function TopNav() {
                           {n.sender?.full_name ? `${n.sender.full_name} · ` : ''}
                           {new Date(n.created_at).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </p>
+                        {/* 액션 버튼 — 답장 / 전달 / 삭제 */}
+                        <div style={{ marginTop: 8, display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={() => openReply(n)}
+                            style={{ padding: '3px 8px', fontSize: 10, fontWeight: 600, color: '#3182F6', background: '#E8F2FE', border: '1px solid #BDD7F7', borderRadius: 6, cursor: 'pointer' }}
+                          >답장</button>
+                          <button
+                            onClick={() => openForward(n)}
+                            style={{ padding: '3px 8px', fontSize: 10, fontWeight: 600, color: '#F59E0B', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 6, cursor: 'pointer' }}
+                          >전달</button>
+                          <button
+                            onClick={() => deleteNotification(n.id)}
+                            style={{ padding: '3px 8px', fontSize: 10, fontWeight: 600, color: '#EF4444', background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: 6, cursor: 'pointer' }}
+                          >삭제</button>
+                        </div>
                       </div>
-                    </button>
+                    </div>
                   ))
                 )}
               </div>
@@ -381,6 +460,63 @@ export default function TopNav() {
 
       {/* Shield icon kept hidden to satisfy unused import guard */}
       <Shield style={{ display: 'none' }} />
+
+      {/* Reply / Forward compose modal */}
+      {composeOpen && (
+        <div
+          onClick={() => setComposeOpen(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: 20 }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ width: 'min(480px, 100%)', background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 11, color: '#8B95A1', letterSpacing: '0.12em', fontFamily: 'var(--f-mono)' }}>{composeOpen.mode === 'reply' ? 'REPLY' : 'FORWARD'}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2 }}>{composeOpen.mode === 'reply' ? '답장' : '전달'}</div>
+              </div>
+              <button onClick={() => setComposeOpen(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18, color: '#8B95A1' }}>✕</button>
+            </div>
+
+            <div style={{ marginBottom: 12, padding: 10, background: '#F9FAFB', borderRadius: 8, fontSize: 12 }}>
+              <div style={{ color: '#4E5968', fontWeight: 600 }}>원본:</div>
+              <div style={{ color: '#191F28' }}>{composeOpen.original.title}</div>
+              {composeOpen.original.body && <div style={{ color: '#8B95A1', marginTop: 4, fontSize: 11 }}>{composeOpen.original.body.slice(0, 100)}</div>}
+            </div>
+
+            {composeOpen.mode === 'forward' && (
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: '#4E5968' }}>수신자 사번</label>
+                <input
+                  type="text"
+                  value={composeRecipient}
+                  onChange={e => setComposeRecipient(e.target.value)}
+                  placeholder="예: 101842"
+                  style={{ marginTop: 4, width: '100%', padding: '10px 12px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13 }}
+                />
+              </div>
+            )}
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: '#4E5968' }}>내용</label>
+              <textarea
+                value={composeBody}
+                onChange={e => setComposeBody(e.target.value)}
+                rows={5}
+                style={{ marginTop: 4, width: '100%', padding: '10px 12px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }}
+                placeholder={composeOpen.mode === 'reply' ? '답장 내용을 입력하세요' : '전달할 메시지'}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setComposeOpen(null)} style={{ padding: '10px 16px', fontSize: 13, border: '1px solid #E5E8EB', borderRadius: 8, background: '#fff', cursor: 'pointer' }}>취소</button>
+              <button
+                onClick={sendCompose}
+                disabled={composeSending}
+                style={{ padding: '10px 16px', fontSize: 13, fontWeight: 600, border: 'none', borderRadius: 8, background: '#3182F6', color: '#fff', cursor: composeSending ? 'wait' : 'pointer', opacity: composeSending ? 0.6 : 1 }}
+              >{composeSending ? '전송 중...' : '보내기'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   )
 }
