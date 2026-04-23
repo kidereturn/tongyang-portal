@@ -691,12 +691,12 @@ function NewsTabs({
           ))}
         </div>
       ) : (
-        /* 카드뉴스 — 우측 패널 내 2열, 세로로 더 긴 스크롤 (사용자 요청: 우측 뉴스 프레임 아래로 길게) */
+        /* 카드뉴스 — 우측 패널 내 3열 (원래 레이아웃 복원), 세로 스크롤 */
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: 14,
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 10,
             maxHeight: 1100,
             overflowY: 'auto',
             paddingRight: 6,
@@ -713,8 +713,8 @@ function NewsTabs({
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                padding: '14px 14px 12px',
-                borderRadius: 12,
+                padding: '10px 10px 9px',
+                borderRadius: 10,
                 border: '1px solid var(--at-ink-hair)',
                 background: `linear-gradient(135deg, #F2F4F6 0%, #E8F2FE 55%, #BDD7F7 100%)`,
                 textDecoration: 'none',
@@ -723,24 +723,24 @@ function NewsTabs({
                 overflow: 'hidden',
                 position: 'relative',
               }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 28px -12px rgba(49,130,246,0.35)' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 22px -10px rgba(49,130,246,0.35)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
             >
               {/* 상단: 뉴스 번호 배지 */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontFamily: 'var(--f-mono)', fontSize: 10, fontWeight: 700, color: '#1E40AF', letterSpacing: '0.08em', background: 'rgba(255,255,255,0.6)', padding: '2px 8px', borderRadius: 999 }}>
+                <span style={{ fontFamily: 'var(--f-mono)', fontSize: 9, fontWeight: 700, color: '#1E40AF', letterSpacing: '0.06em', background: 'rgba(255,255,255,0.6)', padding: '2px 6px', borderRadius: 999 }}>
                   #{String(i + 1).padStart(2, '0')}
                 </span>
-                <ExternalLink size={12} style={{ color: '#3182F6' }} />
+                <ExternalLink size={10} style={{ color: '#3182F6' }} />
               </div>
 
               {/* 중앙: 제목 */}
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '8px 0' }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '6px 0' }}>
                 <h3
                   style={{
-                    fontSize: 13,
+                    fontSize: 11,
                     fontWeight: 700,
-                    lineHeight: 1.45,
+                    lineHeight: 1.4,
                     color: '#1E293B',
                     margin: 0,
                     display: '-webkit-box',
@@ -754,7 +754,7 @@ function NewsTabs({
               </div>
 
               {/* 하단: 카테고리 라벨 */}
-              <div style={{ fontSize: 10, color: '#475569', fontWeight: 600, letterSpacing: '0.02em' }}>
+              <div style={{ fontSize: 9, color: '#475569', fontWeight: 600, letterSpacing: '0.02em' }}>
                 {NEWS_TABS.find(t => t.key === tab)?.label ?? ''}
               </div>
             </a>

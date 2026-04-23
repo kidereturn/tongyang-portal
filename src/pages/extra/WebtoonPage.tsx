@@ -338,7 +338,7 @@ function WebtoonComments({ webtoonId, episodeTitle }: { webtoonId: string; episo
         <div className="space-y-3">
           {comments.map(c => {
             const mine = c.user_id === profile?.id
-            const canEdit = mine
+            const canEdit = mine || isAdmin
             const canDelete = mine || isAdmin
             const editing = editingId === c.id
             return (

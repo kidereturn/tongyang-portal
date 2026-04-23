@@ -313,6 +313,42 @@ export default function BingoPage() {
     })()
   }, [profile?.id, bingoCount])
 
+  // 이달의 빙고왕 실시간 랭킹 — TOP 10
+  // 전 사용자 bingo_achievements 월간 누적 lines 기준. 동일 user_id 다중 row 허용 가정.
+  const [ranking, setRanking] = useState<Array<{ user_id: string; name: string; dept: string | null; lines: number }>>([])
+  useEffect(() => {
+    (async () => {
+      try {
+        const firstOfMonth = new Date(); firstOfMonth.setDate(1); firstOfMonth.setHours(0,0,0,0)
+        const { data: achs } = await (supabase as any)
+          .from('bingo_achievements')
+          .select('user_id, max_lines, created_at')
+          .gte('created_at', firstOfMonth.toISOString())
+        if (!achs || achs.length === 0) { setRanking([]); return }
+        // 사용자별 월간 max 집계 (동일 user_id 최대값 사용)
+        const byUser: Record<string, number> = {}
+        for (const a of achs as Array<{ user_id: string; max_lines: number }>) {
+          if (!a.user_id) continue
+          byUser[a.user_id] = Math.max(byUser[a.user_id] ?? 0, a.max_lines ?? 0)
+        }
+        const userIds = Object.keys(byUser)
+        if (userIds.length === 0) { setRanking([]); return }
+        const { data: profs } = await (supabase as any)
+          .from('profiles')
+          .select('id, full_name, department')
+          .in('id', userIds)
+        const byId: Record<string, { full_name: string | null; department: string | null }> = {}
+        for (const p of (profs ?? []) as Array<{ id: string; full_name: string | null; department: string | null }>) byId[p.id] = { full_name: p.full_name, department: p.department }
+        const list = userIds
+          .map(uid => ({ user_id: uid, name: byId[uid]?.full_name ?? '익명', dept: byId[uid]?.department ?? null, lines: byUser[uid] }))
+          .filter(r => r.lines > 0)
+          .sort((a, b) => b.lines - a.lines)
+          .slice(0, 10)
+        setRanking(list)
+      } catch { /* silent */ }
+    })()
+  }, [bingoCount, profile?.id])
+
   // Celebration at 1 bingo line (사용자 요청: 3줄 → 1줄)
   useEffect(() => {
     if (bingoCount >= 1 && !notifiedRef.current) {
@@ -613,12 +649,45 @@ export default function BingoPage() {
           {/* ─── Sidebar ─── */}
           <div>
             <div className="at-card" style={{ padding: 24, marginBottom: 16 }}>
-              <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>LEADERBOARD</div>
+              <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>LEADERBOARD · LIVE</div>
               <div style={{ fontFamily: 'var(--f-display)', fontSize: 16, fontWeight: 600, marginBottom: 16 }}>이달의 빙고왕</div>
-              {/* TODO: 실제 데이터 연동. 임시 placeholder */}
-              <div style={{ fontSize: 12, color: 'var(--at-ink-mute)', padding: '20px 0', textAlign: 'center' }}>
-                아직 이달 랭킹 데이터가 수집되지 않았습니다.
-              </div>
+              {ranking.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--at-ink-mute)', padding: '20px 0', textAlign: 'center' }}>
+                  아직 이달 랭킹 데이터가 수집되지 않았습니다.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {ranking.map((r, i) => {
+                    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`
+                    const isMe = r.user_id === profile?.id
+                    return (
+                      <div
+                        key={r.user_id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          padding: '8px 10px',
+                          borderRadius: 8,
+                          background: i < 3 ? 'linear-gradient(90deg, rgba(255,215,0,0.08) 0%, transparent 100%)' : isMe ? 'var(--at-bg-soft)' : 'transparent',
+                          border: i < 3 ? '1px solid rgba(255,180,0,0.25)' : '1px solid var(--at-ink-hair)',
+                        }}
+                      >
+                        <div style={{ width: 24, textAlign: 'center', fontSize: i < 3 ? 16 : 12, fontFamily: 'var(--f-mono)', fontWeight: 700, color: i < 3 ? 'inherit' : 'var(--at-ink-faint)' }}>{medal}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: isMe ? 700 : 600, color: isMe ? '#3182F6' : 'var(--at-ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {r.name}{isMe && <span style={{ fontSize: 10, marginLeft: 4, color: '#3182F6' }}>(나)</span>}
+                          </div>
+                          {r.dept && <div style={{ fontSize: 10, color: 'var(--at-ink-faint)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.dept}</div>}
+                        </div>
+                        <div style={{ fontFamily: 'var(--f-mono)', fontSize: 13, fontWeight: 700, color: 'var(--at-ink)' }}>
+                          {r.lines}<span style={{ fontSize: 10, color: 'var(--at-ink-faint)', marginLeft: 2 }}>줄</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="at-card" style={{ padding: 24 }}>
