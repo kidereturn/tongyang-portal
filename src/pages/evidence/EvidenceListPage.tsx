@@ -185,6 +185,12 @@ export default function EvidenceListPage() {
     }
     if (statusFilter === 'modifyReq') {
       r = r.filter(a => a.review_status === '수정제출')
+    } else if (statusFilter === 'notReviewed') {
+      r = r.filter(a => (a.review_status ?? '미검토') === '미검토')
+    } else if (statusFilter === 'reviewing') {
+      r = r.filter(a => a.review_status === '검토중')
+    } else if (statusFilter === 'reviewDone') {
+      r = r.filter(a => a.review_status === '완료')
     } else if (statusFilter !== 'all') {
       r = r.filter(a => a.submission_status === statusFilter)
     }
@@ -198,8 +204,11 @@ export default function EvidenceListPage() {
     complete:  activities.filter(a => a.submission_status === '완료').length,
     approved:  activities.filter(a => a.submission_status === '승인').length,
     rejected:  activities.filter(a => a.submission_status === '반려').length,
-    // 수정제출 — 관리자·담당자만 관심있는 별도 카운트 (review_status 기준)
     modifyReq: activities.filter(a => a.review_status === '수정제출').length,
+    // 관리자 전용 — review_status 기준 집계 (홈과 동일)
+    notReviewed: activities.filter(a => (a.review_status ?? '미검토') === '미검토').length,
+    reviewing:   activities.filter(a => a.review_status === '검토중').length,
+    reviewDone:  activities.filter(a => a.review_status === '완료').length,
   }
   // 승인율 = 전체 증빙 중 승인자의 승인이 완료된 비율 (per user spec #11)
   const rate = stats.total > 0 ? Math.round(stats.approved / stats.total * 100) : 0
@@ -210,9 +219,71 @@ export default function EvidenceListPage() {
   // 관리자 검토상태 작성 중인 값 (저장 버튼 누르기 전까지 로컬 스테이징)
   const [pendingReview, setPendingReview] = useState<Record<string, string>>({})
   const [savingReview, setSavingReview] = useState<string | null>(null)
+  // 승인자/관리자 승인 결정 staging
+  const [pendingApproval, setPendingApproval] = useState<Record<string, string>>({})
+  const [savingApproval, setSavingApproval] = useState<string | null>(null)
 
   function onReviewSelectChange(activityId: string, newStatus: string) {
     setPendingReview(prev => ({ ...prev, [activityId]: newStatus }))
+  }
+
+  function onApprovalSelectChange(activityId: string, newDecision: string) {
+    setPendingApproval(prev => ({ ...prev, [activityId]: newDecision }))
+  }
+
+  // 승인자/관리자 승인 결정 저장
+  // options: '승인대기' (submitted) / '승인' (approved) / '반려' (rejected) / '취소' (admin only, cascade)
+  async function saveApproval(activity: Activity) {
+    const decision = pendingApproval[activity.id]
+    if (!decision) return
+    const currentApr = approvalStatuses[activity.id] // submitted/approved/rejected
+    const role = profile?.role
+
+    setSavingApproval(activity.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+    try {
+      const now = new Date().toISOString()
+      if (decision === '승인') {
+        // 승인자 또는 관리자의 승인
+        await db.from('approval_requests')
+          .update({ status: 'approved', decided_at: now, decided_by: profile?.id })
+          .eq('activity_id', activity.id).in('status', ['submitted'])
+        await db.from('activities').update({ submission_status: '승인', updated_at: now }).eq('id', activity.id)
+        setActivities(prev => prev.map(a => a.id === activity.id ? { ...a, submission_status: '승인' } : a))
+        setApprovalStatuses(prev => ({ ...prev, [activity.id]: 'approved' }))
+      } else if (decision === '반려') {
+        if (role === 'admin' && currentApr === 'approved') {
+          // 관리자 반려 + 이미 승인된 상태 → cascade cancel 승인자 승인
+          // 승인자 승인은 취소 상태로, 담당자는 상신 이전(미완료) 상태로 복원
+          await db.from('approval_requests')
+            .update({ status: 'cancelled', decided_at: now, decided_by: profile?.id })
+            .eq('activity_id', activity.id).in('status', ['approved', 'submitted', 'rejected'])
+          await db.from('activities').update({
+            submission_status: '미완료',
+            review_status: '미검토',
+            updated_at: now,
+          }).eq('id', activity.id)
+          setActivities(prev => prev.map(a => a.id === activity.id
+            ? { ...a, submission_status: '미완료', review_status: '미검토' }
+            : a))
+          setApprovalStatuses(prev => { const n = { ...prev }; delete n[activity.id]; return n })
+        } else {
+          // 승인자 반려 또는 관리자가 상신 직후 반려 — 단순 반려 처리
+          await db.from('approval_requests')
+            .update({ status: 'rejected', decided_at: now, decided_by: profile?.id })
+            .eq('activity_id', activity.id).in('status', ['submitted', 'approved'])
+          await db.from('activities').update({ submission_status: '반려', updated_at: now }).eq('id', activity.id)
+          setActivities(prev => prev.map(a => a.id === activity.id ? { ...a, submission_status: '반려' } : a))
+          setApprovalStatuses(prev => ({ ...prev, [activity.id]: 'rejected' }))
+        }
+      }
+      setPendingApproval(prev => { const n = { ...prev }; delete n[activity.id]; return n })
+    } catch (err) {
+      window.alert(`승인/반려 저장 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`)
+    } finally {
+      setSavingApproval(null)
+    }
   }
 
   async function saveReviewStatus(activity: Activity) {
@@ -370,15 +441,24 @@ export default function EvidenceListPage() {
       </div>
 
       <div className="pg-body">
-        {/* Summary strip */}
+        {/* Summary strip — role 별 노출 (사용자 스펙 7.1) */}
         <div className="sum-strip">
-          <div className="cell"><div className="l"><span className="ic blue">●</span>전체</div><div className="v">{stats.total}<span className="u">건</span></div><div className="sub">이번 주기 누적</div></div>
-          <div className="cell"><div className="l"><span className="ic green">●</span>완료</div><div className="v">{stats.approved}<span className="u">건</span></div><div className="sub">승인 완료 · {rate}%</div></div>
-          <div className="cell"><div className="l"><span className="ic amber">●</span>대기</div><div className="v">{stats.complete}<span className="u">건</span></div><div className="sub">담당자/승인자 작업 중</div></div>
-          <div className="cell"><div className="l"><span className="ic red">●</span>반려</div><div className="v">{stats.rejected}<span className="u">건</span></div><div className="sub">재작성 필요</div></div>
-          {/* 담당자·관리자에게만 수정제출 타일 노출 */}
-          {(profile?.role === 'admin' || profile?.role === 'owner') && (
-            <div className="cell"><div className="l"><span className="ic amber">●</span>수정제출</div><div className="v">{stats.modifyReq}<span className="u">건</span></div><div className="sub">관리자 수정 요청</div></div>
+          {profile?.role === 'admin' ? (
+            <>
+              <div className="cell" onClick={() => setStatusFilter('notReviewed')} style={{ cursor: 'pointer' }}><div className="l"><span className="ic blue">●</span>미검토</div><div className="v">{stats.notReviewed}<span className="u">건</span></div><div className="sub">검토 대기</div></div>
+              <div className="cell" onClick={() => setStatusFilter('reviewing')} style={{ cursor: 'pointer' }}><div className="l"><span className="ic amber">●</span>검토중</div><div className="v">{stats.reviewing}<span className="u">건</span></div><div className="sub">관리자 검토 진행</div></div>
+              <div className="cell" onClick={() => setStatusFilter('reviewDone')} style={{ cursor: 'pointer' }}><div className="l"><span className="ic green">●</span>완료</div><div className="v">{stats.reviewDone}<span className="u">건</span></div><div className="sub">검토 완료</div></div>
+              <div className="cell" onClick={() => setStatusFilter('modifyReq')} style={{ cursor: 'pointer' }}><div className="l"><span className="ic red">●</span>수정제출</div><div className="v">{stats.modifyReq}<span className="u">건</span></div><div className="sub">담당자 재작성 필요</div></div>
+            </>
+          ) : (
+            // 담당자 / 승인자 — 전체/상신완료/승인완료/반려/수정제출
+            <>
+              <div className="cell" onClick={() => setStatusFilter('all')} style={{ cursor: 'pointer' }}><div className="l"><span className="ic blue">●</span>전체</div><div className="v">{stats.total}<span className="u">건</span></div><div className="sub">이번 주기 누적</div></div>
+              <div className="cell" onClick={() => setStatusFilter('완료')} style={{ cursor: 'pointer' }}><div className="l"><span className="ic amber">●</span>상신완료</div><div className="v">{stats.complete}<span className="u">건</span></div><div className="sub">승인자 검토 대기</div></div>
+              <div className="cell" onClick={() => setStatusFilter('승인')} style={{ cursor: 'pointer' }}><div className="l"><span className="ic green">●</span>승인완료</div><div className="v">{stats.approved}<span className="u">건</span></div><div className="sub">달성률 {rate}%</div></div>
+              <div className="cell" onClick={() => setStatusFilter('반려')} style={{ cursor: 'pointer' }}><div className="l"><span className="ic red">●</span>반려</div><div className="v">{stats.rejected}<span className="u">건</span></div><div className="sub">재작성 필요</div></div>
+              <div className="cell" onClick={() => setStatusFilter('modifyReq')} style={{ cursor: 'pointer' }}><div className="l"><span className="ic amber">●</span>수정제출</div><div className="v">{stats.modifyReq}<span className="u">건</span></div><div className="sub">관리자 수정 요청</div></div>
+            </>
           )}
         </div>
 
@@ -481,12 +561,50 @@ export default function EvidenceListPage() {
                       </td>
                       <td style={{ fontFamily: 'var(--f-mono)', fontWeight: 500 }}>{act.kpi_score != null ? act.kpi_score.toFixed(1) : '-'}</td>
                       <td><span className={`at-tag ${si.cls.includes('yellow') ? 'amber' : si.cls.includes('blue') ? 'blue' : si.cls.includes('green') ? 'green' : si.cls.includes('red') ? 'red' : 'gray'}`}>{si.label}</span></td>
-                      <td>
-                        {aprStatus === 'approved' ? <span className="at-tag green">승인완료</span>
-                          : aprStatus === 'rejected' ? <span className="at-tag red">반려</span>
-                          : aprStatus === 'submitted' ? <span className="at-tag amber">승인대기</span>
-                          : <span style={{ color: 'var(--at-ink-faint)', fontSize: 11 }}>-</span>}
-                      </td>
+                      {(() => {
+                        const isAssignedController = profile?.role === 'controller' && (act.controller_id === profile?.id || act.controller_name === profile?.full_name)
+                        const canDecide = (isAssignedController || profile?.role === 'admin') && (act.submission_status === '완료' || act.submission_status === '승인' || act.submission_status === '반려')
+                        if (!canDecide) {
+                          return (
+                            <td>
+                              {aprStatus === 'approved' ? <span className="at-tag green">승인완료</span>
+                                : aprStatus === 'rejected' ? <span className="at-tag red">반려</span>
+                                : aprStatus === 'submitted' ? <span className="at-tag amber">승인대기</span>
+                                : <span style={{ color: 'var(--at-ink-faint)', fontSize: 11 }}>-</span>}
+                            </td>
+                          )
+                        }
+                        const current = aprStatus === 'approved' ? '승인' : aprStatus === 'rejected' ? '반려' : '승인대기'
+                        const staged = pendingApproval[act.id]
+                        const shown = staged ?? current
+                        const dirty = staged !== undefined && staged !== current
+                        const bg = shown === '승인' ? '#E8F5ED' : shown === '반려' ? '#FEE2E2' : '#FEF3C7'
+                        const color = shown === '승인' ? 'var(--at-green)' : shown === '반려' ? '#B91C1C' : '#92400E'
+                        return (
+                          <td>
+                            <div style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                              <select
+                                value={shown}
+                                onChange={e => onApprovalSelectChange(act.id, e.target.value)}
+                                onClick={e => e.stopPropagation()}
+                                style={{ padding: '4px 8px', borderRadius: 8, border: dirty ? '1px solid var(--at-blue)' : '1px solid var(--at-ink-line)', background: bg, color, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                              >
+                                <option value="승인대기">승인대기</option>
+                                <option value="승인">승인</option>
+                                <option value="반려">반려</option>
+                              </select>
+                              <button
+                                onClick={() => saveApproval(act)}
+                                disabled={savingApproval === act.id || !dirty || shown === '승인대기'}
+                                title="승인/반려 저장"
+                                style={{ padding: '4px 8px', borderRadius: 6, border: 'none', background: (dirty && shown !== '승인대기') ? 'var(--at-blue)' : 'var(--at-ink-hair)', color: (dirty && shown !== '승인대기') ? '#fff' : 'var(--at-ink-faint)', cursor: (dirty && shown !== '승인대기') ? 'pointer' : 'not-allowed', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                              >
+                                <Save size={10} />저장
+                              </button>
+                            </div>
+                          </td>
+                        )
+                      })()}
                       {profile?.role === 'admin' && (() => {
                         const staged = pendingReview[act.id]
                         const current = act.review_status ?? '미검토'
