@@ -142,8 +142,7 @@ export default function NewsPage() {
 
       <div className="pg-body">
       {/* Main grid: DART left, News right */}
-      {/* 뉴스 카드 프레임을 좌측 끝까지 맞추기 위해 세로 stack 으로 변경 — 사용자 요청 */}
-      <div className="flex flex-col gap-6">
+      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         {/* ───── LEFT: DART 공시 ───── */}
         <section className="space-y-4">
           <div className="flex items-center gap-2">
@@ -692,13 +691,13 @@ function NewsTabs({
           ))}
         </div>
       ) : (
-        /* 카드뉴스 — 전체 폭 사용, 한 행 3개 (작은 화면은 auto-fill), 스크롤 */
+        /* 카드뉴스 — 우측 패널 내 2열, 세로로 더 긴 스크롤 (사용자 요청: 우측 뉴스 프레임 아래로 길게) */
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-            gap: 16,
-            maxHeight: 720,
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 14,
+            maxHeight: 1100,
             overflowY: 'auto',
             paddingRight: 6,
           }}

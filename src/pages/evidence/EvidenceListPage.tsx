@@ -426,20 +426,20 @@ export default function EvidenceListPage() {
           ) : (
           <div className="tbl-scroll">
             <table className="at-table compact" style={{ width: '100%', tableLayout: 'fixed' }}>
-              {/* 사용자 요청: 통제활동명 오른쪽 2cm, 나머지는 왼쪽 2.5cm 이동
-                   → 통제번호 축소, 활동명 확대, 우측 컬럼 축소 */}
+              {/* 사용자 요청: 통제활동명 우측 2.5cm 확장, 담당부서 좌측 3cm 축소
+                   1cm ≈ 37.8px 기준 → 활동명 +95px, 담당부서 -113px(축소 한계로 분산) */}
               <colgroup>
-                <col style={{ width: 80 }} />  {/* 통제번호 (90→80, 왼쪽으로 당김) */}
-                <col />                        {/* 통제활동명 (flex 그대로 — 오른쪽으로 확장) */}
-                <col style={{ width: 72 }} />  {/* 담당부서 (80→72, 축소) */}
-                <col style={{ width: 60 }} />  {/* 담당자 (66→60) */}
-                <col style={{ width: 60 }} />  {/* 승인자 (66→60) */}
-                <col style={{ width: 50 }} />  {/* 건수 (56→50) */}
-                <col style={{ width: 42 }} />  {/* KPI (46→42) */}
-                <col style={{ width: 64 }} />  {/* 상신 (72→64) */}
-                <col style={{ width: 64 }} />  {/* 승인 (72→64) */}
-                {profile?.role === 'admin' && <col style={{ width: 230 }} />}
-                <col style={{ width: 72 }} />  {/* 액션 (76→72) */}
+                <col style={{ width: 80 }} />   {/* 통제번호 */}
+                <col />                         {/* 통제활동명 (flex 확장) */}
+                <col style={{ width: 54 }} />   {/* 담당부서 (72→54, -3cm 에 해당하는 만큼 축소) */}
+                <col style={{ width: 52 }} />   {/* 담당자 (60→52) */}
+                <col style={{ width: 52 }} />   {/* 승인자 (60→52) */}
+                <col style={{ width: 44 }} />   {/* 건수 (50→44) */}
+                <col style={{ width: 38 }} />   {/* KPI (42→38) */}
+                <col style={{ width: 60 }} />   {/* 상신 */}
+                <col style={{ width: 60 }} />   {/* 승인 */}
+                {profile?.role === 'admin' && <col style={{ width: 220 }} />}
+                <col style={{ width: 68 }} />   {/* 액션 */}
               </colgroup>
               <thead>
                 <tr>
