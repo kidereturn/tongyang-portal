@@ -42,24 +42,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true
 
+    // Profile fetch with timeout + single retry (6s + 4s). 이유:
+    // 1) hanging Supabase query 로 profile 미설정 → 사용자님 표시 + skeleton 12s
+    // 2) 첫 시도 실패해도 재시도로 복구
+    async function fetchProfileOnce(userId: string, ms: number) {
+      const timer = new Promise<{ data: null; error: Error }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: new Error(`profile fetch timed out ${ms}ms`) }), ms),
+      )
+      const q = (supabase as any).from('profiles').select('*').eq('id', userId).maybeSingle()
+      return Promise.race([q, timer]) as Promise<{ data: Profile | null; error: unknown }>
+    }
+
     async function fetchProfile(userId: string) {
       if (fetchingProfile.current) return
       fetchingProfile.current = true
+      const t0 = performance.now()
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, error: fetchError } = await (supabase as any)
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .maybeSingle()
+        let res = await fetchProfileOnce(userId, 6000)
         if (!mounted) return
-        if (fetchError) {
-          console.warn('Profile fetch error:', fetchError.message)
+        if (res.error || !res.data) {
+          console.warn(`[AuthProvider] profile fetch 1st fail (${Math.round(performance.now() - t0)}ms) — retry`)
+          res = await fetchProfileOnce(userId, 4000)
+          if (!mounted) return
+        }
+        if (res.error) {
+          console.warn('[AuthProvider] profile fetch failed after retry:', (res.error as Error).message)
           setState(prev => ({ ...prev, loading: false }))
           return
         }
-        setProfileStable(data ?? null)
-      } catch {
+        setProfileStable((res.data ?? null) as Profile | null)
+        console.info(`[AuthProvider] profile loaded in ${Math.round(performance.now() - t0)}ms`)
+      } catch (e) {
+        console.warn('[AuthProvider] fetchProfile exception:', e)
         if (mounted) setState(prev => ({ ...prev, loading: false }))
       } finally {
         fetchingProfile.current = false

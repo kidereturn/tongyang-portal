@@ -16,7 +16,7 @@ const BINGO_CELL_TEMPLATES: Array<{ emoji: string; label: string; points: number
   { emoji: '💬', label: '말씀 3건 투표', points: 15 },
   { emoji: '📖', label: '주간 뉴스 읽기', points: 10 },
   { emoji: '🏆', label: '증빙 10건 제출', points: 20 },
-  { emoji: '⭐', label: 'FREE', points: 0 },
+  { emoji: '🎁', label: 'FREE', points: 0 },
   { emoji: '💭', label: '말씀하세요 작성', points: 10 },
   { emoji: '📊', label: 'KPI 대시보드 확인', points: 15 },
   { emoji: '👋', label: '동료 칭찬 1건', points: 10 },
@@ -314,24 +314,37 @@ export default function BingoPage() {
   }, [profile?.id, bingoCount])
 
   // 이달의 빙고왕 실시간 랭킹 — TOP 10
-  // 전 사용자 bingo_achievements 월간 누적 lines 기준. 동일 user_id 다중 row 허용 가정.
+  // bingo_achievements 는 user_id onConflict 로 single row 유지 → updated_at 이 이달 이면 포함
   const [ranking, setRanking] = useState<Array<{ user_id: string; name: string; dept: string | null; lines: number }>>([])
   useEffect(() => {
     (async () => {
       try {
         const firstOfMonth = new Date(); firstOfMonth.setDate(1); firstOfMonth.setHours(0,0,0,0)
-        const { data: achs } = await (supabase as any)
-          .from('bingo_achievements')
-          .select('user_id, max_lines, created_at')
-          .gte('created_at', firstOfMonth.toISOString())
+        // updated_at 필터 (이달 활동자) — 실패 시 폴백으로 전체 max_lines
+        let achs: Array<{ user_id: string; max_lines: number; updated_at?: string }> | null = null
+        try {
+          const res = await (supabase as any)
+            .from('bingo_achievements')
+            .select('user_id, max_lines, updated_at')
+            .gte('updated_at', firstOfMonth.toISOString())
+            .order('max_lines', { ascending: false })
+            .limit(100)
+          achs = res.data
+        } catch {
+          const res = await (supabase as any)
+            .from('bingo_achievements')
+            .select('user_id, max_lines')
+            .order('max_lines', { ascending: false })
+            .limit(100)
+          achs = res.data
+        }
         if (!achs || achs.length === 0) { setRanking([]); return }
-        // 사용자별 월간 max 집계 (동일 user_id 최대값 사용)
         const byUser: Record<string, number> = {}
-        for (const a of achs as Array<{ user_id: string; max_lines: number }>) {
+        for (const a of achs) {
           if (!a.user_id) continue
           byUser[a.user_id] = Math.max(byUser[a.user_id] ?? 0, a.max_lines ?? 0)
         }
-        const userIds = Object.keys(byUser)
+        const userIds = Object.keys(byUser).filter(uid => byUser[uid] > 0)
         if (userIds.length === 0) { setRanking([]); return }
         const { data: profs } = await (supabase as any)
           .from('profiles')
@@ -341,20 +354,21 @@ export default function BingoPage() {
         for (const p of (profs ?? []) as Array<{ id: string; full_name: string | null; department: string | null }>) byId[p.id] = { full_name: p.full_name, department: p.department }
         const list = userIds
           .map(uid => ({ user_id: uid, name: byId[uid]?.full_name ?? '익명', dept: byId[uid]?.department ?? null, lines: byUser[uid] }))
-          .filter(r => r.lines > 0)
           .sort((a, b) => b.lines - a.lines)
           .slice(0, 10)
         setRanking(list)
-      } catch { /* silent */ }
+      } catch (e) {
+        console.warn('[Bingo] ranking fetch failed:', e)
+      }
     })()
   }, [bingoCount, profile?.id])
 
-  // Celebration at 1 bingo line (사용자 요청: 3줄 → 1줄)
+  // Celebration — 매 줄 완성 시 (1~5줄 모두 축하)
+  const lastCelebratedRef = useRef<number>(0)
   useEffect(() => {
-    if (bingoCount >= 1 && !notifiedRef.current) {
-      notifiedRef.current = true
+    if (bingoCount > lastCelebratedRef.current) {
+      lastCelebratedRef.current = bingoCount
       setShowCelebration(true)
-      // 관리자 메일 발송은 제거 — 월말 랭킹 집계로 대체
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bingoCount])
@@ -424,6 +438,7 @@ export default function BingoPage() {
     setShowCelebration(false)
     setLastMessage(null)
     notifiedRef.current = false
+    lastCelebratedRef.current = 0
   }
 
   // Persist bingo achievement whenever bingoCount or correct count changes
@@ -572,7 +587,8 @@ export default function BingoPage() {
                 }
 
                 if (isFree) {
-                  cellStyle.background = 'var(--at-ink)'
+                  // free 셀: 다른 정답 셀과 동일한 파란 그라데이션
+                  cellStyle.background = 'linear-gradient(135deg, #3182F6, #4B93F7)'
                   cellStyle.color = 'var(--at-white)'
                 } else if (isCorrect) {
                   cellStyle.background = isBingoLine
@@ -615,9 +631,9 @@ export default function BingoPage() {
                     )}
 
                     {/* 아이콘 크기 50% 축소 (36 → 18) */}
-                    <div style={{ fontSize: 18, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>{tpl?.emoji ?? '⭐'}</div>
+                    <div style={{ fontSize: 18, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>{tpl?.emoji ?? '🎁'}</div>
                     {isFree && (
-                      <div style={{ fontSize: 10, lineHeight: 1.25, fontWeight: 600, textAlign: 'center' }}>FREE</div>
+                      <div style={{ fontSize: 10, lineHeight: 1.25, fontWeight: 600, textAlign: 'center' }}>보너스</div>
                     )}
                   </button>
                 )

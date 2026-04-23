@@ -71,7 +71,6 @@ export default function LoginPage() {
           <div className="login-hd" style={{ marginTop: 0, marginLeft: -45 }}>
             <div className="mini-logo" style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
               <img src="/tongyang_logo_main.png" alt="동양" style={{ height: 84, width: 'auto', display: 'block' }} />
-              <span>INTERNAL CONTROLS</span>
             </div>
           </div>
 

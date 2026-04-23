@@ -691,15 +691,18 @@ function NewsTabs({
           ))}
         </div>
       ) : (
-        /* 카드뉴스 — 우측 패널 내 3열 (원래 레이아웃 복원), 세로 스크롤 */
+        /* 카드뉴스 — 3열 (minmax 로 오버플로 방지), 프레임 넘으면 수평 아님 수직 스크롤 */
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 10,
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: 8,
             maxHeight: 1100,
             overflowY: 'auto',
+            overflowX: 'hidden',
             paddingRight: 6,
+            width: '100%',
+            boxSizing: 'border-box',
           }}
         >
           {currentItems.slice(0, 30).map((item, i) => (
@@ -713,7 +716,7 @@ function NewsTabs({
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                padding: '10px 10px 9px',
+                padding: '8px 8px 7px',
                 borderRadius: 10,
                 border: '1px solid var(--at-ink-hair)',
                 background: `linear-gradient(135deg, #F2F4F6 0%, #E8F2FE 55%, #BDD7F7 100%)`,
@@ -722,6 +725,8 @@ function NewsTabs({
                 transition: 'transform .15s ease, box-shadow .15s ease',
                 overflow: 'hidden',
                 position: 'relative',
+                minWidth: 0,
+                boxSizing: 'border-box',
               }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 22px -10px rgba(49,130,246,0.35)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
