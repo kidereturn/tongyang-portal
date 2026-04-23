@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import {
   Award,
   Bell,
@@ -8,6 +8,7 @@ import {
   Download,
   FileSpreadsheet,
   Image,
+  Loader2,
   Megaphone,
   PlayCircle,
   Settings,
@@ -16,21 +17,28 @@ import {
 } from 'lucide-react'
 import type { Tab } from './adminShared'
 
-import UserUploadTab from './tabs/UserUploadTab'
-import RcmUploadTab from './tabs/RcmUploadTab'
-import PopulationUploadTab from './tabs/PopulationUploadTab'
-import UsersTab from './tabs/UsersTab'
-import ActivitiesTab from './tabs/ActivitiesTab'
-import FilesTab from './tabs/FilesTab'
-import NotificationsTab from './tabs/NotificationsTab'
-import VideosTab from './tabs/VideosTab'
-import WebtoonTab from './tabs/WebtoonTab'
-import SettingsTab from './tabs/SettingsTab'
-import LoginLogsTab from './tabs/LoginLogsTab'
-import QuizResultsTab from './tabs/QuizResultsTab'
-import NoticesTab from './tabs/NoticesTab'
-import PointsTab from './tabs/PointsTab'
-import ChatbotDocsTab from './tabs/ChatbotDocsTab'
+// 모든 탭을 lazy-load — 기존에는 static import 로 1.1MB 번들. 이제 탭 클릭시에만 로드.
+const UserUploadTab = lazy(() => import('./tabs/UserUploadTab'))
+const RcmUploadTab = lazy(() => import('./tabs/RcmUploadTab'))
+const PopulationUploadTab = lazy(() => import('./tabs/PopulationUploadTab'))
+const UsersTab = lazy(() => import('./tabs/UsersTab'))
+const ActivitiesTab = lazy(() => import('./tabs/ActivitiesTab'))
+const FilesTab = lazy(() => import('./tabs/FilesTab'))
+const NotificationsTab = lazy(() => import('./tabs/NotificationsTab'))
+const VideosTab = lazy(() => import('./tabs/VideosTab'))
+const WebtoonTab = lazy(() => import('./tabs/WebtoonTab'))
+const SettingsTab = lazy(() => import('./tabs/SettingsTab'))
+const LoginLogsTab = lazy(() => import('./tabs/LoginLogsTab'))
+const QuizResultsTab = lazy(() => import('./tabs/QuizResultsTab'))
+const NoticesTab = lazy(() => import('./tabs/NoticesTab'))
+const PointsTab = lazy(() => import('./tabs/PointsTab'))
+const ChatbotDocsTab = lazy(() => import('./tabs/ChatbotDocsTab'))
+
+const TabFallback = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 80 }}>
+    <Loader2 size={20} className="animate-spin text-brand-500" />
+  </div>
+)
 
 const TABS: Array<{ key: Tab; label: string; icon: React.ElementType }> = [
   { key: 'upload-users', label: '사용자 초기 업로드', icon: Users },
@@ -101,21 +109,23 @@ export default function AdminPage() {
           })}
         </div>
 
-        {tab === 'upload-users' && <UserUploadTab onDone={refresh} />}
-        {tab === 'upload-rcm' && <RcmUploadTab onDone={refresh} />}
-        {tab === 'upload-population' && <PopulationUploadTab onDone={refresh} />}
-        {tab === 'users' && <UsersTab refreshKey={refreshKey} />}
-        {tab === 'activities' && <ActivitiesTab refreshKey={refreshKey} />}
-        {tab === 'files' && <FilesTab />}
-        {tab === 'notifications' && <NotificationsTab />}
-        {tab === 'videos' && <VideosTab />}
-        {tab === 'webtoon' && <WebtoonTab />}
-        {tab === 'settings' && <SettingsTab />}
-        {tab === 'login-logs' && <LoginLogsTab />}
-        {tab === 'quiz-results' && <QuizResultsTab />}
-        {tab === 'notices' && <NoticesTab />}
-        {tab === 'points' && <PointsTab />}
-        {tab === 'chatbot-docs' && <ChatbotDocsTab />}
+        <Suspense fallback={<TabFallback />}>
+          {tab === 'upload-users' && <UserUploadTab onDone={refresh} />}
+          {tab === 'upload-rcm' && <RcmUploadTab onDone={refresh} />}
+          {tab === 'upload-population' && <PopulationUploadTab onDone={refresh} />}
+          {tab === 'users' && <UsersTab refreshKey={refreshKey} />}
+          {tab === 'activities' && <ActivitiesTab refreshKey={refreshKey} />}
+          {tab === 'files' && <FilesTab />}
+          {tab === 'notifications' && <NotificationsTab />}
+          {tab === 'videos' && <VideosTab />}
+          {tab === 'webtoon' && <WebtoonTab />}
+          {tab === 'settings' && <SettingsTab />}
+          {tab === 'login-logs' && <LoginLogsTab />}
+          {tab === 'quiz-results' && <QuizResultsTab />}
+          {tab === 'notices' && <NoticesTab />}
+          {tab === 'points' && <PointsTab />}
+          {tab === 'chatbot-docs' && <ChatbotDocsTab />}
+        </Suspense>
       </div>
     </>
   )

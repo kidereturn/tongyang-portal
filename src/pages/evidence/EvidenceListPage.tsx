@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import {
   FileCheck2, Upload,
   Search, RefreshCw, Download,
   AlertCircle, Save, XCircle,
 } from 'lucide-react'
-import * as XLSX from 'xlsx'
+// xlsx 는 '엑셀 다운로드' 클릭시만 필요 → 동적 import (vendor-xlsx 421kB 지연 로드)
 import { supabase } from '../../lib/supabase'
 import { safeQuery, chunkedIn } from '../../lib/queryWithTimeout'
 import { useAuth } from '../../hooks/useAuth'
@@ -198,19 +198,24 @@ export default function EvidenceListPage() {
     setFiltered(r)
   }, [search, statusFilter, activities])
 
-  const stats = {
-    total:     activities.length,
-    pending:   activities.filter(a => a.submission_status === '미완료').length,
-    complete:  activities.filter(a => a.submission_status === '완료').length,
-    approved:  activities.filter(a => a.submission_status === '승인').length,
-    rejected:  activities.filter(a => a.submission_status === '반려').length,
-    modifyReq: activities.filter(a => a.review_status === '수정제출').length,
-    // 관리자 전용 — review_status 기준 집계 (홈과 동일)
-    notReviewed: activities.filter(a => (a.review_status ?? '미검토') === '미검토').length,
-    reviewing:   activities.filter(a => a.review_status === '검토중').length,
-    reviewDone:  activities.filter(a => a.review_status === '완료').length,
-  }
-  // 승인율 = 전체 증빙 중 승인자의 승인이 완료된 비율 (per user spec #11)
+  // 9개 filter call → 1회 loop 로 집계 + activities 배열 변경시만 재계산
+  const stats = useMemo(() => {
+    const out = { total: activities.length, pending: 0, complete: 0, approved: 0, rejected: 0, modifyReq: 0, notReviewed: 0, reviewing: 0, reviewDone: 0 }
+    for (const a of activities) {
+      switch (a.submission_status) {
+        case '미완료': out.pending++; break
+        case '완료':   out.complete++; break
+        case '승인':   out.approved++; break
+        case '반려':   out.rejected++; break
+      }
+      const rs = a.review_status ?? '미검토'
+      if (rs === '수정제출') out.modifyReq++
+      else if (rs === '검토중') out.reviewing++
+      else if (rs === '완료') out.reviewDone++
+      else out.notReviewed++
+    }
+    return out
+  }, [activities])
   const rate = stats.total > 0 ? Math.round(stats.approved / stats.total * 100) : 0
 
   function openUploadModal(act: Activity) { setSelectedActivity(act); setModalOpen(true) }
@@ -359,7 +364,8 @@ export default function EvidenceListPage() {
     }
   }
 
-  function downloadExcel() {
+  async function downloadExcel() {
+    const XLSX = await import('xlsx')
     const rows = filtered.map((a, i) => ({
       '번호': i + 1,
       '통제번호': a.control_code ?? '',

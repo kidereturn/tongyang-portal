@@ -17,7 +17,7 @@
  * - Promise.race 로 구현하므로 실제 네트워크 요청은 계속 진행될 수 있음.
  *   그러나 후속 상태 업데이트는 무시되므로 UI 관점에서는 안전하다.
  */
-export class QueryTimeoutError extends Error {
+class QueryTimeoutError extends Error {
   constructor(tag: string, ms: number) {
     super(`[queryWithTimeout] "${tag}" timed out after ${ms}ms`)
     this.name = 'QueryTimeoutError'

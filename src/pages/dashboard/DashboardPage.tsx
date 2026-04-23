@@ -60,19 +60,33 @@ function getSubmissionStatus(raw: string | null): 'pendingApproval' | 'approved'
   return 'draft'
 }
 
+// 매초 자체 rerender — 상위 Dashboard 는 변경 없음
+function LiveClock() {
+  const [now, setNow] = useState(new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  const dateLabel = now.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })
+  const timeLabel = now.toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return (
+    <>
+      <span>{dateLabel}</span>
+      <span style={{ fontFamily: 'var(--f-mono)', color: 'var(--at-blue)', fontSize: 13, fontWeight: 700, letterSpacing: '0.04em' }}>{timeLabel}</span>
+    </>
+  )
+}
+
 export default function DashboardPage() {
   const { profile } = useAuth()
   const [stats, setStats] = useState<Stats>({ total: 0, pendingApproval: 0, approved: 0, rejected: 0 })
   const [reviewStats, setReviewStats] = useState<ReviewStats>({ notReviewed: 0, reviewing: 0, done: 0, modifyReq: 0 })
-  const [, setDeptStats] = useState<DeptData[]>([])
   const [allDeptStats, setAllDeptStats] = useState<DeptData[]>([])
-  const [, setActivities] = useState<Activity[]>([])
   const [allActivities, setAllActivities] = useState<Activity[]>([])
   const [userCount, setUserCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [pointsRanking, setPointsRanking] = useState<RankingUser[]>([])
   const [notices, setNotices] = useState<NoticeRow[]>([])
-  const [, setBingoRecent] = useState(0)
   const [bingoRanking, setBingoRanking] = useState<Array<{ user_id: string; full_name?: string; team?: string; max_lines: number }>>([])
 
   useEffect(() => { void fetchAll() }, [profile?.id])
@@ -143,9 +157,7 @@ export default function DashboardPage() {
       }
       setStats(next)
       setReviewStats(rv)
-      setActivities(records.slice(0, 6))
       setAllActivities(records)
-      setDeptStats(Object.values(deptMap).filter(d => d.total > 0).sort((a, b) => b.total - a.total).slice(0, 8))
 
       // Fetch ALL activities org-wide for 전 부서 진행 현황 (admin or controller sees everything)
       try {
@@ -169,16 +181,7 @@ export default function DashboardPage() {
       setPointsRanking(((rankRes?.data ?? []) as RankingUser[]).slice(0, 5))
       setNotices((noticeRes?.data ?? []) as NoticeRow[])
 
-      // 오늘 풀린 빙고 칸 수
-      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
-      try {
-        const { count: bingoCnt } = await queryWithTimeout(
-          db.from('quiz_results').select('id', { count: 'exact', head: true }).gte('created_at', todayStart.toISOString()),
-          8_000,
-          'dashboard.bingoCount',
-        ) as { count: number | null }
-        setBingoRecent(Math.min(25, bingoCnt ?? 0))
-      } catch { /* silent */ }
+      // 오늘 풀린 빙고 칸 수 — 사용처 없음 (2026-04-24 dead state 제거)
 
       // 빙고 줄 완성 TOP 3
       try {
@@ -221,14 +224,7 @@ export default function DashboardPage() {
   const isAdmin = profile?.role === 'admin'
   const firstName = profile?.full_name ?? '사용자'
 
-  // Real-time clock
-  const [now, setNow] = useState(new Date())
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(id)
-  }, [])
-  const dateLabel = now.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })
-  const timeLabel = now.toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  // Clock 은 하위 컴포넌트(LiveClock)로 분리 — 매초 전체 dashboard rerender 방지
 
   return (
     <div>
@@ -238,8 +234,7 @@ export default function DashboardPage() {
         <div className="at-hero-content">
           <div>
             <div className="at-eyebrow at-hero-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-              <span>{dateLabel}</span>
-              <span style={{ fontFamily: 'var(--f-mono)', color: 'var(--at-blue)', fontSize: 13, fontWeight: 700, letterSpacing: '0.04em' }}>{timeLabel}</span>
+              <LiveClock />
               <span>·</span>
               <span>2026 Cycle 07th in Progress</span>
             </div>

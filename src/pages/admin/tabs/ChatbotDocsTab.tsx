@@ -2,12 +2,24 @@ import { useEffect, useState, useRef } from 'react'
 import { BookOpen, Edit3, FileText, FileUp, Loader2, Plus, Search, Trash2, X, Save, Eye, EyeOff } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../../lib/supabase'
-import * as pdfjsLib from 'pdfjs-dist'
-// @ts-expect-error — mammoth/mammoth.browser has no TypeScript types
-import mammoth from 'mammoth/mammoth.browser'
 
-// PDF.js worker 설정 (CDN)
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`
+// pdfjs-dist 와 mammoth 는 파일 업로드시만 필요 → 동적 import (번들 913kB → ~30kB)
+type PdfjsModule = typeof import('pdfjs-dist')
+let _pdfjsLibPromise: Promise<PdfjsModule> | null = null
+async function loadPdfjs(): Promise<PdfjsModule> {
+  if (!_pdfjsLibPromise) {
+    _pdfjsLibPromise = import('pdfjs-dist').then(m => {
+      m.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${m.version}/pdf.worker.min.mjs`
+      return m
+    })
+  }
+  return _pdfjsLibPromise
+}
+async function loadMammoth(): Promise<any> {
+  // @ts-expect-error — mammoth/mammoth.browser has no TypeScript types
+  const m = await import('mammoth/mammoth.browser')
+  return m.default ?? m
+}
 
 interface DocRow {
   id: string
@@ -26,6 +38,7 @@ const CATEGORIES = [
 
 // 클라이언트 측 PDF 텍스트 추출 (pdfjs-dist, API 호출 없음)
 async function extractPdfText(file: File): Promise<{ text: string; model: string }> {
+  const pdfjsLib = await loadPdfjs()
   const buffer = await file.arrayBuffer()
   const pdf = await pdfjsLib.getDocument({ data: buffer }).promise
   const pages: string[] = []
@@ -267,6 +280,7 @@ export default function ChatbotDocsTab() {
     setBatchResults([])
     const results: Array<{ name: string; ok: boolean; error?: string }> = []
     const db = supabase as any
+    const mammoth = await loadMammoth()
 
     for (let i = 0; i < docxFiles.length; i++) {
       const file = docxFiles[i]

@@ -4,7 +4,11 @@ import { supabase } from '../../../lib/supabase'
 import { type FileRow } from '../adminShared'
 import { useToast } from '../../../components/Toast'
 import clsx from 'clsx'
-import JSZip from 'jszip'
+// JSZip 은 일괄 다운로드시에만 필요 → 동적 import (번들 ~100kB 감소)
+async function loadJSZip() {
+  const m = await import('jszip')
+  return m.default
+}
 
 type ApprovalInfo = {
   activity_id: string
@@ -215,6 +219,7 @@ export default function FilesTab() {
     const failureReasons: string[] = []
 
     try {
+      const JSZip = await loadJSZip()
       const zip = new JSZip()
       // Per-folder duplicate counter so same filename under different unique_keys doesn't collide.
       const nameCountByFolder: Record<string, Record<string, number>> = {}

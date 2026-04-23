@@ -14,7 +14,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import clsx from 'clsx'
-import * as XLSX from 'xlsx'
+// xlsx 는 엑셀 다운로드 버튼 클릭시만 필요 → 동적 import
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 
@@ -960,7 +960,8 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
               닫기
             </button>
             <button
-              onClick={() => {
+              onClick={async () => {
+                const XLSX = await import('xlsx')
                 const rows = items.map((item, idx) => ({
                   '번호': idx + 1,
                   '고유키2': item.unique_key_2 ?? '-',
