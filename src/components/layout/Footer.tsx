@@ -63,11 +63,11 @@ export default function Footer() {
       <div style={{ maxWidth: 1400, margin: '0 auto', padding: '40px 40px 28px' }}>
         {/* 상단 열: 로고(좌) + 상단 메뉴(우) */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', paddingBottom: 20 }}>
-          {/* Logo — 300% 확대 (36 → 108) */}
+          {/* Logo — 300% 확대 (36 → 108), 좌측 5cm 이동 */}
           <img
             src="/tongyang_logo_main.png"
             alt="TONGYANG"
-            style={{ height: 108, width: 'auto', filter: 'brightness(0) invert(1) opacity(0.95)' }}
+            style={{ height: 108, width: 'auto', filter: 'brightness(0) invert(1) opacity(0.95)', marginLeft: -189 }}
           />
 
           {/* 상단 메뉴 */}
@@ -90,7 +90,8 @@ export default function Footer() {
 
         {/* 중간 열: 주소 + 연락처 + 담당자 + 패밀리사이트 */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 12, color: TEXT_MUTED, lineHeight: 1.7 }}>
+          {/* 주소 + 담당자 — 좌측 5cm 이동 */}
+          <div style={{ fontSize: 12, color: TEXT_MUTED, lineHeight: 1.7, marginLeft: -189 }}>
             <div>
               서울특별시 영등포구 국제금융로2길 24 (여의도동)
               &nbsp;&nbsp;&nbsp;
