@@ -438,6 +438,7 @@ export default function EvidenceListPage() {
                 <col style={{ width: 64 }} />   {/* 승인 */}
                 {profile?.role === 'admin' && <col style={{ width: 220 }} />}
                 <col style={{ width: 70 }} />   {/* 액션 */}
+                <col style={{ width: 76 }} />   {/* 우측 스페이서: 담당부서~액션 2cm 좌측 이동 */}
               </colgroup>
               <thead>
                 <tr>
@@ -452,6 +453,7 @@ export default function EvidenceListPage() {
                   <th>승인</th>
                   {profile?.role === 'admin' && <th>검토결과</th>}
                   <th className="num">액션</th>
+                  <th aria-hidden="true"></th>
                 </tr>
               </thead>
               <tbody>
@@ -552,6 +554,7 @@ export default function EvidenceListPage() {
                           <span style={{ color: 'var(--at-ink-faint)', fontSize: 11 }}>-</span>
                         )}
                       </td>
+                      <td aria-hidden="true"></td>
                     </tr>
                   )
                 })}
