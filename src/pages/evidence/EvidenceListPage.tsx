@@ -426,20 +426,19 @@ export default function EvidenceListPage() {
           ) : (
           <div className="tbl-scroll">
             <table className="at-table compact" style={{ width: '100%', tableLayout: 'fixed' }}>
-              {/* 사용자 요청: 통제활동명 우측 2.5cm 확장, 담당부서 좌측 3cm 축소
-                   1cm ≈ 37.8px 기준 → 활동명 +95px, 담당부서 -113px(축소 한계로 분산) */}
+              {/* 사용자 요청: 통제활동명 우측 2.5cm 확장, 담당부서 좌측 3cm 축소 */}
               <colgroup>
-                <col style={{ width: 80 }} />   {/* 통제번호 */}
+                <col style={{ width: 110 }} />  {/* 통제번호 (TR.05.W10.C10 풀네임 수용) */}
                 <col />                         {/* 통제활동명 (flex 확장) */}
-                <col style={{ width: 54 }} />   {/* 담당부서 (72→54, -3cm 에 해당하는 만큼 축소) */}
-                <col style={{ width: 52 }} />   {/* 담당자 (60→52) */}
-                <col style={{ width: 52 }} />   {/* 승인자 (60→52) */}
-                <col style={{ width: 44 }} />   {/* 건수 (50→44) */}
-                <col style={{ width: 38 }} />   {/* KPI (42→38) */}
-                <col style={{ width: 60 }} />   {/* 상신 */}
-                <col style={{ width: 60 }} />   {/* 승인 */}
+                <col style={{ width: 58 }} />   {/* 담당부서 (좁게) */}
+                <col style={{ width: 56 }} />   {/* 담당자 */}
+                <col style={{ width: 56 }} />   {/* 승인자 */}
+                <col style={{ width: 46 }} />   {/* 건수 */}
+                <col style={{ width: 40 }} />   {/* KPI */}
+                <col style={{ width: 64 }} />   {/* 상신 */}
+                <col style={{ width: 64 }} />   {/* 승인 */}
                 {profile?.role === 'admin' && <col style={{ width: 220 }} />}
-                <col style={{ width: 68 }} />   {/* 액션 */}
+                <col style={{ width: 70 }} />   {/* 액션 */}
               </colgroup>
               <thead>
                 <tr>
