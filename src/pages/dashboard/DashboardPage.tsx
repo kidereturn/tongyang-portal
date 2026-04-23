@@ -261,29 +261,13 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Right side: 3D 인트로 영상 + 공지사항 */}
+          {/* Right side: 공지사항 & 매뉴얼 */}
           <div className="at-hero-art ivory" style={{ position: 'relative', padding: 0, display: 'flex', alignItems: 'stretch' }}>
             <div className="at-card" style={{ width: '100%', padding: 28, background: 'var(--at-white)', border: '1px solid var(--at-ink-hair)', borderRadius: 16, boxShadow: 'var(--sh-card)', minHeight: '100%' }}>
-              {/* 3D 영상 배너 — 공지사항 상단 */}
-              <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 10', borderRadius: 12, overflow: 'hidden', marginBottom: 16, background: '#0F172A' }}>
-                <video
-                  src="/3D.mp4"
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(15,23,42,0.2) 0%, rgba(49,130,246,0.1) 100%)', pointerEvents: 'none' }} />
-                <div style={{ position: 'absolute', bottom: 12, left: 14, fontSize: 10, fontWeight: 700, color: '#fff', letterSpacing: '0.12em', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                  ICFR · POWERED BY TECH
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <div>
-                  <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>NOTICES</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--at-ink)', marginTop: 2 }}>공지사항 &amp; 매뉴얼</div>
+                  <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>NOTICES · MANUALS</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--at-ink)', marginTop: 2 }}>공지사항 &amp; 매뉴얼</div>
                 </div>
                 <Link
                   to="/notices-all"
