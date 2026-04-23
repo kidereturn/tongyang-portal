@@ -568,7 +568,6 @@ export default function BingoPage() {
                 const tpl = BINGO_CELL_TEMPLATES[idx]
                 const answered = answers[idx]
                 const isBingoLine = bingoIndices.has(idx)
-                const isFree = false  // FREE 셀 제거 — 모든 칸 동일 처리
                 const isCorrect = answered?.correct
                 const isWrong = answered && !answered.correct
 
