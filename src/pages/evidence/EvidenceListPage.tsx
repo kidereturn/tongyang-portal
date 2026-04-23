@@ -426,11 +426,10 @@ export default function EvidenceListPage() {
           ) : (
           <div className="tbl-scroll">
             <table className="at-table compact" style={{ width: '100%', tableLayout: 'fixed' }}>
-              {/* 사용자 요청: 통제활동명 우측 2.5cm 확장, 담당부서 좌측 3cm 축소 */}
               <colgroup>
                 <col style={{ width: 110 }} />  {/* 통제번호 (TR.05.W10.C10 풀네임 수용) */}
-                <col />                         {/* 통제활동명 (flex 확장) */}
-                <col style={{ width: 58 }} />   {/* 담당부서 (좁게) */}
+                <col />                         {/* 통제활동명 (flex) */}
+                <col style={{ width: 247 }} />  {/* 담당부서 — 좌측 5cm 확장 (58+189) */}
                 <col style={{ width: 56 }} />   {/* 담당자 */}
                 <col style={{ width: 56 }} />   {/* 승인자 */}
                 <col style={{ width: 46 }} />   {/* 건수 */}
@@ -532,7 +531,7 @@ export default function EvidenceListPage() {
                           </td>
                         )
                       })()}
-                      <td className="num">
+                      <td className="num" style={{ paddingRight: 38 }}>
                         {canUpload ? (
                           <button
                             onClick={() => openUploadModal(act)}
