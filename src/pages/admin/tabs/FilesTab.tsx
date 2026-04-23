@@ -19,6 +19,12 @@ const STATUS_OPTIONS = [
   { key: 'none',     label: '미상신',   icon: FileCheck2, color: 'text-warm-400' },
 ] as const
 
+type ActivityInfo = {
+  controller_name: string | null
+  department: string | null
+  review_status: string | null
+}
+
 export default function FilesTab() {
   const toast = useToast()
   const [files, setFiles] = useState<FileRow[]>([])
@@ -27,6 +33,8 @@ export default function FilesTab() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [approvalMap, setApprovalMap] = useState<Record<string, string>>({})
   const [activityKeyMap, setActivityKeyMap] = useState<Record<string, string>>({})
+  const [activityInfo, setActivityInfo] = useState<Record<string, ActivityInfo>>({})
+  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [downloading, setDownloading] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState('')
 
@@ -48,16 +56,19 @@ export default function FilesTab() {
         if (f.activity_id && f.unique_key) keyMap[f.activity_id] = f.unique_key
       }
 
-      // Also load activity unique_keys for files without them
+      // Also load activity unique_keys + controller/dept/review_status for all files
       const activityIds = [...new Set(rows.filter(f => f.activity_id).map(f => (f as any).activity_id))]
       if (activityIds.length > 0) {
         const { data: activities } = await db
           .from('activities')
-          .select('id, unique_key, control_code')
+          .select('id, unique_key, control_code, controller_name, department, review_status')
           .in('id', activityIds)
+        const infoMap: Record<string, ActivityInfo> = {}
         for (const a of activities ?? []) {
           keyMap[a.id] = a.unique_key ?? a.control_code ?? ''
+          infoMap[a.id] = { controller_name: a.controller_name ?? null, department: a.department ?? null, review_status: a.review_status ?? null }
         }
+        setActivityInfo(infoMap)
 
         // Load approval statuses
         const { data: approvals } = await db
@@ -188,13 +199,15 @@ export default function FilesTab() {
   })
 
   async function handleBulkDownload() {
-    if (filtered.length === 0) return
+    // 체크된 파일만 다운로드 (없으면 현재 필터된 전체)
+    const target = selected.size > 0 ? filtered.filter(f => selected.has(f.id)) : filtered
+    if (target.length === 0) return
     setDownloading(true)
-    setDownloadProgress(`0/${filtered.length} 파일 준비 중...`)
+    setDownloadProgress(`0/${target.length} 파일 준비 중...`)
 
     const toastId = toast.loading(
       '일괄 다운로드 준비 중...',
-      `총 ${filtered.length.toLocaleString()}개 파일을 ZIP으로 압축합니다`,
+      `총 ${target.length.toLocaleString()}개 파일을 ZIP으로 압축합니다`,
     )
 
     let completed = 0
@@ -208,8 +221,8 @@ export default function FilesTab() {
 
       // Download files in batches of 5
       const batchSize = 5
-      for (let i = 0; i < filtered.length; i += batchSize) {
-        const batch = filtered.slice(i, i + batchSize)
+      for (let i = 0; i < target.length; i += batchSize) {
+        const batch = target.slice(i, i + batchSize)
         const results = await Promise.allSettled(
           batch.map(async (file) => {
             const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(file.file_path, 3600)
@@ -247,11 +260,11 @@ export default function FilesTab() {
             failureReasons.push(`${buildDownloadName(f)}: ${reason}`)
           }
         })
-        setDownloadProgress(`${completed}/${filtered.length} 파일 완료${failed > 0 ? ` (실패 ${failed})` : ''}`)
+        setDownloadProgress(`${completed}/${target.length} 파일 완료${failed > 0 ? ` (실패 ${failed})` : ''}`)
         toast.update(toastId, {
           kind: 'loading',
           title: '일괄 다운로드 진행 중...',
-          description: `${completed.toLocaleString()}/${filtered.length.toLocaleString()} 완료${failed > 0 ? ` · 실패 ${failed}건` : ''}`,
+          description: `${completed.toLocaleString()}/${target.length.toLocaleString()} 완료${failed > 0 ? ` · 실패 ${failed}건` : ''}`,
         })
       }
 
@@ -325,10 +338,10 @@ export default function FilesTab() {
         </div>
         <button
           onClick={handleBulkDownload}
-          disabled={downloading || filtered.length === 0}
+          disabled={downloading || (selected.size === 0 && filtered.length === 0)}
           className={clsx(
             'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all',
-            downloading || filtered.length === 0
+            downloading || (selected.size === 0 && filtered.length === 0)
               ? 'bg-warm-100 text-warm-400 cursor-not-allowed'
               : 'bg-brand-800 text-white hover:bg-brand-900 shadow-sm'
           )}
@@ -338,7 +351,7 @@ export default function FilesTab() {
           ) : (
             <Package size={15} />
           )}
-          {downloading ? downloadProgress : `일괄 다운로드 (${filtered.length}건)`}
+          {downloading ? downloadProgress : (selected.size > 0 ? `선택 ${selected.size}건 다운로드` : `전체 다운로드 (${filtered.length}건)`)}
         </button>
       </div>
 
@@ -376,9 +389,23 @@ export default function FilesTab() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>파일명 (다운로드 시 UNIQUE KEY 접두사)</th>
+                <th className="text-center" style={{ width: 40 }}>
+                  <input
+                    type="checkbox"
+                    aria-label="전체 선택"
+                    checked={filtered.length > 0 && filtered.every(f => selected.has(f.id))}
+                    onChange={e => {
+                      if (e.target.checked) setSelected(new Set(filtered.map(f => f.id)))
+                      else setSelected(new Set())
+                    }}
+                  />
+                </th>
+                <th>파일명</th>
                 <th>고유키</th>
+                <th>담당부서</th>
                 <th>업로드 사용자</th>
+                <th>승인자</th>
+                <th>검토결과</th>
                 <th>승인상태</th>
                 <th>업로드일</th>
                 <th className="text-center">다운로드</th>
@@ -387,9 +414,25 @@ export default function FilesTab() {
             <tbody>
               {filtered.map(file => {
                 const approvalStatus = getFileApprovalStatus(file)
+                const actId = (file as any).activity_id as string | undefined
+                const info = actId ? activityInfo[actId] : null
+                const isChecked = selected.has(file.id)
                 return (
-                  <tr key={file.id}>
-                    <td className="max-w-[320px]">
+                  <tr key={file.id} className={isChecked ? 'bg-brand-50' : ''}>
+                    <td className="text-center">
+                      <input
+                        type="checkbox"
+                        aria-label="선택"
+                        checked={isChecked}
+                        onChange={e => {
+                          const next = new Set(selected)
+                          if (e.target.checked) next.add(file.id)
+                          else next.delete(file.id)
+                          setSelected(next)
+                        }}
+                      />
+                    </td>
+                    <td className="max-w-[280px]">
                       <div className="truncate text-xs text-brand-700" title={buildDownloadName(file)}>
                         {file.original_file_name ?? file.file_name}
                       </div>
@@ -404,7 +447,15 @@ export default function FilesTab() {
                         {getFileUniqueKey(file) || '-'}
                       </code>
                     </td>
+                    <td className="text-xs text-warm-600">{info?.department ?? '-'}</td>
                     <td className="text-xs text-warm-600">{file.owner?.full_name ?? '-'}</td>
+                    <td className="text-xs text-warm-600">{info?.controller_name ?? '-'}</td>
+                    <td className="text-xs">
+                      {info?.review_status === '완료' ? <span className="badge-green">완료</span>
+                        : info?.review_status === '수정제출' ? <span className="badge-yellow">수정제출</span>
+                        : info?.review_status === '검토중' ? <span className="badge-yellow">검토중</span>
+                        : <span className="text-warm-400">{info?.review_status ?? '-'}</span>}
+                    </td>
                     <td className="text-center">
                       {approvalStatus === 'approved' ? (
                         <span className="badge-green">승인완료</span>
@@ -433,7 +484,7 @@ export default function FilesTab() {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-sm text-warm-400">
+                  <td colSpan={10} className="text-center py-12 text-sm text-warm-400">
                     해당 조건의 파일이 없습니다.
                   </td>
                 </tr>
