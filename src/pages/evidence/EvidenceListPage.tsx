@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../../lib/supabase'
-import { safeQuery, queryWithTimeout } from '../../lib/queryWithTimeout'
+import { safeQuery, chunkedIn } from '../../lib/queryWithTimeout'
 import { useAuth } from '../../hooks/useAuth'
 import clsx from 'clsx'
 import EvidenceUploadModal from './EvidenceUploadModal'
@@ -89,23 +89,24 @@ export default function EvidenceListPage() {
       const activityIds = rows.map((r: Activity) => r.id)
       const uniqueKeys = rows.map((r: Activity) => r.unique_key).filter(Boolean) as string[]
       if (activityIds.length > 0) {
-        const batch = Promise.all([
-          db.from('evidence_uploads').select('activity_id').in('activity_id', activityIds),
-          db.from('approval_requests').select('activity_id, status').in('activity_id', activityIds),
+        // URL 길이 초과 (PostgREST 8KB 제한) 방지 — 특히 한글 unique_key 400+ 건에서 400 에러
+        // 모든 IN 쿼리를 chunk(100) 로 쪼개어 순차 실행
+        const [uploadsRes, approvalsRes, populationRes] = await Promise.all([
+          chunkedIn<{ activity_id: string }>(
+            (chunk) => db.from('evidence_uploads').select('activity_id').in('activity_id', chunk),
+            activityIds, 100, 12_000, 'evidence.uploads',
+          ),
+          chunkedIn<{ activity_id: string; status: string }>(
+            (chunk) => db.from('approval_requests').select('activity_id, status').in('activity_id', chunk),
+            activityIds, 100, 12_000, 'evidence.approvals',
+          ),
           uniqueKeys.length > 0
-            ? db.from('population_items').select('unique_key').in('unique_key', uniqueKeys)
-            : Promise.resolve({ data: [] as { unique_key: string }[] }),
+            ? chunkedIn<{ unique_key: string }>(
+                (chunk) => db.from('population_items').select('unique_key').in('unique_key', chunk),
+                uniqueKeys, 50, 12_000, 'evidence.population',
+              )
+            : Promise.resolve({ data: [] as { unique_key: string }[], error: null }),
         ])
-        let uploadsRes: { data: Array<{ activity_id: string }> | null } = { data: [] }
-        let approvalsRes: { data: Array<{ activity_id: string; status: string }> | null } = { data: [] }
-        let populationRes: { data: Array<{ unique_key: string }> | null } = { data: [] }
-        try {
-          const result = await queryWithTimeout(batch, 12_000, 'evidence.batch')
-          ;[uploadsRes, approvalsRes, populationRes] = result as [typeof uploadsRes, typeof approvalsRes, typeof populationRes]
-        } catch (batchErr) {
-          console.warn('[evidence] batch timeout:', batchErr)
-          // 배치 실패해도 activities 는 이미 표시되므로 UI 가 멈추지 않는다
-        }
         const counts: Record<string, number> = {}
         for (const u of uploadsRes.data ?? []) {
           counts[u.activity_id] = (counts[u.activity_id] ?? 0) + 1

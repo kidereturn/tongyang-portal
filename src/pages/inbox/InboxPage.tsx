@@ -4,7 +4,7 @@ import {
   RefreshCw, Eye, Loader2, CheckSquare, Square
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { safeQuery } from '../../lib/queryWithTimeout'
+import { safeQuery, chunkedIn } from '../../lib/queryWithTimeout'
 import { useAuth } from '../../hooks/useAuth'
 import clsx from 'clsx'
 import EvidenceUploadModal from '../evidence/EvidenceUploadModal'
@@ -88,10 +88,10 @@ export default function InboxPage() {
 
       const actByKey: Record<string, ApprovalItem['activity']> = {}
       if (missingKeys.length > 0) {
-        const { data: acts } = await safeQuery<Array<NonNullable<ApprovalItem['activity']>>>(
-          db.from('activities').select('*').in('unique_key', missingKeys),
-          10_000,
-          'inbox.activities',
+        // 한글 unique_key IN 쿼리는 URL 초과 위험 — chunk 50건 단위
+        const { data: acts } = await chunkedIn<NonNullable<ApprovalItem['activity']>>(
+          (chunk) => db.from('activities').select('*').in('unique_key', chunk),
+          missingKeys, 50, 10_000, 'inbox.activities',
         )
         ;(acts ?? []).forEach((a) => {
           if (a.unique_key) actByKey[a.unique_key] = a
