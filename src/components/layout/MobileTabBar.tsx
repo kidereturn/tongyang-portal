@@ -24,8 +24,10 @@ import { useAuth } from '../../hooks/useAuth'
 
 const MAIN_TABS = [
   { to: '/dashboard', icon: LayoutDashboard, label: '홈' },
-  { to: '/evidence', icon: FileCheck2, label: '증빙', roles: ['admin', 'owner'] },
-  { to: '/inbox', icon: Inbox, label: '승인함', roles: ['admin', 'controller'] },
+  // 증빙 — 모든 역할 접근 (담당자/승인자/관리자)
+  { to: '/evidence', icon: FileCheck2, label: '증빙', roles: ['admin', 'owner', 'controller'] },
+  // 승인함 — 관리자만 (승인자는 증빙 메뉴에서 바로 승인/반려)
+  { to: '/inbox', icon: Inbox, label: '승인함', roles: ['admin'] },
   { to: '/learning', icon: BarChart2, label: '학습현황' },
 ]
 

@@ -477,16 +477,23 @@ export default function EvidenceListPage() {
               <input placeholder="통제번호·활동명·담당자 검색" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
             <div className="filter-chips">
-              {[
-                { key: 'all', label: '전체', count: stats.total },
-                { key: '미완료', label: '미완료', count: stats.pending },
-                { key: '완료', label: '상신완료', count: stats.complete },
-                { key: '승인', label: '승인완료', count: stats.approved },
-                { key: '반려', label: '반려', count: stats.rejected },
-                ...(profile?.role === 'admin' || profile?.role === 'owner'
-                  ? [{ key: 'modifyReq', label: '수정제출', count: stats.modifyReq }]
-                  : []),
-              ].map(f => (
+              {(profile?.role === 'admin'
+                ? [
+                    // 관리자: 홈 화면과 동일 — review_status 기준 4 chips
+                    { key: 'notReviewed', label: '미검토', count: stats.notReviewed },
+                    { key: 'reviewing',   label: '검토중', count: stats.reviewing },
+                    { key: 'reviewDone',  label: '완료',   count: stats.reviewDone },
+                    { key: 'modifyReq',   label: '수정제출', count: stats.modifyReq },
+                  ]
+                : [
+                    // 담당자 / 승인자: 상단 sum-strip 과 동일 — 5 chips (사용자 스펙)
+                    { key: 'all',       label: '전체',     count: stats.total },
+                    { key: '완료',      label: '상신완료', count: stats.complete },
+                    { key: '승인',      label: '승인완료', count: stats.approved },
+                    { key: '반려',      label: '반려',     count: stats.rejected },
+                    { key: 'modifyReq', label: '수정제출', count: stats.modifyReq },
+                  ]
+              ).map(f => (
                 <span
                   key={f.key}
                   className={clsx('filter-chip', statusFilter === f.key && 'active')}
