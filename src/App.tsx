@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { useAuth } from './hooks/useAuth'
 import Layout from './components/layout/Layout'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -7,6 +7,25 @@ import NetworkGuard from './components/NetworkGuard'
 import IntroGate from './components/IntroGate'
 // LoginPage is NOT lazy so it's ready the instant the intro video finishes.
 import LoginPage from './pages/auth/LoginPage'
+
+// Idle prefetch — 로그인 후 자주 이동하는 페이지를 브라우저가 idle 할 때 미리 받음
+// 탭 전환 시 네트워크 대기 없이 즉시 표시
+function PrefetchWarmer() {
+  useEffect(() => {
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback
+    const run = () => {
+      // 가장 많이 사용되는 페이지부터 prefetch (중요도 순)
+      void import('./pages/evidence/EvidenceListPage')
+      void import('./pages/extra/CoursesPage')
+      void import('./pages/inbox/InboxPage')
+      void import('./pages/extra/LearningPage')
+      void import('./pages/extra/NewsPage')
+    }
+    if (ric) ric(run, { timeout: 2000 })
+    else setTimeout(run, 1500)
+  }, [])
+  return null
+}
 
 // Retry wrapper: on chunk-load failure, retry up to 2 times then hard reload
 function lazyRetry<T extends { default: React.ComponentType<any> }>(
@@ -100,7 +119,7 @@ export default function App() {
               }
             />
 
-            <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+            <Route path="/" element={<ProtectedRoute><><PrefetchWarmer /><Layout /></></ProtectedRoute>}>
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard"  element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
               <Route path="evidence"   element={<ErrorBoundary><EvidenceListPage /></ErrorBoundary>} />

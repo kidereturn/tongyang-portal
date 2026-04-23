@@ -7,6 +7,26 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="theme-color" content="#3182F6" />
+
+    <!-- DNS prefetch + preconnect: 외부 서비스 첫 요청 100-200ms 단축 -->
+    <link rel="preconnect" href="https://okaqopssfjjysgyrntnc.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://okaqopssfjjysgyrntnc.supabase.co" />
+    <link rel="dns-prefetch" href="https://api.ipify.org" />
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
+
+    <!-- Pretendard 폰트 preload — FOUT / FOIT 방지 -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+    />
+
     <title>(주)동양 내부회계 PORTAL</title>
     <style>
       #splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:#F2F4F6;transition:opacity .4s ease}
