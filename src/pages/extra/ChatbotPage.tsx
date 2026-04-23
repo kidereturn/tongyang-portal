@@ -34,6 +34,10 @@ async function callChatbotAPI(messages: Message[]): Promise<{ reply: string; mod
   const data = await response.json()
 
   if (!response.ok || !data.ok) {
+    // 서버에서 quotaExceeded + userMessage 를 보낸 경우 그 메시지를 사용 (사용자 친화적)
+    if (data.quotaExceeded && data.userMessage) {
+      throw new Error(data.userMessage)
+    }
     throw new Error(data.error ?? 'AI 서비스 오류')
   }
 

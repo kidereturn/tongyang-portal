@@ -261,15 +261,30 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Right side: 공지사항 & 매뉴얼 (large card that covers the whole hero-art space) */}
+          {/* Right side: 3D 인트로 영상 + 공지사항 */}
           <div className="at-hero-art ivory" style={{ position: 'relative', padding: 0, display: 'flex', alignItems: 'stretch' }}>
             <div className="at-card" style={{ width: '100%', padding: 28, background: 'var(--at-white)', border: '1px solid var(--at-ink-hair)', borderRadius: 16, boxShadow: 'var(--sh-card)', minHeight: '100%' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div>
-                  <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>NOTICES · MANUALS</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--at-ink)', marginTop: 2 }}>공지사항 &amp; 매뉴얼</div>
+              {/* 3D 영상 배너 — 공지사항 상단 */}
+              <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 10', borderRadius: 12, overflow: 'hidden', marginBottom: 16, background: '#0F172A' }}>
+                <video
+                  src="/3D.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(15,23,42,0.2) 0%, rgba(49,130,246,0.1) 100%)', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', bottom: 12, left: 14, fontSize: 10, fontWeight: 700, color: '#fff', letterSpacing: '0.12em', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                  ICFR · POWERED BY TECH
                 </div>
-                {/* 현재 창에서 이동 (사용자 요청) */}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--at-ink-faint)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>NOTICES</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--at-ink)', marginTop: 2 }}>공지사항 &amp; 매뉴얼</div>
+                </div>
                 <Link
                   to="/notices-all"
                   style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--at-blue)', fontWeight: 600, textDecoration: 'none' }}
@@ -404,9 +419,9 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* 검토 상태 타일 — 미검토 / 검토중 / 완료 / 수정제출 */}
-          {/* 관리자·담당자에게만 노출 (수정제출 액션 대상) */}
-          {(profile?.role === 'admin' || profile?.role === 'owner') && (
+          {/* 검토 상태 — 역할별 노출 차별화 */}
+          {isAdmin ? (
+            /* 관리자: 미검토 / 검토중 / 완료 / 수정제출 4타일 */
             <div className="at-grid" style={{ marginTop: 16, gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
               {(() => {
                 const rvTotal = reviewStats.notReviewed + reviewStats.reviewing + reviewStats.done + reviewStats.modifyReq
@@ -443,20 +458,45 @@ export default function DashboardPage() {
                       <div className="kpi-value" style={{ color: 'var(--at-green)' }}>{reviewStats.done}<span className="unit">건</span></div>
                       <div className="kpi-sub">비율 {pct(reviewStats.done)}%</div>
                     </div>
-                    <Link to="/evidence?status=modifyReq" className="at-kpi" style={{ textDecoration: 'none' }}>
+                    <Link to="/evidence?status=modifyReq" className="at-kpi at-kpi-pulse" style={{ textDecoration: 'none', borderColor: '#F87171', boxShadow: '0 0 0 2px rgba(248,113,113,0.1)' }}>
                       <div className="kpi-label">
-                        <div className="kpi-icon" style={{ background: '#FEF3C7', color: '#92400E' }}>
+                        <div className="kpi-icon" style={{ background: '#FEE2E2', color: '#DC2626' }}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" /></svg>
                         </div>
                         검토 · 수정제출
                       </div>
-                      <div className="kpi-value" style={{ color: '#92400E' }}>{reviewStats.modifyReq}<span className="unit">건</span></div>
-                      <div className="kpi-sub">비율 {pct(reviewStats.modifyReq)}% · {profile?.role === 'admin' ? '담당자에게 수정 요청' : '수정 후 재상신 필요'}</div>
+                      <div className="kpi-value" style={{ color: '#DC2626' }}>{reviewStats.modifyReq}<span className="unit">건</span></div>
+                      <div className="kpi-sub">비율 {pct(reviewStats.modifyReq)}% · 담당자에게 수정 요청</div>
                     </Link>
                   </>
                 )
               })()}
             </div>
+          ) : (
+            /* 담당자·승인자: 수정제출 단일 타일만, 빨간색+반짝 */
+            reviewStats.modifyReq > 0 && (
+              <div className="at-grid" style={{ marginTop: 16, gridTemplateColumns: '1fr', gap: 16 }}>
+                <Link
+                  to="/evidence?status=modifyReq"
+                  className="at-kpi at-kpi-pulse"
+                  style={{
+                    textDecoration: 'none',
+                    borderColor: '#DC2626',
+                    boxShadow: '0 0 0 3px rgba(220,38,38,0.15)',
+                    maxWidth: 420,
+                  }}
+                >
+                  <div className="kpi-label">
+                    <div className="kpi-icon" style={{ background: '#FEE2E2', color: '#DC2626' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                    </div>
+                    수정 제출
+                  </div>
+                  <div className="kpi-value" style={{ color: '#DC2626', fontWeight: 800 }}>{reviewStats.modifyReq}<span className="unit">건</span></div>
+                  <div className="kpi-sub" style={{ color: '#DC2626' }}>관리자가 수정을 요청한 건입니다. 확인 후 재상신해주세요.</div>
+                </Link>
+              </div>
+            )
           )}
         </div>
       </section>
@@ -546,38 +586,80 @@ export default function DashboardPage() {
             </div>
 
             <div>
-              {/* 빙고 현황 → 원형 승인율 (총 증빙 대비 승인율) */}
+              {/* 전체 통제활동 진행 파이 — 승인/결재대기/미작성/반려/수정 5개 세그먼트 */}
               <Link to="/evidence" className="at-card" style={{ padding: 28, marginBottom: 16, display: 'block', textDecoration: 'none' }}>
                 <div className="at-card-head" style={{ marginBottom: 16 }}>
-                  <div className="at-card-title">승인율 현황</div>
-                  <span className="at-tag blue">{stats.approved}/{stats.total}</span>
+                  <div className="at-card-title">진행 현황 (전체 {stats.total}건)</div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 0' }}>
                   {(() => {
-                    const size = 160
-                    const stroke = 14
-                    const radius = (size - stroke) / 2
-                    const c = 2 * Math.PI * radius
-                    const rate = stats.total > 0 ? stats.approved / stats.total : 0
-                    const offset = c * (1 - rate)
+                    const size = 180
+                    const radius = size / 2
+                    const cx = radius, cy = radius
+                    const modifyReq = reviewStats.modifyReq ?? 0
+                    const total = Math.max(1, stats.total)
+                    const pending = stats.pendingApproval // 결재대기 = 상신완료
+                    const approved = stats.approved
+                    const rejected = stats.rejected
+                    const draft = Math.max(0, stats.total - pending - approved - rejected - modifyReq)
+                    const segments = [
+                      { label: '승인',       value: approved,  color: '#10B981' },
+                      { label: '결재대기',   value: pending,   color: '#3182F6' },
+                      { label: '미작성',     value: draft,     color: '#9CA3AF' },
+                      { label: '반려',       value: rejected,  color: '#EF4444' },
+                      { label: '수정제출',   value: modifyReq, color: '#F59E0B' },
+                    ].filter(s => s.value > 0)
+                    // Build pie path segments
+                    let cumulative = 0
+                    const arcs = segments.map(s => {
+                      const start = (cumulative / total) * 2 * Math.PI
+                      cumulative += s.value
+                      const end = (cumulative / total) * 2 * Math.PI
+                      const largeArc = end - start > Math.PI ? 1 : 0
+                      const x1 = cx + radius * Math.sin(start)
+                      const y1 = cy - radius * Math.cos(start)
+                      const x2 = cx + radius * Math.sin(end)
+                      const y2 = cy - radius * Math.cos(end)
+                      const d = [
+                        `M ${cx} ${cy}`,
+                        `L ${x1.toFixed(2)} ${y1.toFixed(2)}`,
+                        `A ${radius} ${radius} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`,
+                        'Z',
+                      ].join(' ')
+                      return { d, color: s.color, label: s.label, value: s.value }
+                    })
                     return (
-                      <div style={{ position: 'relative', width: size, height: size }}>
-                        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-                          <circle cx={size/2} cy={size/2} r={radius} stroke="var(--at-ink-hair)" strokeWidth={stroke} fill="none" />
-                          <circle cx={size/2} cy={size/2} r={radius} stroke="#3182F6" strokeWidth={stroke} fill="none" strokeLinecap="round"
-                            strokeDasharray={c} strokeDashoffset={offset} style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
-                        </svg>
-                        <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontFamily: 'var(--f-display)', fontSize: 34, fontWeight: 700, lineHeight: 1 }}>{Math.round(rate * 100)}<span style={{ fontSize: 16, color: 'var(--at-ink-mute)' }}>%</span></div>
-                            <div style={{ fontSize: 11, color: 'var(--at-ink-mute)', marginTop: 4 }}>승인율</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 18, width: '100%', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+                          <svg width={size} height={size}>
+                            {arcs.length === 0 ? (
+                              <circle cx={cx} cy={cy} r={radius - 1} fill="var(--at-ink-hair)" />
+                            ) : arcs.map((a, i) => (
+                              <path key={i} d={a.d} fill={a.color} stroke="#fff" strokeWidth={1.5} />
+                            ))}
+                            <circle cx={cx} cy={cy} r={radius * 0.55} fill="#fff" />
+                          </svg>
+                          <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ fontFamily: 'var(--f-display)', fontSize: 26, fontWeight: 700, lineHeight: 1 }}>{stats.total}</div>
+                              <div style={{ fontSize: 10, color: 'var(--at-ink-mute)', marginTop: 2 }}>총 통제활동</div>
+                            </div>
                           </div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12 }}>
+                          {segments.map((s, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ width: 10, height: 10, borderRadius: 3, background: s.color, flexShrink: 0 }} />
+                              <span style={{ color: 'var(--at-ink)', minWidth: 54 }}>{s.label}</span>
+                              <span style={{ fontFamily: 'var(--f-mono)', fontWeight: 700, color: 'var(--at-ink)' }}>{s.value}</span>
+                              <span style={{ fontFamily: 'var(--f-mono)', color: 'var(--at-ink-mute)', fontSize: 11 }}>({Math.round(s.value / total * 100)}%)</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )
                   })()}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--at-ink-mute)', textAlign: 'center' }}>총 {stats.total}건 중 {stats.approved}건 승인 완료</div>
               </Link>
 
               {isAdmin && (

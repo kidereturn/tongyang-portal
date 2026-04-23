@@ -123,9 +123,8 @@ export default function LoginPage() {
                   <path d="M7 10V7a5 5 0 0 1 10 0v3" />
                 </svg>
               </div>
-              <div className="bn">Finance</div>
+              <div className="bn">Finance &amp; ICFR Tech</div>
               <div className="bl">금융</div>
-              <div className="bl" style={{ fontSize: 10, opacity: 0.8, marginTop: 2 }}>ICFR Tech</div>
             </div>
           </div>
 

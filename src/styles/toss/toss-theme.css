@@ -4,6 +4,16 @@
    design language. Applied via .theme-toss wrapper.
    =========================================================== */
 
+/* 수정제출 KPI 타일 반짝임 — 담당자/승인자 주의 환기 */
+@keyframes atKpiPulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(220,38,38,0.15), 0 0 12px rgba(220,38,38,0.1); }
+  50%       { box-shadow: 0 0 0 6px rgba(220,38,38,0.25), 0 0 20px rgba(220,38,38,0.3); }
+}
+.at-kpi-pulse {
+  animation: atKpiPulse 1.8s ease-in-out infinite;
+}
+
+
 .theme-toss {
   /* =========== Token overrides =========== */
   --at-white: #FFFFFF;
@@ -178,8 +188,8 @@
 .theme-toss .at-hero-bg { display: none; }
 .theme-toss .at-hero-title {
   font-weight: 800; letter-spacing: -0.04em;
-  /* 페이지 큰제목 20% 축소 (48->38, 6vw->4.8vw, 72->58) */
-  font-size: clamp(38px, 4.8vw, 58px);
+  /* 페이지 큰제목 20% 추가 축소 (38->30, 4.8vw->3.84vw, 58->46) */
+  font-size: clamp(30px, 3.84vw, 46px);
 }
 .theme-toss .at-hero-lead { color: rgba(255,255,255,0.88); }
 .theme-toss .at-hero.ivory .at-hero-lead { color: var(--at-ink-mute); }
@@ -205,9 +215,9 @@
 }
 .theme-toss .at-h1 { font-weight: 800; }
 .theme-toss .at-h3 { font-size: 24px; }
-/* 페이지 타이틀 20% 축소 — 증빙 목록, 통제활동별 현황 등 */
-.theme-toss .pg-head h1 { font-size: 30px; font-weight: 800; }
-.theme-toss .at-h2 { font-size: clamp(32px, 3.6vw, 45px) !important; }
+/* 페이지 타이틀 20% 추가 축소 — 증빙 제출 현황, 증빙 목록, 통제활동별 현황 등 */
+.theme-toss .pg-head h1 { font-size: 24px; font-weight: 800; }
+.theme-toss .at-h2 { font-size: clamp(26px, 3.07vw, 36px) !important; }
 .theme-toss .pg-head h1 .soft { color: var(--at-ink-faint); font-weight: 600; }
 .theme-toss .at-eyebrow,
 .theme-toss .pg-head .eyebrow {

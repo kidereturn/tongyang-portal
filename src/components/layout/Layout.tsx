@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { ArrowUp } from 'lucide-react'
 import TopNav from './TopNav'
 import MobileTabBar from './MobileTabBar'
+import Footer from './Footer'
 
 function ScrollToTopButton() {
   const [show, setShow] = useState(false)
@@ -34,11 +35,12 @@ function ScrollToTopButton() {
 
 export default function Layout() {
   return (
-    <div style={{ minHeight: '100vh', background: '#F2F4F6' }}>
+    <div style={{ minHeight: '100vh', background: '#F2F4F6', display: 'flex', flexDirection: 'column' }}>
       <TopNav />
-      <main style={{ paddingTop: 0, paddingBottom: 80 }} className="lg:!pb-0">
+      <main style={{ paddingTop: 0, paddingBottom: 40, flex: 1 }} className="lg:!pb-0">
         <Outlet />
       </main>
+      <Footer />
       <MobileTabBar />
       <ScrollToTopButton />
     </div>

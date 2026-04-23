@@ -4,10 +4,11 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL ?? ''
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? ''
 
 function getGeminiModels(apiKey: string) {
+  // gemini-2.0-flash-lite 무료 티어 쿼터가 0으로 설정된 API 키가 있어 429 를 유발 → 제거
+  // 2.5-flash / 2.0-flash 만 사용, 실패 시 fallback
   return [
     { url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, name: 'Gemini 2.5 Flash' },
     { url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, name: 'Gemini 2.0 Flash' },
-    { url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`, name: 'Gemini 2.0 Flash Lite' },
   ]
 }
 
@@ -210,5 +211,15 @@ export async function POST(request: Request) {
     }
   }
 
+  // 쿼터 초과 / 429 인 경우 사용자에게 친절한 안내
+  const quotaExceeded = errors.some(e => /quota|rate limit|429/i.test(e))
+  if (quotaExceeded) {
+    return json({
+      ok: false,
+      error: 'AI 서비스 일일 사용 한도 초과',
+      userMessage: '죄송합니다. 오늘 AI 무료 사용 한도를 초과했어요.\n\n잠시 후 다시 시도해 주시거나, 관리자에게 문의하시면 한도를 늘려드릴 수 있어요.\n\n한편, 내부회계관리제도 관련 기본 질문은 공지사항의 매뉴얼에서도 확인하실 수 있습니다.',
+      quotaExceeded: true,
+    }, 429)
+  }
   return json({ ok: false, error: errors[errors.length - 1] || 'All models failed', errors, fallback: true }, 502)
 }

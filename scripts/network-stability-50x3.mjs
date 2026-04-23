@@ -55,7 +55,9 @@ async function checkPage(page, label, iter, setIdx) {
 }
 
 async function runSet(browser, setIdx, iterations) {
-  const page = await browser.newPage()
+  // 각 SET 마다 새 incognito context 로 격리
+  const ctx = await browser.createBrowserContext()
+  const page = await ctx.newPage()
   page.setDefaultTimeout(25000)
   let stuck = 0
   try {
@@ -89,7 +91,7 @@ async function runSet(browser, setIdx, iterations) {
     log(`=== SET ${setIdx} done (stuck total: ${stuck}) ===`)
     return stuck
   } finally {
-    await page.close()
+    await ctx.close()
   }
 }
 

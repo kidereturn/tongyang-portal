@@ -426,19 +426,20 @@ export default function EvidenceListPage() {
           ) : (
           <div className="tbl-scroll">
             <table className="at-table compact" style={{ width: '100%', tableLayout: 'fixed' }}>
-              {/* 고정 폭 — 승인자 컬럼 항상 노출 (owner/controller/admin 모두) */}
+              {/* 사용자 요청: 통제활동명 오른쪽 2cm, 나머지는 왼쪽 2.5cm 이동
+                   → 통제번호 축소, 활동명 확대, 우측 컬럼 축소 */}
               <colgroup>
-                <col style={{ width: 90 }} />
-                <col />{/* 통제활동명 flex */}
-                <col style={{ width: 80 }} />
-                <col style={{ width: 66 }} />
-                <col style={{ width: 66 }} />{/* 승인자 (항상 노출) */}
-                <col style={{ width: 56 }} />
-                <col style={{ width: 46 }} />
-                <col style={{ width: 72 }} />
-                <col style={{ width: 72 }} />
-                {profile?.role === 'admin' && <col style={{ width: 240 }} />}
-                <col style={{ width: 76 }} />
+                <col style={{ width: 80 }} />  {/* 통제번호 (90→80, 왼쪽으로 당김) */}
+                <col />                        {/* 통제활동명 (flex 그대로 — 오른쪽으로 확장) */}
+                <col style={{ width: 72 }} />  {/* 담당부서 (80→72, 축소) */}
+                <col style={{ width: 60 }} />  {/* 담당자 (66→60) */}
+                <col style={{ width: 60 }} />  {/* 승인자 (66→60) */}
+                <col style={{ width: 50 }} />  {/* 건수 (56→50) */}
+                <col style={{ width: 42 }} />  {/* KPI (46→42) */}
+                <col style={{ width: 64 }} />  {/* 상신 (72→64) */}
+                <col style={{ width: 64 }} />  {/* 승인 (72→64) */}
+                {profile?.role === 'admin' && <col style={{ width: 230 }} />}
+                <col style={{ width: 72 }} />  {/* 액션 (76→72) */}
               </colgroup>
               <thead>
                 <tr>

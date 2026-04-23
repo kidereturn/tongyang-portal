@@ -295,12 +295,30 @@ export default function BingoPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIdx])
 
-  // Celebration at 3 bingo lines
+  // 이달 누적 빙고 줄 수 (다른 세션 포함)
+  const [monthlyLines, setMonthlyLines] = useState<number>(0)
   useEffect(() => {
-    if (bingoCount >= 3 && !notifiedRef.current) {
+    if (!profile?.id) return
+    ;(async () => {
+      try {
+        const firstOfMonth = new Date(); firstOfMonth.setDate(1); firstOfMonth.setHours(0,0,0,0)
+        const { data } = await (supabase as any)
+          .from('bingo_achievements')
+          .select('max_lines, created_at')
+          .eq('user_id', profile.id)
+          .gte('created_at', firstOfMonth.toISOString())
+        const sum = (data ?? []).reduce((s: number, r: any) => s + (r.max_lines ?? 0), 0)
+        setMonthlyLines(sum)
+      } catch { /* silent */ }
+    })()
+  }, [profile?.id, bingoCount])
+
+  // Celebration at 1 bingo line (사용자 요청: 3줄 → 1줄)
+  useEffect(() => {
+    if (bingoCount >= 1 && !notifiedRef.current) {
       notifiedRef.current = true
       setShowCelebration(true)
-      notifyAdminBingoWin()
+      // 관리자 메일 발송은 제거 — 월말 랭킹 집계로 대체
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bingoCount])
@@ -353,44 +371,8 @@ export default function BingoPage() {
     }
   }
 
-  async function notifyAdminBingoWin() {
-    try {
-      const userName = profile?.full_name ?? '알 수 없음'
-      const employeeId = profile?.employee_id ?? ''
-      const dept = profile?.department ?? ''
-      const today = new Date().toLocaleDateString('ko-KR')
-
-      const { data: admins } = await (supabase as any)
-        .from('profiles').select('id').eq('role', 'admin').eq('is_active', true)
-
-      if (admins?.length) {
-        const notifications = admins.map((a: { id: string }) => ({
-          recipient_id: a.id,
-          sender_id: profile?.id ?? null,
-          title: `빙고퀴즈 3줄 완성! - ${userName} (${employeeId})`,
-          body: `${today} 빙고퀴즈에서 3줄을 완성했습니다.\n이름: ${userName}\n사번: ${employeeId}\n부서: ${dept}\n선물 지급을 검토해 주세요.`,
-          is_read: false,
-        }))
-        await (supabase as any).from('notifications').insert(notifications)
-      }
-
-      try {
-        await supabase.functions.invoke('send-approval-email', {
-          body: {
-            type: 'bingo_winner',
-            to: 'junghoon.ha@tongyanginc.co.kr',
-            recipientName: '관리자',
-            submitterName: userName,
-            controlCode: `빙고 3줄 완성`,
-            activityTitle: `${userName}(${employeeId}) - ${dept}`,
-            uniqueKey: `bingo-${today}`,
-          },
-        })
-      } catch { /* email optional */ }
-    } catch (err) {
-      console.error('Failed to notify admin:', err)
-    }
-  }
+  // notifyAdminBingoWin 함수 제거 — 랭킹제로 변경되어 실시간 알림/메일 불필요
+  // 월말 집계에서 TOP 3 산정 → 자동 시상
 
   function resetGame() {
     // 오늘 도전 한도 소진 시 경고 후 리셋 진행 X
@@ -834,13 +816,19 @@ export default function BingoPage() {
               <Trophy size={40} className="text-white" />
             </div>
             <h2 className="text-2xl font-bold text-brand-900">축하합니다!</h2>
-            <p className="mt-2 text-lg font-bold text-amber-600">빙고 3줄 완성!</p>
-            <div className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 px-5 py-3">
-              <Gift size={20} className="text-accent-600" />
-              <span className="text-sm font-bold text-amber-700">선물이 지급됩니다! 관리자에게 알림이 발송되었습니다.</span>
+            <p className="mt-2 text-lg font-bold text-amber-600">빙고 {bingoCount}줄 완성!</p>
+            <div className="mt-4 rounded-lg bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 px-5 py-4 space-y-1.5">
+              <div className="flex items-center justify-center gap-2">
+                <Gift size={16} className="text-accent-600" />
+                <span className="text-sm font-bold text-amber-700">이달 누적 완성 횟수: {monthlyLines + bingoCount}줄</span>
+              </div>
+              <p className="text-xs text-amber-700 leading-relaxed">
+                월말 랭킹 기준 <b>TOP 3</b> 에게 시상 (🥇치킨세트 · 🥈배민 1만원 · 🥉스타벅스 아아).<br/>
+                많이 참여할수록 당첨 확률이 높아집니다!
+              </p>
             </div>
             <p className="mt-3 text-xs text-warm-400">
-              정답 {correctSet.size}/25 · 빙고 {bingoCount}줄
+              이번 판: 정답 {correctSet.size}/25 · 빙고 {bingoCount}줄
             </p>
             <div className="mt-6 flex gap-3">
               <button
