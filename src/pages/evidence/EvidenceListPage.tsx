@@ -429,7 +429,7 @@ export default function EvidenceListPage() {
               <colgroup>
                 <col style={{ width: 110 }} />  {/* 통제번호 (TR.05.W10.C10 풀네임 수용) */}
                 <col />                         {/* 통제활동명 (flex) */}
-                <col style={{ width: 247 }} />  {/* 담당부서 — 좌측 5cm 확장 (58+189) */}
+                <col style={{ width: 171 }} />  {/* 담당부서 — 좌측 5cm 확장 유지, 우측 2cm 축소 (247-76) */}
                 <col style={{ width: 56 }} />   {/* 담당자 */}
                 <col style={{ width: 56 }} />   {/* 승인자 */}
                 <col style={{ width: 46 }} />   {/* 건수 */}
@@ -442,7 +442,7 @@ export default function EvidenceListPage() {
               <thead>
                 <tr>
                   <th>통제번호</th>
-                  <th>통제활동명</th>
+                  <th style={{ paddingLeft: 151 }}>통제활동명</th>
                   <th>담당부서</th>
                   <th>담당자</th>
                   <th>승인자</th>
@@ -465,7 +465,7 @@ export default function EvidenceListPage() {
                   return (
                     <tr key={act.id}>
                       <td><span className="pr-code">{act.control_code}</span></td>
-                      <td style={{ fontWeight: 500, color: 'var(--at-ink)' }} title={act.title ?? ''}>
+                      <td style={{ fontWeight: 500, color: 'var(--at-ink)', paddingLeft: 151 }} title={act.title ?? ''}>
                         {act.title && act.title.length > 36 ? act.title.slice(0, 36) + '…' : (act.title ?? '-')}
                       </td>
                       <td>{act.department ?? '-'}</td>
