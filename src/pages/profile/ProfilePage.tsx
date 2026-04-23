@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Check, Eye, EyeOff, Key, Loader2, Save, User } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
+import { checkPasswordBreach } from '../../lib/passwordSecurity'
 
 export default function ProfilePage() {
   const { profile, user } = useAuth()
@@ -67,6 +68,15 @@ export default function ProfilePage() {
     if (newPw !== confirmPw) { setPwError('새 비밀번호가 일치하지 않습니다.'); return }
 
     setPwSaving(true)
+
+    // HIBP k-anonymity 유출 비밀번호 체크 (Leaked Password Protection 대안)
+    // 네트워크 실패 시 fail-open 으로 진행 (보안 저하 < UX 차단)
+    const breach = await checkPasswordBreach(newPw)
+    if (breach.breached) {
+      setPwError(`이 비밀번호는 알려진 유출 데이터베이스에서 ${breach.count.toLocaleString()}회 발견되었습니다. 다른 비밀번호를 사용하세요.`)
+      setPwSaving(false)
+      return
+    }
 
     // Verify current password first
     if (currentPw) {
