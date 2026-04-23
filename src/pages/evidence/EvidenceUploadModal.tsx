@@ -200,15 +200,23 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
     }
 
     const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+    const ALLOWED_EXT = /\.(pdf|xlsx|xls)$/i
 
     const validFiles: File[] = []
+    const rejectedByType: string[] = []
     for (const file of Array.from(files)) {
+      if (!ALLOWED_EXT.test(file.name)) {
+        rejectedByType.push(file.name)
+        continue
+      }
       if (file.size > MAX_FILE_SIZE) {
         alert(`파일 크기는 100MB를 초과할 수 없습니다: ${file.name}`)
         continue
       }
-
       validFiles.push(file)
+    }
+    if (rejectedByType.length > 0) {
+      alert(`PDF 및 엑셀(.xlsx, .xls) 파일만 업로드 가능합니다.\n제외된 파일: ${rejectedByType.join(', ')}`)
     }
 
     if (validFiles.length === 0) return
@@ -228,6 +236,15 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
         return { ...item, uploads: [...item.uploads, ...newUploads] }
       })
     )
+
+    // 파일 선택 직후 자동 중간저장 (사용자 요청) — 다음 tick 에 실행
+    setTimeout(() => { void autoSave() }, 100)
+  }
+
+  // 자동저장 — alert 팝업 없이 조용히 저장 (setSavedMsg 만 갱신)
+  async function autoSave() {
+    if (saving) return
+    try { await handleSave() } catch { /* silent */ }
   }
 
   function handleDragOver(event: React.DragEvent, itemId: string) {
@@ -643,7 +660,8 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
 
   return (
     <div className="modal-overlay" onClick={event => { if (event.target === event.currentTarget) onClose() }}>
-      <div className="modal-box w-[98vw] sm:w-[96vw] max-w-[1560px] max-h-[94vh]">
+      {/* 폭 1200px 고정 최소 + 가로 스크롤, 좁은 화면에서도 줄어들지 않게 */}
+      <div className="modal-box max-w-[1560px] max-h-[94vh]" style={{ width: '96vw', minWidth: 1200, overflowX: 'auto' }}>
         <div className="sticky top-0 bg-white border-b border-warm-100 px-6 py-4 flex items-start justify-between z-10">
           <div>
             <h2 className="text-lg font-bold text-brand-900">
@@ -876,7 +894,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                                                   e.target.value = ''
                                                 }}
                                                 className="hidden"
-                                                accept=".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png,.gif,.zip"
+                                                accept=".pdf,.xlsx,.xls"
                                               />
                                               <button
                                                 onClick={() => replaceInputRefs.current[upload.id!]?.click()}
@@ -912,7 +930,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                                 ref={element => { fileInputRefs.current[item.id] = element }}
                                 onChange={event => handleFileSelect(item.id, event.target.files)}
                                 className="hidden"
-                                accept=".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png,.gif,.zip"
+                                accept=".pdf,.xlsx,.xls"
                               />
                               <button
                                 onClick={() => fileInputRefs.current[item.id]?.click()}
@@ -973,7 +991,10 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
           {!viewOnly && (
             <div className="flex items-center gap-3">
               <button
-                onClick={handleSave}
+                onClick={async () => {
+                  const ok = await handleSave()
+                  if (ok) window.alert('중간 저장이 완료되었습니다.')
+                }}
                 disabled={saving || !hasNewFiles}
                 className={clsx('btn-secondary', !hasNewFiles && 'opacity-40 cursor-not-allowed')}
               >

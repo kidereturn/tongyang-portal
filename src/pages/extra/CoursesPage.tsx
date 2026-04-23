@@ -134,9 +134,16 @@ export default function CoursesPage() {
 
   const featured = videos[0]
 
+  // Chrome 팝업 차단 우회 — anchor 트릭으로 새 탭 열기
   function openDetail(id: string) {
     const url = `${window.location.origin}/courses/${id}`
-    window.open(url, '_blank', 'noopener,noreferrer')
+    const a = document.createElement('a')
+    a.href = url
+    a.target = '_blank'
+    a.rel = 'noopener,noreferrer'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
   }
 
   async function submitRegistration() {

@@ -44,14 +44,23 @@ export default function QuizResultsTab() {
   const [view, setView] = useState<'quiz' | 'learning' | 'bingo'>('learning')
   const [bingoRows, setBingoRows] = useState<Array<{ user_id: string; user_name: string | null; user_dept: string | null; employee_id: string | null; lines_this_month: number; total_attempts: number; total_correct: number }>>([])
 
-  async function resetUserData(userId: string, userName: string, type: 'quiz' | 'bingo' | 'all' | 'learning') {
-    const label = type === 'quiz' ? '퀴즈 결과' : type === 'bingo' ? '빙고 기록' : type === 'learning' ? '강좌 진도율' : '모든 포인트·퀴즈·빙고·진도'
-    if (!window.confirm(`${userName}님의 ${label}을(를) 초기화합니다.\n\n복구 불가. 계속할까요?`)) return
+  async function resetUserData(userId: string, userName: string, type: 'quiz' | 'bingo' | 'all' | 'learning', courseId?: string, courseTitle?: string) {
+    const baseLabel = type === 'quiz' ? '퀴즈 결과' : type === 'bingo' ? '빙고 기록' : type === 'learning' ? '강좌 진도율' : '모든 포인트·퀴즈·빙고·진도'
+    const scope = courseId && courseTitle ? `"${courseTitle}" 강좌의 ` : ''
+    if (!window.confirm(`${userName}님의 ${scope}${baseLabel}을(를) 초기화합니다.\n\n복구 불가. 계속할까요?`)) return
     const db = supabase as any
     try {
-      if (type === 'quiz' || type === 'all') await db.from('quiz_results').delete().eq('user_id', userId)
+      if (type === 'quiz' || type === 'all') {
+        let q = db.from('quiz_results').delete().eq('user_id', userId)
+        if (courseId) q = q.eq('course_id', courseId)
+        await q
+      }
       if (type === 'bingo' || type === 'all') await db.from('bingo_achievements').delete().eq('user_id', userId)
-      if (type === 'learning' || type === 'all') await db.from('learning_progress').delete().eq('user_id', userId)
+      if (type === 'learning' || type === 'all') {
+        let q = db.from('learning_progress').delete().eq('user_id', userId)
+        if (courseId) q = q.eq('course_id', courseId)
+        await q
+      }
       if (type === 'all') await db.from('user_points').delete().eq('user_id', userId)
       window.alert('초기화 완료')
       fetchData()
@@ -448,9 +457,12 @@ export default function QuizResultsTab() {
                     <td className="text-xs text-warm-500">{r.updated_at ? formatDate(r.updated_at) : '-'}</td>
                     <td className="text-center">
                       <button
-                        onClick={() => resetUserData(r.user_id, r.user_name ?? '', 'learning')}
+                        onClick={() => {
+                          const courseTitle = courseList.find(c => c.id === r.course_id)?.title ?? ''
+                          resetUserData(r.user_id, r.user_name ?? '', 'learning', r.course_id, courseTitle)
+                        }}
                         className="inline-flex items-center gap-1 rounded bg-red-50 border border-red-100 text-red-600 text-[11px] px-2 py-1 hover:bg-red-100"
-                        title="이 사용자의 강좌 진도율 초기화"
+                        title="이 사용자 + 이 강좌의 진도율만 초기화"
                       >
                         <RotateCcw size={10} /> 초기화
                       </button>
