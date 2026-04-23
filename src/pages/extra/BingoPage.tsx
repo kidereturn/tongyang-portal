@@ -16,7 +16,7 @@ const BINGO_CELL_TEMPLATES: Array<{ emoji: string; label: string; points: number
   { emoji: '💬', label: '말씀 3건 투표', points: 15 },
   { emoji: '📖', label: '주간 뉴스 읽기', points: 10 },
   { emoji: '🏆', label: '증빙 10건 제출', points: 20 },
-  { emoji: '🎁', label: 'FREE', points: 0 },
+  { emoji: '🌟', label: '사내 이벤트 참여', points: 15 },
   { emoji: '💭', label: '말씀하세요 작성', points: 10 },
   { emoji: '📊', label: 'KPI 대시보드 확인', points: 15 },
   { emoji: '👋', label: '동료 칭찬 1건', points: 10 },
@@ -568,7 +568,7 @@ export default function BingoPage() {
                 const tpl = BINGO_CELL_TEMPLATES[idx]
                 const answered = answers[idx]
                 const isBingoLine = bingoIndices.has(idx)
-                const isFree = tpl?.label === 'FREE'
+                const isFree = false  // FREE 셀 제거 — 모든 칸 동일 처리
                 const isCorrect = answered?.correct
                 const isWrong = answered && !answered.correct
 
@@ -586,11 +586,7 @@ export default function BingoPage() {
                   transition: 'all 0.2s',
                 }
 
-                if (isFree) {
-                  // free 셀: 다른 정답 셀과 동일한 파란 그라데이션
-                  cellStyle.background = 'linear-gradient(135deg, #3182F6, #4B93F7)'
-                  cellStyle.color = 'var(--at-white)'
-                } else if (isCorrect) {
+                if (isCorrect) {
                   cellStyle.background = isBingoLine
                     ? 'linear-gradient(135deg, #F59E0B, #EAB308)'
                     : 'linear-gradient(135deg, #3182F6, #4B93F7)'
@@ -617,11 +613,11 @@ export default function BingoPage() {
                     onClick={() => openCell(idx)}
                     disabled={disabled}
                     style={cellStyle}
-                    onMouseEnter={e => { if (!disabled && !isFree) e.currentTarget.style.transform = 'translateY(-2px)' }}
+                    onMouseEnter={e => { if (!disabled) e.currentTarget.style.transform = 'translateY(-2px)' }}
                     onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
                   >
                     {/* Checkmark badge (top-right) when correct */}
-                    {isCorrect && !isFree && (
+                    {isCorrect && (
                       <div style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'grid', placeItems: 'center' }}>
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3}><path d="M20 6 9 17l-5-5" /></svg>
                       </div>
@@ -631,10 +627,7 @@ export default function BingoPage() {
                     )}
 
                     {/* 아이콘 크기 50% 축소 (36 → 18) */}
-                    <div style={{ fontSize: 18, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>{tpl?.emoji ?? '🎁'}</div>
-                    {isFree && (
-                      <div style={{ fontSize: 10, lineHeight: 1.25, fontWeight: 600, textAlign: 'center' }}>보너스</div>
-                    )}
+                    <div style={{ fontSize: 18, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>{tpl?.emoji ?? '🌟'}</div>
                   </button>
                 )
               })}

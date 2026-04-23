@@ -400,6 +400,29 @@ export default function DashboardPage() {
                 <div className="kpi-value">{nonAdminPending}<span className="unit">건</span></div>
                 <div className="kpi-sub">증빙 미업로드</div>
               </Link>
+              {/* 수정제출 — 0 건이어도 표시 · 건수>0 이면 반짝 + 빨강 */}
+              <Link
+                to="/evidence?status=modifyReq"
+                className={reviewStats.modifyReq > 0 ? 'at-kpi at-kpi-pulse' : 'at-kpi'}
+                style={{
+                  textDecoration: 'none',
+                  borderColor: reviewStats.modifyReq > 0 ? '#F87171' : undefined,
+                  boxShadow: reviewStats.modifyReq > 0 ? '0 0 0 2px rgba(248,113,113,0.15)' : undefined,
+                }}
+              >
+                <div className="kpi-label">
+                  <div className="kpi-icon" style={{ background: reviewStats.modifyReq > 0 ? '#FEE2E2' : '#F2F4F6', color: reviewStats.modifyReq > 0 ? '#DC2626' : 'var(--at-ink-faint)' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                  </div>
+                  수정 제출
+                </div>
+                <div className="kpi-value" style={{ color: reviewStats.modifyReq > 0 ? '#DC2626' : undefined, fontWeight: reviewStats.modifyReq > 0 ? 800 : undefined }}>
+                  {reviewStats.modifyReq}<span className="unit">건</span>
+                </div>
+                <div className="kpi-sub" style={{ color: reviewStats.modifyReq > 0 ? '#DC2626' : undefined }}>
+                  {reviewStats.modifyReq > 0 ? '관리자 수정 요청' : '수정 요청 없음'}
+                </div>
+              </Link>
             </div>
           )}
 
@@ -456,34 +479,7 @@ export default function DashboardPage() {
                 )
               })()}
             </div>
-          ) : (
-            /* 담당자·승인자: 수정제출 타일 (0건이어도 표시) */
-            <div className="at-grid" style={{ marginTop: 16, gridTemplateColumns: '1fr', gap: 16 }}>
-              <Link
-                to="/evidence?status=modifyReq"
-                className={reviewStats.modifyReq > 0 ? 'at-kpi at-kpi-pulse' : 'at-kpi'}
-                style={{
-                  textDecoration: 'none',
-                  borderColor: reviewStats.modifyReq > 0 ? '#DC2626' : 'var(--at-ink-hair)',
-                  boxShadow: reviewStats.modifyReq > 0 ? '0 0 0 3px rgba(220,38,38,0.15)' : undefined,
-                  maxWidth: 420,
-                }}
-              >
-                <div className="kpi-label">
-                  <div className="kpi-icon" style={{ background: reviewStats.modifyReq > 0 ? '#FEE2E2' : 'var(--at-bg-soft)', color: reviewStats.modifyReq > 0 ? '#DC2626' : 'var(--at-ink-faint)' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" /></svg>
-                  </div>
-                  수정 제출
-                </div>
-                <div className="kpi-value" style={{ color: reviewStats.modifyReq > 0 ? '#DC2626' : 'var(--at-ink)', fontWeight: 800 }}>{reviewStats.modifyReq}<span className="unit">건</span></div>
-                <div className="kpi-sub" style={{ color: reviewStats.modifyReq > 0 ? '#DC2626' : 'var(--at-ink-faint)' }}>
-                  {reviewStats.modifyReq > 0
-                    ? '관리자가 수정을 요청한 건입니다. 확인 후 재상신해주세요.'
-                    : '현재 수정 요청된 건이 없습니다.'}
-                </div>
-              </Link>
-            </div>
-          )}
+          ) : null /* 담당자·승인자 수정제출 박스는 위의 at-g-4 내부로 이동 */}
         </div>
       </section>
 

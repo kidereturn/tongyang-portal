@@ -225,7 +225,9 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
       previous.map(item => {
         if (item.id !== itemId) return item
 
+        // 각 pending upload 에 고유 local id 부여 — 동명 파일 삭제 오류 방지
         const newUploads: UploadedFile[] = validFiles.map(file => ({
+          id: `local_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           file_name: file.name,
           file_path: '',
           file_size: file.size,
@@ -237,14 +239,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
       })
     )
 
-    // 파일 선택 직후 자동 중간저장 (사용자 요청) — 다음 tick 에 실행
-    setTimeout(() => { void autoSave() }, 100)
-  }
-
-  // 자동저장 — alert 팝업 없이 조용히 저장 (setSavedMsg 만 갱신)
-  async function autoSave() {
-    if (saving) return
-    try { await handleSave() } catch { /* silent */ }
+    // 파일 선택 후 자동저장은 race condition 위험 — 사용자가 '중간 저장' 클릭 시에만 저장
   }
 
   function handleDragOver(event: React.DragEvent, itemId: string) {
@@ -271,13 +266,13 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
     }
   }
 
-  function removeFile(itemId: string, fileName: string) {
+  function removeFile(itemId: string, localId: string) {
     setItems(previous =>
       previous.map(item => {
         if (item.id !== itemId) return item
         return {
           ...item,
-          uploads: item.uploads.filter(upload => !(upload.isNew && upload.file_name === fileName)),
+          uploads: item.uploads.filter(upload => upload.id !== localId),
         }
       })
     )
@@ -660,8 +655,9 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
 
   return (
     <div className="modal-overlay" onClick={event => { if (event.target === event.currentTarget) onClose() }}>
-      {/* 폭 1200px 고정 최소 + 가로 스크롤, 좁은 화면에서도 줄어들지 않게 */}
-      <div className="modal-box max-w-[1560px] max-h-[94vh]" style={{ width: '96vw', minWidth: 1200, overflowX: 'auto' }}>
+      {/* modal-box 는 뷰포트 내에 맞춤 · 내부 스크롤 — 뷰포트 좁아져도 창 전체 스크롤 생기지 않도록 */}
+      <div className="modal-box max-w-[1560px] max-h-[94vh]" style={{ width: 'min(96vw, 1560px)', overflow: 'auto' }}>
+        <div style={{ minWidth: 1200 }}>
         <div className="sticky top-0 bg-white border-b border-warm-100 px-6 py-4 flex items-start justify-between z-10">
           <div>
             <h2 className="text-lg font-bold text-brand-900">
@@ -870,7 +866,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                                       {upload.isNew && !viewOnly ? (
                                         <div className="mt-1.5 flex">
                                           <button
-                                            onClick={() => removeFile(item.id, upload.file_name)}
+                                            onClick={() => removeFile(item.id, upload.id ?? '')}
                                             className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 hover:border-red-200 transition-colors"
                                             title="제거"
                                           >
@@ -1013,6 +1009,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
               </button>
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>
