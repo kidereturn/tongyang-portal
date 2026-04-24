@@ -428,6 +428,8 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
   }
 
   async function handleSave() {
+    // 이중 저장 가드 — 빠른 2회 클릭으로 중복 upload 방지
+    if (saving) return false
     if (!profile?.id) {
       setError('로그인 정보가 확인되지 않아 업로드를 진행할 수 없습니다.')
       return false
@@ -597,6 +599,8 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
   }
 
   async function handleSubmit() {
+    // 이중 제출 가드 — 빠른 2회 클릭으로 중복 insert/update 방지
+    if (submitting || saving) return
     if (!activity.controller_email) {
       setError('승인자 이메일 정보가 없어 결재상신을 진행할 수 없습니다.')
       return
@@ -644,11 +648,15 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
 
       if (activityError) throw activityError
 
-      const { data: existingRequest, error: requestLookupError } = await db
+      // approval_requests 에는 activity_id UNIQUE 제약 없음 → 과거 cancelled/rejected 행이 여러 개 존재 가능
+      // maybeSingle 은 결과 ≥2 시 에러 → order+limit 1 로 최신 1건만 조회
+      const { data: existingList, error: requestLookupError } = await db
         .from('approval_requests')
-        .select('id')
+        .select('id, status')
         .eq('activity_id', activity.id)
-        .maybeSingle()
+        .order('submitted_at', { ascending: false, nullsFirst: false })
+        .limit(1)
+      const existingRequest = existingList?.[0]
 
       if (requestLookupError) throw requestLookupError
 

@@ -155,6 +155,8 @@ export default function BingoPage() {
   const [myMaxLines, setMyMaxLines] = useState<number>(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const activeIdxRef = useRef<number | null>(null)
+  // 채점 진행 중 플래그 — ESC 핸들러와 submitAnswer 사이의 race 방지
+  const processingAnswerRef = useRef(false)
   const notifiedRef = useRef(false)
 
   const MAX_DAILY_PLAYS = 3
@@ -175,9 +177,11 @@ export default function BingoPage() {
         e.preventDefault()
         const idx = activeIdx
         if (idx === null) return
+        // Race 방지: submitAnswer 이미 실행 중이면 ESC 무시 (2중 포인트 적립 방지)
+        if (processingAnswerRef.current) return
+        processingAnswerRef.current = true
         if (timerRef.current) clearInterval(timerRef.current)
         const q = questions[idx]
-        // 오답으로 마킹
         const explanation = `ESC 로 취소 → 오답. 정답: "${q.answer}". ${q.explanation}`
         const isFirstAnswerInSession = Object.keys(answers).length === 0
         setAnswers(prev => ({ ...prev, [idx]: { correct: false, explanation } }))
@@ -196,6 +200,7 @@ export default function BingoPage() {
             })
           }
         }
+        processingAnswerRef.current = false
       }
     }
     window.addEventListener('keydown', onKey)
@@ -390,11 +395,16 @@ export default function BingoPage() {
 
   function submitAnswer() {
     if (activeIdx === null) return
+    // Race 방지: ESC 핸들러와의 동시 호출 가드 (첫 답변 포인트 2중 적립 방지)
+    if (processingAnswerRef.current) return
+    const idx = activeIdx
     if (timerRef.current) clearInterval(timerRef.current)
 
-    const q = questions[activeIdx]
+    const q = questions[idx]
     const userAns = q.type === 'subjective' ? subjectiveAnswer : selectedChoice
     if (!userAns.trim()) return
+
+    processingAnswerRef.current = true  // lock
 
     const correct = checkAnswer(q, userAns)
     const explanation = correct
@@ -403,11 +413,12 @@ export default function BingoPage() {
 
     // 실제 답을 제출한 시점에 첫 정답이면 도전 횟수 증가 (ESC 취소엔 카운트 X)
     const isFirstAnswerInSession = Object.keys(answers).length === 0
-    setAnswers(prev => ({ ...prev, [activeIdx]: { correct, explanation } }))
+    setAnswers(prev => ({ ...prev, [idx]: { correct, explanation } }))
     setLastMessage({ correct, text: correct ? '정답입니다!' : `오답. 정답: "${q.answer}"` })
     setActiveIdx(null)
     setSubjectiveAnswer('')
     setSelectedChoice('')
+    // lock 은 이미 함수 상단에서 null 로 설정됨 — 다른 경로는 진입 불가
     if (isFirstAnswerInSession) {
       incrementDailyPlays()
       // 빙고 참여 1회당 10점 포인트 적립 (세션별 1회) — 사용자 요청
@@ -420,6 +431,8 @@ export default function BingoPage() {
         })
       }
     }
+    // lock 해제 (다음 문제 준비)
+    processingAnswerRef.current = false
   }
 
   // notifyAdminBingoWin 함수 제거 — 랭킹제로 변경되어 실시간 알림/메일 불필요

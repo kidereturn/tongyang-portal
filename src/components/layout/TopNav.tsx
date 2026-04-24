@@ -123,10 +123,24 @@ export default function TopNav() {
 
   useEffect(() => {
     fetchNotifications()
-    const interval = setInterval(fetchNotifications, 60_000)
+    let interval: ReturnType<typeof setInterval> | null = setInterval(fetchNotifications, 60_000)
+    // 탭이 백그라운드면 폴링 멈춤 — 배터리/대역폭 절약
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (interval != null) { clearInterval(interval); interval = null }
+      } else {
+        // 복귀 즉시 1회 fetch + 재개
+        fetchNotifications()
+        if (interval == null) interval = setInterval(fetchNotifications, 60_000)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
     return () => {
-      clearInterval(interval)
+      if (interval != null) clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisibility)
       if (abortRef.current) abortRef.current.abort()
+      // 언마운트 시 폴링 lock 해제
+      fetchingRef.current = false
     }
   }, [fetchNotifications])
 

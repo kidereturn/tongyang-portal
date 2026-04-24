@@ -121,7 +121,7 @@ export default function InboxPage() {
       return
     }
     if (!confirm(decision === 'approved'
-      ? `"${item.activity?.title ?? item.control_code}"을 승인하시겠습니까?`
+      ? `"${item.activity?.title ?? item.control_code ?? '(통제활동)'}"을 승인하시겠습니까?`
       : `반려 처리하시겠습니까?\n사유: ${comment}`
     )) return
 

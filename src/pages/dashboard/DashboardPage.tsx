@@ -64,8 +64,24 @@ function getSubmissionStatus(raw: string | null): 'pendingApproval' | 'approved'
 function LiveClock() {
   const [now, setNow] = useState(new Date())
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(id)
+    let id: ReturnType<typeof setInterval> | null = null
+    const start = () => {
+      if (id != null) return
+      id = setInterval(() => setNow(new Date()), 1000)
+    }
+    const stop = () => {
+      if (id != null) { clearInterval(id); id = null }
+    }
+    const onVisibility = () => {
+      if (document.hidden) stop()
+      else { setNow(new Date()); start() }
+    }
+    start()
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      stop()
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [])
   const dateLabel = now.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })
   const timeLabel = now.toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
