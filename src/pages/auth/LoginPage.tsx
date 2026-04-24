@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { AlertCircle, Eye, EyeOff, KeyRound, X } from 'lucide-react'
+import { AlertCircle, Eye, EyeOff, KeyRound, RefreshCw, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { flushAndReload } from '../../lib/cacheReset'
 
 // 사번 → 로그인 이메일
 // auth.users.email 은 모두 {사번}@tongyanginc.co.kr 형식으로 통일
@@ -227,6 +228,15 @@ export default function LoginPage() {
             <span>관리자 문의</span>
             <span style={{ opacity: 0.4 }}>·</span>
             <span>개인정보처리방침</span>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <button
+              type="button"
+              onClick={() => { if (window.confirm('브라우저 캐시를 모두 삭제하고 최신 버전으로 다시 불러올까요?\n(로그인 상태는 유지됩니다)')) flushAndReload(false) }}
+              title="로그인이 반복 실패하거나 화면이 이상할 때 눌러주세요."
+              style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', textDecoration: 'underline', fontSize: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+              <RefreshCw size={12} /> 캐시 삭제 후 새로고침
+            </button>
           </div>
         </div>
       </div>

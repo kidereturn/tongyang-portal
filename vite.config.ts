@@ -9,8 +9,16 @@ const VENDOR_CHUNKS: Record<string, string[]> = {
   'vendor-icons': ['lucide-react'],
 }
 
+// 빌드 타임스탬프 (클라이언트 캐시 무효화용)
+const BUILD_ID = process.env.VERCEL_GIT_COMMIT_SHA
+  ? process.env.VERCEL_GIT_COMMIT_SHA.slice(0, 7)
+  : String(Date.now())
+
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __BUILD_ID__: JSON.stringify(BUILD_ID),
+  },
   build: {
     chunkSizeWarningLimit: 400,
     rollupOptions: {
