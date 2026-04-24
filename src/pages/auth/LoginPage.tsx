@@ -2,27 +2,11 @@ import { useEffect, useState } from 'react'
 import { AlertCircle, Eye, EyeOff, KeyRound, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
-// Fallback: 사번 → 이메일 (xlsx 에 이메일 없던 2명 등 실제 이메일이 등록되지 않은 계정)
-function buildEmployeeLoginEmailFallback(employeeId: string) {
+// 사번 → 로그인 이메일
+// auth.users.email 은 모두 {사번}@tongyanginc.co.kr 형식으로 통일
+// 실명 이메일은 profiles.real_email 에 보관 (알림 등 용도, 로그인엔 안 씀)
+function buildEmployeeLoginEmail(employeeId: string) {
   return `${employeeId.trim()}@tongyanginc.co.kr`
-}
-
-// 사번 → 실제 이메일 lookup (DB RPC 호출)
-// 과거 일부 계정이 실명 이메일로 등록되어 있으므로, 사번으로 auth.users.email 을 조회한 뒤 로그인
-async function resolveLoginEmail(employeeId: string): Promise<string> {
-  try {
-    // 타입 우회: 생성된 Database 타입에 아직 이 RPC 가 없어 any 로 캐스팅
-    const rpc = (supabase.rpc as unknown as (
-      name: string,
-      params: Record<string, unknown>,
-    ) => Promise<{ data: unknown; error: unknown }>)
-    const { data, error } = await rpc('lookup_email_by_sabun', { p_sabun: employeeId })
-    if (error) throw error
-    if (typeof data === 'string' && data.includes('@')) return data
-  } catch (e) {
-    console.warn('[login] lookup_email_by_sabun failed, using fallback', e)
-  }
-  return buildEmployeeLoginEmailFallback(employeeId)
 }
 
 export default function LoginPage() {
@@ -63,9 +47,8 @@ export default function LoginPage() {
       return
     }
 
-    const resolvedEmail = await resolveLoginEmail(normalizedEmployeeId)
     const { error: authError } = await supabase.auth.signInWithPassword({
-      email: resolvedEmail,
+      email: buildEmployeeLoginEmail(normalizedEmployeeId),
       password,
     })
 
