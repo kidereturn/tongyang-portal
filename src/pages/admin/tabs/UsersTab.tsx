@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Eye, EyeOff, Loader2, Search, UserPlus, Download, X } from 'lucide-react'
 import clsx from 'clsx'
-import * as XLSX from 'xlsx'
+// xlsx 는 다운로드 버튼 클릭시에만 필요 → 동적 import (번들 421kB 지연)
 import { supabase } from '../../../lib/supabase'
 import { type UserRow, buildLoginEmail, ROLE_LABELS, ROLE_BADGES } from '../adminShared'
 import { useToast } from '../../../components/Toast'
@@ -39,7 +39,36 @@ export default function UsersTab({ refreshKey }: { refreshKey: number }) {
     setUsers(data ?? [])
   }
 
-  function exportToExcel() {
+  async function exportToExcel() {
+    const XLSX = await import('xlsx')
+    const db = supabase as any
+    toast.info('리포트 생성 중', '담당 활동 / 포인트 / 마지막 로그인 집계 중...')
+
+    // 추가 집계 데이터 병렬 로드
+    const [actRes, ptsRes] = await Promise.all([
+      db.from('activities').select('owner_employee_id, controller_employee_id').eq('active', true),
+      db.from('user_points').select('user_id, points'),
+    ])
+    const ownerCnt: Record<string, number> = {}
+    const ctrlCnt: Record<string, number> = {}
+    for (const a of (actRes.data ?? []) as Array<{ owner_employee_id: string | null; controller_employee_id: string | null }>) {
+      if (a.owner_employee_id) ownerCnt[a.owner_employee_id] = (ownerCnt[a.owner_employee_id] ?? 0) + 1
+      if (a.controller_employee_id) ctrlCnt[a.controller_employee_id] = (ctrlCnt[a.controller_employee_id] ?? 0) + 1
+    }
+    const ptsById: Record<string, number> = {}
+    for (const p of (ptsRes.data ?? []) as Array<{ user_id: string; points: number }>) {
+      ptsById[p.user_id] = (ptsById[p.user_id] ?? 0) + (p.points ?? 0)
+    }
+
+    // login_logs 에서 사용자별 마지막 로그인
+    const { data: logs } = await db.from('login_logs')
+      .select('user_id, created_at')
+      .order('created_at', { ascending: false })
+    const lastLoginById: Record<string, string> = {}
+    for (const l of (logs ?? []) as Array<{ user_id: string; created_at: string }>) {
+      if (!lastLoginById[l.user_id]) lastLoginById[l.user_id] = l.created_at
+    }
+
     const rows = filtered.map((u, index) => ({
       번호: index + 1,
       사번: u.employee_id ?? '',
@@ -48,19 +77,43 @@ export default function UsersTab({ refreshKey }: { refreshKey: number }) {
       소속팀: u.department ?? '',
       구분: ROLE_LABELS[u.role] ?? u.role,
       전화번호: u.phone ?? '',
-      '초기 비밀번호': u.initial_password ?? '',
+      '초기 비밀번호': u.employee_id ? `ty${u.employee_id}` : '',
+      '담당 활동수': ownerCnt[u.employee_id ?? ''] ?? 0,
+      '승인 활동수': ctrlCnt[u.employee_id ?? ''] ?? 0,
+      '포인트': ptsById[u.id] ?? 0,
+      '마지막 로그인': lastLoginById[u.id]
+        ? new Date(lastLoginById[u.id]).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
+        : '미로그인',
       상태: u.is_active ? '활성' : '비활성',
-      '생성일': u.created_at ? new Date(u.created_at).toLocaleDateString('ko-KR') : '',
+      '계정 생성일': u.created_at ? new Date(u.created_at).toLocaleDateString('ko-KR') : '',
     }))
     const worksheet = XLSX.utils.json_to_sheet(rows)
     worksheet['!cols'] = [
       { wch: 5 }, { wch: 10 }, { wch: 12 }, { wch: 28 }, { wch: 18 },
-      { wch: 8 }, { wch: 14 }, { wch: 12 }, { wch: 8 }, { wch: 12 },
+      { wch: 8 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 10 },
+      { wch: 8 }, { wch: 20 }, { wch: 8 }, { wch: 12 },
     ]
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, worksheet, '사용자목록')
+
+    // 요약 시트
+    const summary = [
+      ['총 사용자', rows.length],
+      ['관리자', rows.filter(r => r.구분 === '관리자').length],
+      ['승인자', rows.filter(r => r.구분 === '승인자').length],
+      ['담당자', rows.filter(r => r.구분 === '담당자').length],
+      ['활성 사용자', rows.filter(r => r.상태 === '활성').length],
+      ['로그인 경험자', rows.filter(r => r['마지막 로그인'] !== '미로그인').length],
+      ['총 활동 합계', rows.reduce((s, r) => s + (r['담당 활동수'] as number), 0)],
+      ['총 포인트 합계', rows.reduce((s, r) => s + (r['포인트'] as number), 0)],
+      ['내보낸 날짜', new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })],
+    ]
+    const wsSummary = XLSX.utils.aoa_to_sheet([['항목', '값'], ...summary])
+    wsSummary['!cols'] = [{ wch: 20 }, { wch: 24 }]
+    XLSX.utils.book_append_sheet(workbook, wsSummary, '요약')
+
     XLSX.writeFile(workbook, `사용자목록_${new Date().toISOString().slice(0, 10)}.xlsx`)
-    toast.success('엑셀 다운로드 완료', `사용자 ${rows.length.toLocaleString()}명 내보내기`)
+    toast.success('엑셀 다운로드 완료', `사용자 ${rows.length.toLocaleString()}명 내보내기 (담당/포인트/로그인 포함)`)
   }
 
   const filtered = users.filter(user => {
