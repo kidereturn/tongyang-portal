@@ -137,18 +137,29 @@ export default function DashboardPage() {
         else q = q.eq('controller_id', profile.id)
       }
 
-      const batchPromise = Promise.all([
+      // Promise.allSettled 로 한 쿼리 실패 해도 다른 데이터는 표시
+      const batchPromise = Promise.allSettled([
         q,
         db.from('profiles').select('id', { count: 'exact', head: true }).eq('is_active', true),
         db.rpc('get_points_ranking').maybeSingle ? db.rpc('get_points_ranking') : Promise.resolve({ data: [] }),
         db.from('notices').select('id, type, title, badge, badge_color, created_at').order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(5),
       ])
-      let actRes: any, userCnt: any, rankRes: any, noticeRes: any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let actRes: any = { data: [] }, userCnt: any = { count: 0 }, rankRes: any = { data: [] }, noticeRes: any = { data: [] }
       try {
-        [actRes, userCnt, rankRes, noticeRes] = await queryWithTimeout(batchPromise, 12_000, 'dashboard.batch')
+        const settled = await queryWithTimeout(batchPromise, 12_000, 'dashboard.batch')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pick = (r: any, fallback: any) => r?.status === 'fulfilled' ? r.value : fallback
+        actRes = pick(settled[0], { data: [] })
+        userCnt = pick(settled[1], { count: 0 })
+        rankRes = pick(settled[2], { data: [] })
+        noticeRes = pick(settled[3], { data: [] })
+        // 실패한 쿼리 로깅 (디버깅용)
+        settled.forEach((r, i) => {
+          if (r.status === 'rejected') console.warn(`[Dashboard] query ${i} failed:`, r.reason)
+        })
       } catch (e) {
         console.warn('[Dashboard] batch timeout', e)
-        actRes = { data: [] }; userCnt = { count: 0 }; rankRes = { data: [] }; noticeRes = { data: [] }
       }
 
       const records = (actRes?.data ?? []) as Activity[]
