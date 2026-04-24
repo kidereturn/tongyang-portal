@@ -107,8 +107,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!mounted) return
         if (session?.user) {
           setState(prev => ({ ...prev, session, user: session.user }))
-          // Only re-fetch profile on actual sign-in, not token refresh
-          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || !state.profile) {
+          // 재fetch 는 실제 로그인 또는 INITIAL_SESSION 시에만.
+          // TOKEN_REFRESHED 등 다른 이벤트에서는 절대 재fetch 안함.
+          // 이전 버그: `!state.profile` (stale closure) 로 매 TOKEN_REFRESHED 마다
+          // 불필요한 profile 재fetch 발생 → 네트워크 부하 + 타임아웃 연쇄.
+          // lastProfileJson.current 는 mutable ref 라 최신값 참조 가능.
+          const hasProfile = lastProfileJson.current !== ''
+          if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && !hasProfile)) {
             await fetchProfile(session.user.id)
             // Log login on actual sign-in
             if (event === 'SIGNED_IN') {

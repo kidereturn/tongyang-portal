@@ -8,21 +8,17 @@ import IntroGate from './components/IntroGate'
 // LoginPage is NOT lazy so it's ready the instant the intro video finishes.
 import LoginPage from './pages/auth/LoginPage'
 
-// Idle prefetch — 로그인 후 자주 이동하는 페이지를 브라우저가 idle 할 때 미리 받음
-// 탭 전환 시 네트워크 대기 없이 즉시 표시
+// Idle prefetch — 보수적 모드: EvidenceListPage 하나만 idle 시 로드.
+// 이전 버전(5개 동시 prefetch)은 저속 네트워크/취약 환경에서 병목 유발 가능.
+// 추가 페이지는 사용자가 실제 호버/클릭 시 lazyRetry 가 동적으로 가져옴.
 function PrefetchWarmer() {
   useEffect(() => {
     const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback
     const run = () => {
-      // 가장 많이 사용되는 페이지부터 prefetch (중요도 순)
       void import('./pages/evidence/EvidenceListPage')
-      void import('./pages/extra/CoursesPage')
-      void import('./pages/inbox/InboxPage')
-      void import('./pages/extra/LearningPage')
-      void import('./pages/extra/NewsPage')
     }
-    if (ric) ric(run, { timeout: 2000 })
-    else setTimeout(run, 1500)
+    if (ric) ric(run, { timeout: 5000 })
+    else setTimeout(run, 3000)
   }, [])
   return null
 }
