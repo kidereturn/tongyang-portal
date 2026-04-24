@@ -103,18 +103,7 @@ export default function LearningPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 선택된 강좌에 맞는 progress 맵 생성
-  const progressMap = useMemo(() => {
-    const map: Record<string, ProgressRow> = {}
-    for (const p of allProgress) {
-      if (selectedCourse !== 'all' && p.course_id !== selectedCourse) continue
-      // 같은 user_id에 여러 항목이 있으면 가장 높은 진도 사용
-      if (!map[p.user_id] || p.progress_percent > map[p.user_id].progress_percent) {
-        map[p.user_id] = p
-      }
-    }
-    return map
-  }, [allProgress, selectedCourse])
+  // progressMap — "내 학습 데이터" 섹션 제거로 현재 미사용이나, 향후 필요 대비 유지
 
   // 전체 강좌별 유저 진도 (모든 강좌 표시용)
   const userCourseMap = useMemo(() => {
@@ -397,34 +386,7 @@ export default function LearningPage() {
           </div>
         )}
 
-        {!loading && !isAdmin && profile && (
-          <div className="border-t border-warm-100 bg-warm-50 px-5 py-4">
-            <p className="text-sm font-bold text-brand-900">내 학습 데이터</p>
-            {(userCourseMap[profile.id] ?? []).length > 0 ? (
-              <div className="mt-2 space-y-2">
-                {(userCourseMap[profile.id] ?? []).map((uc, idx) => (
-                  <div key={idx} className="flex items-center gap-3 text-sm">
-                    <span className={clsx(
-                      'inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
-                      uc.status === 'completed' ? 'bg-emerald-50 text-emerald-700' :
-                      uc.status === 'in_progress' ? 'bg-blue-50 text-blue-700' :
-                      'bg-warm-100 text-warm-500'
-                    )}>
-                      {uc.status === 'completed' ? '이수완료' : uc.status === 'in_progress' ? '수강중' : '미시작'}
-                    </span>
-                    <span className="font-medium text-brand-700">{uc.course_name || `강좌 ${idx + 1}`}</span>
-                    <span className="text-warm-500">진도율 {uc.progress_percent}%</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-2 text-sm text-warm-600">
-                진도율 {progressMap[profile.id]?.progress_percent ?? 0}% /
-                상태 {progressMap[profile.id]?.status === 'completed' ? '이수완료' : progressMap[profile.id]?.status === 'in_progress' ? '수강중' : '미시작'}
-              </p>
-            )}
-          </div>
-        )}
+        {/* "내 학습 데이터" 섹션 제거 — 요청사항 반영 */}
       </div>
       </div>
     </>

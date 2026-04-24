@@ -57,6 +57,13 @@ interface UploadedFile {
   uploaded_at?: string
   isNew?: boolean
   file?: File
+  // 기존 저장된 파일의 교체 pending (중간저장 눌러야 실제 반영)
+  pendingReplace?: {
+    originalFilePath: string  // 덮어쓸 기존 파일 경로
+    newFile: File             // 새로 업로드할 파일 (메모리 보관)
+    newFileName: string       // UI 표시용
+    newFileSize: number
+  }
 }
 
 interface Props {
@@ -187,8 +194,9 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
     [items]
   )
 
+  // 새 파일 or 교체 예약 둘 중 하나라도 있으면 중간저장 활성화
   const hasNewFiles = useMemo(
-    () => items.some(item => item.uploads.some(upload => upload.isNew)),
+    () => items.some(item => item.uploads.some(upload => upload.isNew || upload.pendingReplace)),
     [items]
   )
 
@@ -285,11 +293,12 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
 
+    // 처음 load() 와 순서 동일하게 맞춤 (unique_key_2) — 중간저장 후 순서 바뀜 버그 수정
     const { data: popItems } = await db
       .from('population_items')
       .select('*')
       .eq('unique_key', activity.unique_key)
-      .order('transaction_date')
+      .order('unique_key_2', { ascending: true, nullsFirst: false })
 
     const { data: uploads } = await db
       .from('evidence_uploads')
@@ -352,51 +361,40 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
     }
   }
 
-  async function handleReplacePersisted(uploadId: string, oldFilePath: string, populationItemId: string, newFile: File) {
-    if (!profile?.id) {
-      setError('로그인 정보가 확인되지 않아 교체를 진행할 수 없습니다.')
+  // 교체는 pending stage 로만 저장 → 중간저장 버튼을 눌러야 실제 DB/Storage 반영
+  // (요청사항: 중간저장 후 교체 시 중간저장 버튼 활성화, 클릭 전까지는 미저장 상태)
+  function handleReplacePersisted(uploadId: string, oldFilePath: string, _populationItemId: string, newFile: File) {
+    const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+    const ALLOWED_EXT = /\.(pdf|xlsx|xls)$/i
+    if (!ALLOWED_EXT.test(newFile.name)) {
+      alert('PDF 및 엑셀(.xlsx, .xls) 파일만 업로드 가능합니다.')
       return
     }
-
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const db = supabase as any
-
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-      const safeName = sanitizeFileName(newFile.name)
-      const storagePath = `${profile.id}/${populationItemId}/${timestamp}_${safeName}`
-
-      const { error: storageError } = await (supabase.storage as any)
-        .from('evidence')
-        .upload(storagePath, newFile, { upsert: false })
-
-      if (storageError) throw storageError
-
-      const dbFileName = `${activity.unique_key ?? ''}_${populationItemId}_${newFile.name}`
-      const { error: updateError } = await db
-        .from('evidence_uploads')
-        .update({
-          file_path: storagePath,
-          file_name: dbFileName,
-          original_file_name: newFile.name,
-          file_size: newFile.size,
-          uploaded_at: new Date().toISOString(),
-        })
-        .eq('id', uploadId)
-
-      if (updateError) {
-        await (supabase.storage as any).from('evidence').remove([storagePath])
-        throw updateError
-      }
-
-      await (supabase.storage as any).from('evidence').remove([oldFilePath])
-
-      await reloadItems()
-      setSavedMsg('파일이 교체되었습니다.')
-      setTimeout(() => setSavedMsg(''), 2500)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '파일 교체 중 오류가 발생했습니다.')
+    if (newFile.size > MAX_FILE_SIZE) {
+      alert(`파일 크기는 100MB를 초과할 수 없습니다: ${newFile.name}`)
+      return
     }
+    // items 배열의 order 를 유지하며 해당 upload 에 pendingReplace 플래그 설정
+    setItems(previous =>
+      previous.map(item => ({
+        ...item,
+        uploads: item.uploads.map(u =>
+          u.id === uploadId
+            ? {
+                ...u,
+                pendingReplace: {
+                  originalFilePath: oldFilePath,
+                  newFile,
+                  newFileName: newFile.name,
+                  newFileSize: newFile.size,
+                },
+              }
+            : u
+        ),
+      }))
+    )
+    setSavedMsg('교체 예약됨 — 중간저장을 눌러 확정하세요.')
+    setTimeout(() => setSavedMsg(''), 3000)
   }
 
   async function resolveControllerId() {
@@ -451,10 +449,62 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
 
     try {
       const nextItems: PopulationItem[] = []
+      let replacedCount = 0
 
       for (const item of items) {
-        const persistedUploads = item.uploads.filter(upload => !upload.isNew)
-        const pendingUploads = item.uploads.filter(upload => upload.isNew)
+        // 1) 기존 파일 교체 pending — 업로드 + DB update + 기존 storage 삭제
+        //    순서 유지: items 배열 및 item.uploads 배열의 index 유지
+        const processedUploads: UploadedFile[] = []
+        for (const upload of item.uploads) {
+          if (upload.pendingReplace && upload.id) {
+            const pr = upload.pendingReplace
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+            const safeName = sanitizeFileName(pr.newFileName)
+            const storagePath = `${profile.id}/${item.id}/${timestamp}_${safeName}`
+            const { error: se } = await (supabase.storage as any)
+              .from('evidence').upload(storagePath, pr.newFile, { upsert: false })
+            if (se) {
+              uploadErrors.push(`${pr.newFileName} 교체 실패: ${se.message}`)
+              // 교체 pending 유지하여 사용자 재시도 가능
+              processedUploads.push(upload)
+              continue
+            }
+            const dbFileName = `${activity.unique_key ?? ''}_${item.transaction_id ?? item.id}_${pr.newFileName}`
+            const { data: updated, error: ue } = await db
+              .from('evidence_uploads')
+              .update({
+                file_path: storagePath,
+                file_name: dbFileName,
+                original_file_name: pr.newFileName,
+                file_size: pr.newFileSize,
+                uploaded_at: new Date().toISOString(),
+              })
+              .eq('id', upload.id)
+              .select('id, file_name, original_file_name, file_path, file_size, uploaded_at')
+              .single()
+            if (ue) {
+              await (supabase.storage as any).from('evidence').remove([storagePath])
+              uploadErrors.push(`${pr.newFileName} DB 업데이트 실패: ${ue.message}`)
+              processedUploads.push(upload)
+              continue
+            }
+            // 기존 파일 삭제 (실패 무시)
+            try { await (supabase.storage as any).from('evidence').remove([pr.originalFilePath]) } catch { /* noop */ }
+            processedUploads.push({
+              id: updated.id,
+              file_name: updated.original_file_name || updated.file_name,
+              file_path: updated.file_path,
+              file_size: updated.file_size ?? undefined,
+              uploaded_at: updated.uploaded_at ?? undefined,
+            })
+            replacedCount += 1
+          } else {
+            processedUploads.push(upload)
+          }
+        }
+
+        const persistedUploads = processedUploads.filter(upload => !upload.isNew)
+        const pendingUploads = processedUploads.filter(upload => upload.isNew)
         const completedUploads: UploadedFile[] = []
         const failedUploads: UploadedFile[] = []
 
@@ -528,8 +578,11 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
         )
       }
 
-      if (uploadedCount > 0) {
-        setSavedMsg(`${uploadedCount.toLocaleString('ko-KR')}개 파일 업로드 성공`)
+      if (uploadedCount > 0 || replacedCount > 0) {
+        const parts: string[] = []
+        if (uploadedCount > 0) parts.push(`업로드 ${uploadedCount.toLocaleString('ko-KR')}건`)
+        if (replacedCount > 0) parts.push(`교체 ${replacedCount.toLocaleString('ko-KR')}건`)
+        setSavedMsg(`${parts.join(' · ')} 완료`)
         setTimeout(() => setSavedMsg(''), 3000)
       }
 
@@ -850,16 +903,28 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                                         'px-2 py-1.5 rounded-md text-[11px] border',
                                         upload.isNew
                                           ? 'bg-warm-50 border-brand-100'
+                                          : upload.pendingReplace
+                                          ? 'bg-amber-50 border-amber-200'
                                           : 'bg-warm-50 border-warm-100'
                                       )}
                                     >
                                       <div className="flex items-start gap-1.5">
-                                        <FileText size={12} className={clsx('mt-0.5 shrink-0', upload.isNew ? 'text-brand-500' : 'text-warm-400')} />
+                                        <FileText size={12} className={clsx('mt-0.5 shrink-0', upload.isNew ? 'text-brand-500' : upload.pendingReplace ? 'text-amber-600' : 'text-warm-400')} />
                                         <div className="min-w-0 flex-1">
-                                          <p className="text-brand-700 break-all whitespace-normal leading-tight">{upload.file_name}</p>
-                                          {upload.file_size ? (
-                                            <p className="text-[10px] text-warm-400 mt-0.5">{formatFileSize(upload.file_size)}</p>
-                                          ) : null}
+                                          {upload.pendingReplace ? (
+                                            <>
+                                              <p className="text-amber-700 break-all whitespace-normal leading-tight line-through">{upload.file_name}</p>
+                                              <p className="text-amber-800 font-semibold break-all whitespace-normal leading-tight mt-0.5">→ {upload.pendingReplace.newFileName}</p>
+                                              <p className="text-[10px] text-amber-600 mt-0.5">교체 예약 ({formatFileSize(upload.pendingReplace.newFileSize)}) · 중간저장 시 반영</p>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <p className="text-brand-700 break-all whitespace-normal leading-tight">{upload.file_name}</p>
+                                              {upload.file_size ? (
+                                                <p className="text-[10px] text-warm-400 mt-0.5">{formatFileSize(upload.file_size)}</p>
+                                              ) : null}
+                                            </>
+                                          )}
                                         </div>
                                       </div>
 
@@ -878,36 +943,56 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
 
                                       {!upload.isNew && upload.file_path ? (
                                         <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                                          <FileDownloadBtn path={upload.file_path} name={upload.file_name} />
+                                          {!upload.pendingReplace && (
+                                            <FileDownloadBtn path={upload.file_path} name={upload.file_name} />
+                                          )}
                                           {!viewOnly && upload.id && (
                                             <>
-                                              <input
-                                                type="file"
-                                                ref={el => { replaceInputRefs.current[upload.id!] = el }}
-                                                onChange={e => {
-                                                  const file = e.target.files?.[0]
-                                                  if (file) handleReplacePersisted(upload.id!, upload.file_path, item.id, file)
-                                                  e.target.value = ''
-                                                }}
-                                                className="hidden"
-                                                accept=".pdf,.xlsx,.xls"
-                                              />
-                                              <button
-                                                onClick={() => replaceInputRefs.current[upload.id!]?.click()}
-                                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-brand-700 bg-brand-50 border border-brand-100 hover:bg-brand-100 hover:border-brand-200 transition-colors"
-                                                title="교체"
-                                              >
-                                                <RefreshCw size={12} />
-                                                <span>교체</span>
-                                              </button>
-                                              <button
-                                                onClick={() => handleDeletePersisted(upload.id!, upload.file_path)}
-                                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 hover:border-red-200 transition-colors"
-                                                title="삭제"
-                                              >
-                                                <Trash2 size={12} />
-                                                <span>삭제</span>
-                                              </button>
+                                              {upload.pendingReplace ? (
+                                                <button
+                                                  onClick={() => {
+                                                    // 교체 예약 취소
+                                                    setItems(prev => prev.map(it => ({
+                                                      ...it,
+                                                      uploads: it.uploads.map(u => u.id === upload.id ? { ...u, pendingReplace: undefined } : u),
+                                                    })))
+                                                  }}
+                                                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-amber-700 bg-white border border-amber-300 hover:bg-amber-50 transition-colors"
+                                                  title="교체 예약 취소"
+                                                >
+                                                  교체 취소
+                                                </button>
+                                              ) : (
+                                                <>
+                                                  <input
+                                                    type="file"
+                                                    ref={el => { replaceInputRefs.current[upload.id!] = el }}
+                                                    onChange={e => {
+                                                      const file = e.target.files?.[0]
+                                                      if (file) handleReplacePersisted(upload.id!, upload.file_path, item.id, file)
+                                                      e.target.value = ''
+                                                    }}
+                                                    className="hidden"
+                                                    accept=".pdf,.xlsx,.xls"
+                                                  />
+                                                  <button
+                                                    onClick={() => replaceInputRefs.current[upload.id!]?.click()}
+                                                    className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-brand-700 bg-brand-50 border border-brand-100 hover:bg-brand-100 hover:border-brand-200 transition-colors"
+                                                    title="교체"
+                                                  >
+                                                    <RefreshCw size={12} />
+                                                    <span>교체</span>
+                                                  </button>
+                                                  <button
+                                                    onClick={() => handleDeletePersisted(upload.id!, upload.file_path)}
+                                                    className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 hover:border-red-200 transition-colors"
+                                                    title="이미 저장된 파일 삭제 (DB·Storage 즉시 반영)"
+                                                  >
+                                                    <Trash2 size={12} />
+                                                    <span>삭제</span>
+                                                  </button>
+                                                </>
+                                              )}
                                             </>
                                           )}
                                         </div>

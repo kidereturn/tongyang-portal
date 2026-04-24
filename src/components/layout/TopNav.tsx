@@ -228,7 +228,12 @@ export default function TopNav() {
 
   return (
     <nav className="at-nav">
-      <Link to="/dashboard" className="at-nav-logo" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+      <Link
+        to="/dashboard"
+        className="at-nav-logo"
+        style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 10 }}
+        onClick={(e) => { e.preventDefault(); window.location.assign('/dashboard') }}
+      >
         {/* 흰색 원본 PNG를 하늘색(#3182F6, Toss blue)으로 tint — 크기 300% 증가 (30px → 90px) */}
         <img
           src="/tongyang_logo_main.png"
@@ -250,6 +255,11 @@ export default function TopNav() {
             to={item.to}
             className={({ isActive }) => clsx('at-nav-item', isActive && 'active')}
             style={{ textDecoration: 'none' }}
+            onClick={(e) => {
+              // GNB 클릭 시 항상 하드 새로고침 (요청사항: 각 항목 누르면 새로고침)
+              e.preventDefault()
+              window.location.assign(item.to)
+            }}
           >
             {item.label}
           </NavLink>
@@ -259,6 +269,7 @@ export default function TopNav() {
             to="/admin"
             className={({ isActive }) => clsx('at-nav-item', isActive && 'active')}
             style={{ textDecoration: 'none' }}
+            onClick={(e) => { e.preventDefault(); window.location.assign('/admin') }}
           >
             관리자
           </NavLink>

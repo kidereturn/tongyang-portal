@@ -375,27 +375,9 @@ export default function DashboardPage() {
               <div className="kpi-sub">달성률 {approvalRate}%</div>
             </Link>
 
-            <Link to="/evidence?status=rejected" className="at-kpi" style={{ textDecoration: 'none' }}>
-              <div className="kpi-label">
-                <div className="kpi-icon" style={{ background: '#FBEBEF', color: 'var(--at-red)' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M6 6l12 12M6 18L18 6" /></svg></div>
-                반려
-              </div>
-              <div className="kpi-value">{stats.rejected}<span className="unit">건</span></div>
-              <div className="kpi-sub">재작성 필요</div>
-            </Link>
-          </div>
-
-          {!isAdmin && (
-            <div className="at-grid at-g-4" style={{ marginTop: 16 }}>
-              <Link to="/evidence?status=pending" className="at-kpi" style={{ textDecoration: 'none' }}>
-                <div className="kpi-label">
-                  <div className="kpi-icon" style={{ background: '#F2F4F6', color: 'var(--at-ink-mute)' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="3" width="18" height="18" rx="2" /></svg></div>
-                  미완료
-                </div>
-                <div className="kpi-value">{nonAdminPending}<span className="unit">건</span></div>
-                <div className="kpi-sub">증빙 미업로드</div>
-              </Link>
-              {/* 수정제출 — 0 건이어도 표시 · 건수>0 이면 반짝 + 빨강 */}
+            {/* 반려 박스 삭제 — 요청사항 */}
+            {/* 수정제출: 관리자 + 담당자 (승인자는 숨김) */}
+            {profile?.role !== 'controller' && (
               <Link
                 to="/evidence?status=modifyReq"
                 className={reviewStats.modifyReq > 0 ? 'at-kpi at-kpi-pulse' : 'at-kpi'}
@@ -409,14 +391,26 @@ export default function DashboardPage() {
                   <div className="kpi-icon" style={{ background: reviewStats.modifyReq > 0 ? '#FEE2E2' : '#F2F4F6', color: reviewStats.modifyReq > 0 ? '#DC2626' : 'var(--at-ink-faint)' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" /></svg>
                   </div>
-                  수정 제출
+                  수정제출
                 </div>
-                <div className="kpi-value" style={{ color: reviewStats.modifyReq > 0 ? '#DC2626' : undefined, fontWeight: reviewStats.modifyReq > 0 ? 800 : undefined }}>
+                <div className="kpi-value" style={{ color: reviewStats.modifyReq > 0 ? '#DC2626' : undefined }}>
                   {reviewStats.modifyReq}<span className="unit">건</span>
                 </div>
-                <div className="kpi-sub" style={{ color: reviewStats.modifyReq > 0 ? '#DC2626' : undefined }}>
-                  {reviewStats.modifyReq > 0 ? '관리자 수정 요청' : '수정 요청 없음'}
+                <div className="kpi-sub">재작성 요청</div>
+              </Link>
+            )}
+          </div>
+
+          {/* 담당자 미완료 박스 */}
+          {profile?.role === 'owner' && (
+            <div className="at-grid at-g-4" style={{ marginTop: 16 }}>
+              <Link to="/evidence?status=pending" className="at-kpi" style={{ textDecoration: 'none' }}>
+                <div className="kpi-label">
+                  <div className="kpi-icon" style={{ background: '#F2F4F6', color: 'var(--at-ink-mute)' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="3" width="18" height="18" rx="2" /></svg></div>
+                  미완료
                 </div>
+                <div className="kpi-value">{nonAdminPending}<span className="unit">건</span></div>
+                <div className="kpi-sub">증빙 미업로드</div>
               </Link>
             </div>
           )}
@@ -683,14 +677,14 @@ export default function DashboardPage() {
               <div className="f-desc">내 통제활동의 증빙을 확인·업로드합니다.</div>
               <div className="f-meta"><span>{stats.total} 개 활동</span><span className="arrow">→</span></div>
             </Link>
-            <Link to="/inbox" className="at-feature" style={{ textDecoration: 'none' }}>
+            <Link to="/bingo" className="at-feature" style={{ textDecoration: 'none' }}>
               <div className="tile amber">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6}><polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6}><rect x="2" y="6" width="20" height="12" rx="2" ry="2" /><line x1="12" y1="12" x2="12" y2="12" /><line x1="8" y1="12" x2="8.01" y2="12" /><line x1="16" y1="12" x2="16.01" y2="12" /></svg>
               </div>
-              <div className="f-label">02 · INBOX</div>
-              <div className="f-title">내 승인함</div>
-              <div className="f-desc">결재 대기 항목을 빠르게 처리합니다.</div>
-              <div className="f-meta"><span>{stats.pendingApproval} 건 대기</span><span className="arrow">→</span></div>
+              <div className="f-label">02 · BINGO</div>
+              <div className="f-title">빙고게임</div>
+              <div className="f-desc">매일 퀴즈로 포인트 획득, 내부회계 학습.</div>
+              <div className="f-meta"><span>플레이하기</span><span className="arrow">→</span></div>
             </Link>
             <Link to="/courses" className="at-feature" style={{ textDecoration: 'none' }}>
               <div className="tile">

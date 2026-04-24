@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { BookOpen, PauseCircle, PlayCircle, RotateCcw, CheckCircle2, Circle, MessageSquare, ChevronLeft } from 'lucide-react'
+import {PauseCircle, PlayCircle, RotateCcw, CheckCircle2, Circle, MessageSquare, ChevronLeft } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import CourseQuizModal from '../../components/CourseQuizModal'
@@ -647,9 +647,7 @@ export default function CourseDetailPage() {
                   {playing ? <PauseCircle size={14} /> : <PlayCircle size={14} />}
                   {playing ? '일시정지' : `이어서 시청 · ${watchedLabel}부터`}
                 </button>
-                <button onClick={() => setQuizOpen(true)} className="btn-compact">
-                  <BookOpen size={13} /> 퀴즈 응시
-                </button>
+                {/* '퀴즈 응시' 버튼 제거 — 요청사항 반영 */}
                 <button onClick={handleRestart} className="btn-compact" style={{ marginLeft: 'auto' }} title="기존 최대 진도율은 유지됩니다">
                   <RotateCcw size={13} /> 처음부터
                 </button>

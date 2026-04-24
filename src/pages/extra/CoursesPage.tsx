@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { BookOpen, Play, Award, ListChecks, Shield, X, Send, Clock } from 'lucide-react'
+import { BookOpen, Play, ListChecks, Shield, X, Send, Clock } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
 import { safeQuery } from '../../lib/queryWithTimeout'
@@ -25,15 +24,12 @@ type VideoRow = {
   tag?: string | null
 }
 
-// Course categories (filter chips)
+// Course filter chips — 수강 상태 기반
 const CATEGORIES = [
-  { key: 'all',        label: '전체',     count: 0 },
-  { key: '필수',       label: '필수',     count: 0 },
-  { key: '재무회계',   label: '재무회계', count: 0 },
-  { key: '내부통제',   label: '내부통제', count: 0 },
-  { key: '규제대응',   label: '규제대응', count: 0 },
-  { key: '리더십',     label: '리더십',   count: 0 },
-  { key: 'IT·보안',    label: 'IT·보안',  count: 0 },
+  { key: 'all',          label: '전체',   count: 0 },
+  { key: 'in_progress',  label: '수강중', count: 0 },
+  { key: 'completed',    label: '수료',   count: 0 },
+  { key: 'not_started',  label: '미수강', count: 0 },
 ]
 
 // Fallback palette for cards (rotates when course doesn't have one set)
@@ -58,7 +54,6 @@ const TAG_STYLES: Record<string, React.CSSProperties> = {
 type ProgressMap = Record<string, number> // course_id → progress_percent (0-100)
 
 export default function CoursesPage() {
-  const navigate = useNavigate()
   const { profile } = useAuth()
   const [videos, setVideos] = useState<VideoRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -118,19 +113,29 @@ export default function CoursesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // 강좌별 수강 상태 (learning_progress 기반): 'in_progress' | 'completed' | 'not_started'
+  function statusOf(courseId: string): 'in_progress' | 'completed' | 'not_started' {
+    const p = progressMap[courseId]
+    if (p == null) return 'not_started'
+    if (p >= 100) return 'completed'
+    if (p > 0) return 'in_progress'
+    return 'not_started'
+  }
+
   const counts = useMemo(() => {
-    const base: Record<string, number> = { all: videos.length }
+    const base: Record<string, number> = { all: videos.length, in_progress: 0, completed: 0, not_started: 0 }
     for (const v of videos) {
-      const c = v.category ?? '내부통제'
-      base[c] = (base[c] ?? 0) + 1
+      base[statusOf(v.id)] += 1
     }
     return base
-  }, [videos])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videos, progressMap])
 
   const filtered = useMemo(() => {
     if (filter === 'all') return videos
-    return videos.filter(v => (v.category ?? '내부통제') === filter)
-  }, [videos, filter])
+    return videos.filter(v => statusOf(v.id) === filter)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videos, filter, progressMap])
 
   const featured = videos[0]
 
@@ -203,9 +208,7 @@ export default function CoursesPage() {
             </p>
           </div>
           <div className="actions" style={{ display: 'flex', gap: 8 }}>
-            <button className="btn-compact" onClick={() => navigate('/learning')}>
-              <Award size={13} /> 내 이수내역
-            </button>
+            {/* "내 이수내역" 버튼 제거 — 요청사항 반영 */}
             <button className="btn-compact primary" onClick={() => setShowRegister(true)}>
               <ListChecks size={13} /> 강좌 신청
             </button>
