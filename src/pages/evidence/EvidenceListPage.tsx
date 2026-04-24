@@ -524,8 +524,9 @@ export default function EvidenceListPage() {
                         const memoStaged = pendingMemo[act.id]
                         const memoCurrent = act.review_memo ?? ''
                         const memoShown = memoStaged ?? memoCurrent
-                        const statusDirty = staged !== undefined && staged !== current
-                        const memoDirty = memoStaged !== undefined && memoStaged !== memoCurrent
+                        // displayed value 가 저장된 값과 다르면 dirty (Puppeteer 등 programmatic 변경 호환)
+                        const statusDirty = shown !== current
+                        const memoDirty = memoShown !== memoCurrent
                         const dirty = statusDirty || memoDirty
                         const bg = shown === '완료' ? '#E8F5ED'
                           : shown === '검토중' ? '#E8F2FE'

@@ -317,6 +317,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
         file_path: upload.file_path,
         file_size: upload.file_size ?? undefined,
         uploaded_at: upload.uploaded_at ?? undefined,
+        isNew: false,  // 명시적으로 — reloadItems 후 재업로드 감지 안정화
       })
     })
 
