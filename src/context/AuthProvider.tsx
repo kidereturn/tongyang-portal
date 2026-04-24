@@ -141,11 +141,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
 
     // Failsafe: if INITIAL_SESSION never fires within 3s, unblock the UI
+    // profile 이 이미 로드됐으면 no-op (오해 유발하는 warn 제거)
     const timeout = setTimeout(() => {
-      if (mounted) {
-        console.warn('[AuthProvider] failsafe: force loading=false after 3s')
-        setState(prev => ({ ...prev, loading: false }))
-      }
+      if (!mounted) return
+      // profile 이 이미 로드됐으면 아무것도 안함
+      if (lastProfileJson.current !== '') return
+      // 실제로 auth 가 멈춘 경우에만 warn
+      setState(prev => {
+        if (!prev.loading) return prev
+        console.warn('[AuthProvider] failsafe: INITIAL_SESSION 3s 내 미도달 → UI 강제 언블록')
+        return { ...prev, loading: false }
+      })
     }, 3000)
 
     // ⚠️ 중복 refreshRetry 제거됨
