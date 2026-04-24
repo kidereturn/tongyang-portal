@@ -32,6 +32,7 @@ interface Activity {
   submission_status: string
   unique_key: string | null
   owner_id: string | null
+  review_status?: string | null
 }
 
 interface PopulationItem {
@@ -627,12 +628,18 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
       const db = supabase as any
       const controllerId = await resolveControllerId()
 
+      // 수정제출 건 재상신 시 review_status 를 '미검토' 로 복원하여 수정제출 카운트 감소
+      // (사용자 스펙: "수정제출건이 상신완료 되면 카운트가 내려간다")
+      const patchAct: Record<string, unknown> = {
+        submission_status: '완료',
+        updated_at: new Date().toISOString(),
+      }
+      if (activity.review_status === '수정제출') {
+        patchAct.review_status = '미검토'
+      }
       const { error: activityError } = await db
         .from('activities')
-        .update({
-          submission_status: '완료',
-          updated_at: new Date().toISOString(),
-        })
+        .update(patchAct)
         .eq('id', activity.id)
 
       if (activityError) throw activityError

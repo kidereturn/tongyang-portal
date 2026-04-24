@@ -302,11 +302,12 @@ export default function BingoPage() {
     ;(async () => {
       try {
         const firstOfMonth = new Date(); firstOfMonth.setDate(1); firstOfMonth.setHours(0,0,0,0)
+        // bingo_achievements 에는 created_at 컬럼 없음 — updated_at 사용 (onConflict upsert 로 single row 유지)
         const { data } = await (supabase as any)
           .from('bingo_achievements')
-          .select('max_lines, created_at')
+          .select('max_lines, updated_at')
           .eq('user_id', profile.id)
-          .gte('created_at', firstOfMonth.toISOString())
+          .gte('updated_at', firstOfMonth.toISOString())
         const sum = (data ?? []).reduce((s: number, r: any) => s + (r.max_lines ?? 0), 0)
         setMonthlyLines(sum)
       } catch { /* silent */ }
