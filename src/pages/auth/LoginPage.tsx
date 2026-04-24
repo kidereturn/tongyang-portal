@@ -151,8 +151,10 @@ export default function LoginPage() {
 
           <form className="login-form" onSubmit={handleLogin}>
             <div className="fld">
-              <div className="fld-lab">사번 <span className="req">ID</span></div>
+              <label htmlFor="login-employee-id" className="fld-lab">사번 <span className="req">ID</span></label>
               <input
+                id="login-employee-id"
+                name="employeeId"
                 className="fld-in"
                 type="text"
                 placeholder="예: 101974"
@@ -164,9 +166,11 @@ export default function LoginPage() {
               <div className="hint">로그인 ID는 이메일이 아닌 <b>사번</b>입니다.</div>
             </div>
             <div className="fld">
-              <div className="fld-lab">비밀번호 <span className="req">PW</span></div>
+              <label htmlFor="login-password" className="fld-lab">비밀번호 <span className="req">PW</span></label>
               <div className="pw-wrap">
                 <input
+                  id="login-password"
+                  name="password"
                   className="fld-in"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="초기 비밀번호는 사번"
@@ -175,7 +179,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   required
                 />
-                <span className="eye" onClick={() => setShowPassword(v => !v)} style={{ cursor: 'pointer' }}>
+                <span className="eye" onClick={() => setShowPassword(v => !v)} style={{ cursor: 'pointer' }} role="button" tabIndex={0} aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보이기'}>
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </span>
               </div>
