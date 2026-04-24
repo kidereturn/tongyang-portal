@@ -71,11 +71,20 @@ export default function ChatbotPage() {
   const [error, setError] = useState<string | null>(null)
   const [modelInfo, setModelInfo] = useState<string>('')
   const [docsCount, setDocsCount] = useState<number>(0)
-  const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const lastMessageCountRef = useRef<number>(0)
 
+  // 메시지 추가 시에만 스크롤 (최초 마운트 / 탭 복귀시 스크롤 안함)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (messages.length > lastMessageCountRef.current) {
+      // 채팅 컨테이너 내부만 스크롤 (전체 페이지 스크롤 X)
+      const container = messagesEndRef.current?.closest('[data-chat-scroll]') as HTMLElement | null
+      if (container) {
+        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
+      }
+      lastMessageCountRef.current = messages.length
+    }
   }, [messages, thinking])
 
   async function sendMessage(text?: string) {
@@ -165,8 +174,8 @@ export default function ChatbotPage() {
             </button>
           </div>
 
-          {/* 메시지 영역 */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {/* 메시지 영역 — 컨테이너 자체만 스크롤 (페이지 스크롤 X) */}
+          <div data-chat-scroll className="flex-1 overflow-y-auto p-5 space-y-4">
             {messages.map((msg, i) => (
               <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                 {msg.role === 'assistant' && (
@@ -216,7 +225,7 @@ export default function ChatbotPage() {
               </div>
             )}
 
-            <div ref={bottomRef} />
+            <div ref={messagesEndRef} />
           </div>
 
           {/* 입력 영역 */}

@@ -43,10 +43,16 @@ export async function queryWithTimeout<T>(
 /**
  * supabase 쿼리 결과를 { data, error } 형태로 안전하게 반환.
  * 타임아웃/예외 시 error 를 채워주고 data 는 null 로 세팅.
+ *
+ * 재시도 전략 (2026-04-24 추가):
+ * - 첫 시도 타임아웃 → 즉시 fresh Promise 로 1회 재시도 (총 2회 시도)
+ * - 두 번째 시도는 builder 재생성이 어려워서 동일 promise 참조 시 hang 재발생 가능 → retryFn 제공시 사용
+ * - Supabase-js 의 PostgrestBuilder 는 await 1회로 lock 되므로
+ *   safeQueryRetry 에서는 팩토리 함수를 받아 매번 새 빌더를 생성한다.
  */
 export async function safeQuery<T>(
   promise: PromiseLike<{ data: T | null; error: unknown } | unknown>,
-  ms: number = 12_000,
+  ms: number = 8_000, // 12 → 8 로 기본 타임아웃 단축
   tag: string = 'query',
 ): Promise<{ data: T | null; error: Error | null }> {
   try {
@@ -61,6 +67,36 @@ export async function safeQuery<T>(
     console.warn(`[safeQuery] ${tag}:`, err.message)
     return { data: null, error: err }
   }
+}
+
+/**
+ * safeQuery 에 재시도 추가 버전 — 빌더 팩토리를 받아 매 시도마다 새 쿼리 생성.
+ * 첫 시도 5s, 재시도 3s. 빠른 복구 + UX 보장.
+ */
+export async function safeQueryRetry<T>(
+  builderFactory: () => PromiseLike<{ data: T | null; error: unknown } | unknown>,
+  tag: string = 'query',
+  firstMs: number = 5_000,
+  retryMs: number = 3_000,
+): Promise<{ data: T | null; error: Error | null }> {
+  const t0 = performance.now()
+  const first = await safeQuery<T>(builderFactory(), firstMs, tag)
+  if (first.data !== null && !first.error) {
+    // 성공
+    if (performance.now() - t0 > 200) {
+      console.info(`[safeQueryRetry] ${tag} ok in ${Math.round(performance.now() - t0)}ms`)
+    }
+    return first
+  }
+  // 실패 — 재시도
+  console.warn(`[safeQueryRetry] ${tag} 1st attempt failed, retrying... (${Math.round(performance.now() - t0)}ms)`)
+  const second = await safeQuery<T>(builderFactory(), retryMs, tag + '.retry')
+  if (second.data !== null && !second.error) {
+    console.info(`[safeQueryRetry] ${tag} succeeded on retry (total ${Math.round(performance.now() - t0)}ms)`)
+  } else {
+    console.warn(`[safeQueryRetry] ${tag} failed after retry (total ${Math.round(performance.now() - t0)}ms)`)
+  }
+  return second
 }
 
 /**

@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 // xlsx 는 '엑셀 다운로드' 클릭시만 필요 → 동적 import (vendor-xlsx 421kB 지연 로드)
 import { supabase } from '../../lib/supabase'
-import { safeQuery, chunkedIn } from '../../lib/queryWithTimeout'
+import { safeQueryRetry, chunkedIn } from '../../lib/queryWithTimeout'
 import { useAuth } from '../../hooks/useAuth'
 import clsx from 'clsx'
 import EvidenceUploadModal from './EvidenceUploadModal'
@@ -67,7 +67,8 @@ export default function EvidenceListPage() {
     setLoadError(null)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
-    try {
+    // Builder factory — 매 재시도마다 새 쿼리 생성 (PostgrestBuilder 는 await 1회로 lock)
+    const buildActivitiesQuery = () => {
       let q = db.from('activities').select('id, control_code, owner_name, department, title, description, controller_name, kpi_score, submission_status, review_status, unique_key, owner_id, controller_id, owner_email, controller_email, owner_employee_id, controller_employee_id').eq('active', true)
       if (profile.role === 'owner') {
         if (profile.employee_id) q = q.eq('owner_employee_id', profile.employee_id)
@@ -78,9 +79,12 @@ export default function EvidenceListPage() {
         else if (profile.full_name) q = q.eq('controller_name', profile.full_name)
         else q = q.eq('controller_id', profile.id)
       }
-      q = q.order('control_code').order('department')
+      return q.order('control_code').order('department')
+    }
 
-      const { data } = await safeQuery<Activity[]>(q, 12_000, 'evidence.activities')
+    try {
+      // 5초 타임아웃 + 1회 재시도 (3초) — 브라우저 hang 시 빠른 복구
+      const { data } = await safeQueryRetry<Activity[]>(buildActivitiesQuery, 'evidence.activities', 5000, 3000)
       const rows = data ?? []
       setActivities(rows)
       setFiltered(rows)
