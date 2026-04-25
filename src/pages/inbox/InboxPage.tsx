@@ -115,6 +115,11 @@ export default function InboxPage() {
   useEffect(() => { fetchInbox() }, [fetchInbox])
 
   async function handleDecision(item: ApprovalItem, decision: 'approved' | 'rejected') {
+    // 권한 가드: 승인/반려는 controller 또는 admin 만 가능 (담당자 차단)
+    if (profile?.role !== 'controller' && profile?.role !== 'admin') {
+      alert('승인/반려 권한이 없습니다.')
+      return
+    }
     const comment = commentMap[item.id] ?? ''
     if (decision === 'rejected' && !comment.trim()) {
       alert('반려 시 사유를 입력해주세요.')

@@ -151,7 +151,9 @@ export default function DashboardPage() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const pick = (r: any, fallback: any) => r?.status === 'fulfilled' ? r.value : fallback
         actRes = pick(settled[0], { data: [] })
-        userCnt = pick(settled[1], { count: 0 })
+        // Supabase count() 응답은 { data: null, count: N } — count 우선 추출
+        const userCntVal = pick(settled[1], { count: 0 })
+        userCnt = { count: userCntVal?.count ?? userCntVal?.data?.count ?? 0 }
         rankRes = pick(settled[2], { data: [] })
         noticeRes = pick(settled[3], { data: [] })
         // 실패한 쿼리 로깅 (디버깅용)

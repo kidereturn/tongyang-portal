@@ -724,7 +724,13 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
   const allUploaded = uploadedCount === items.length && items.length > 0
 
   return (
-    <div className="modal-overlay" onClick={event => { if (event.target === event.currentTarget) onClose() }}>
+    <div className="modal-overlay" onClick={event => {
+      if (event.target === event.currentTarget) {
+        // 미저장 변경사항 경고 — pending 새 파일 또는 교체 예약이 있으면 confirm
+        if (hasNewFiles && !window.confirm('저장하지 않은 변경사항이 있습니다.\n중간저장 없이 닫으면 변경사항이 사라집니다.\n\n그래도 닫으시겠습니까?')) return
+        onClose()
+      }
+    }}>
       {/* modal-box 는 뷰포트 내에 맞춤 · 내부 스크롤 — 뷰포트 좁아져도 창 전체 스크롤 생기지 않도록 */}
       <div className="modal-box max-w-[1560px] max-h-[94vh]" style={{ width: 'min(96vw, 1560px)', overflow: 'auto' }}>
         <div style={{ minWidth: 1200 }}>
@@ -1112,22 +1118,27 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                 onClick={async () => {
                   const JSZip = (await import('jszip')).default
                   const zip = new JSZip()
-                  let added = 0
+                  let added = 0, failed = 0, target = 0
                   for (const it of items) {
                     for (const u of it.uploads) {
                       if (u.isNew || !u.file_path) continue
+                      target++
                       try {
                         const { data: signed } = await (supabase.storage as any).from('evidence').createSignedUrl(u.file_path, 3600)
-                        if (!signed?.signedUrl) continue
+                        if (!signed?.signedUrl) { failed++; continue }
                         const res = await fetch(signed.signedUrl)
+                        if (!res.ok) { failed++; continue }
                         const ab = await res.arrayBuffer()
                         const safeFolder = (it.unique_key_2 || it.transaction_id || it.id).toString().replace(/[/\\:*?"<>|]/g, '_').slice(0, 60)
                         zip.file(`${safeFolder}/${u.file_name}`, ab)
                         added++
-                      } catch {}
+                      } catch { failed++ }
                     }
                   }
                   if (added === 0) { window.alert('다운로드할 파일이 없습니다.'); return }
+                  if (failed > 0) {
+                    if (!window.confirm(`${target}건 중 ${failed}건 다운로드 실패.\n${added}건만 ZIP 으로 저장하시겠습니까?`)) return
+                  }
                   const blob = await zip.generateAsync({ type: 'blob' })
                   const url = URL.createObjectURL(blob)
                   const a = document.createElement('a')

@@ -588,6 +588,7 @@ export default function EvidenceListPage() {
                                 onClick={e => e.stopPropagation()}
                                 placeholder="메모"
                                 rows={1}
+                                maxLength={2000}
                                 style={{
                                   flex: '1 1 auto',
                                   padding: '4px 6px', borderRadius: 6,
