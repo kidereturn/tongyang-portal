@@ -202,6 +202,15 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
     [items]
   )
 
+  // 자동 중간저장 — hasNewFiles 가 true 가 되면 800ms 후 자동 저장
+  // (사용자 요청: 파일 1개 올릴 때마다 자동 중간저장)
+  useEffect(() => {
+    if (!hasNewFiles || saving || submitting || viewOnly || !profile?.id) return
+    const t = setTimeout(() => { void handleSave() }, 800)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasNewFiles, saving, submitting])
+
   function handleFileSelect(itemId: string, files: FileList | null) {
     if (!files || files.length === 0) return
     if (uploadBlocked) {
@@ -249,9 +258,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
       })
     )
 
-    // 자동 중간저장 — 파일 선택 후 짧은 debounce 로 saving lock 가드 활용
-    // (handleSave 내부의 saving 가드가 race 방지)
-    setTimeout(() => { void handleSave() }, 600)
+    // 자동 중간저장은 useEffect 로 hasNewFiles 감지 (closure 문제 회피)
   }
 
   function handleDragOver(event: React.DragEvent, itemId: string) {
