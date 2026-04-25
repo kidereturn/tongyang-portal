@@ -33,6 +33,7 @@ interface Activity {
   unique_key: string | null
   owner_id: string | null
   review_status?: string | null
+  review_memo?: string | null
 }
 
 interface PopulationItem {
@@ -742,6 +743,27 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
             <p className="text-sm text-brand-900 font-bold mt-1">{activity.title}</p>
           </div>
 
+          {/* 관리자 메모 — 담당자/승인자가 검토 의견 확인 (수정제출 사유 등) */}
+          {activity.review_memo && activity.review_memo.trim() && (
+            <div style={{
+              flex: '0 0 320px',
+              marginLeft: 16,
+              padding: '10px 12px',
+              background: '#FEF3C7',
+              border: '1px solid #FCD34D',
+              borderRadius: 8,
+              fontSize: 12,
+              lineHeight: 1.5,
+              color: '#78350F',
+              maxHeight: 90,
+              overflowY: 'auto',
+              wordBreak: 'keep-all',
+            }}>
+              <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 4, color: '#92400E' }}>📝 관리자 메모</div>
+              {activity.review_memo}
+            </div>
+          )}
+
           <button
             onClick={() => onClose()}
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-warm-100 text-warm-400 hover:text-warm-600 transition-all ml-4"
@@ -1084,6 +1106,43 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
               <FileSpreadsheet size={14} />
               엑셀 다운로드
             </button>
+            {/* 전체 ZIP 다운로드 — 검토자(승인자·관리자) 가 모든 증빙을 한 번에 받기 */}
+            {viewOnly && items.some(it => it.uploads.some(u => !u.isNew && u.file_path)) && (
+              <button
+                onClick={async () => {
+                  const JSZip = (await import('jszip')).default
+                  const zip = new JSZip()
+                  let added = 0
+                  for (const it of items) {
+                    for (const u of it.uploads) {
+                      if (u.isNew || !u.file_path) continue
+                      try {
+                        const { data: signed } = await (supabase.storage as any).from('evidence').createSignedUrl(u.file_path, 3600)
+                        if (!signed?.signedUrl) continue
+                        const res = await fetch(signed.signedUrl)
+                        const ab = await res.arrayBuffer()
+                        const safeFolder = (it.unique_key_2 || it.transaction_id || it.id).toString().replace(/[/\\:*?"<>|]/g, '_').slice(0, 60)
+                        zip.file(`${safeFolder}/${u.file_name}`, ab)
+                        added++
+                      } catch {}
+                    }
+                  }
+                  if (added === 0) { window.alert('다운로드할 파일이 없습니다.'); return }
+                  const blob = await zip.generateAsync({ type: 'blob' })
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = `증빙_${activity.control_code}_${new Date().toISOString().slice(0, 10)}.zip`
+                  document.body.appendChild(a); a.click(); a.remove()
+                  setTimeout(() => URL.revokeObjectURL(url), 5000)
+                }}
+                className="btn-secondary text-xs"
+                title="모든 증빙 파일을 ZIP 으로 다운로드"
+              >
+                <Download size={14} />
+                전체 ZIP 다운로드
+              </button>
+            )}
           </div>
 
           {!viewOnly && (
@@ -1118,12 +1177,26 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
   )
 }
 
-function FileDownloadBtn({ path, name: _name }: { path: string; name: string }) {
+function FileDownloadBtn({ path, name }: { path: string; name: string }) {
   async function handleDownload() {
     const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 3600)
     if (!data?.signedUrl) return
-
-    window.open(data.signedUrl, '_blank')
+    // 원본 파일명으로 저장 (storage 의 hash 파일명이 아닌 사용자가 업로드한 이름)
+    try {
+      const res = await fetch(data.signedUrl)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = name || 'evidence'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 5000)
+    } catch {
+      // fallback: 새 탭 열기
+      window.open(data.signedUrl, '_blank')
+    }
   }
 
   return (

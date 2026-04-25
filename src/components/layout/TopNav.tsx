@@ -46,8 +46,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard', label: '홈', icon: LayoutDashboard },
   // 증빙관리 — 모든 역할 접근 (담당자/승인자/관리자 모두 같은 UI, role 별 드롭다운·저장 분기)
   { to: '/evidence', label: '증빙관리', icon: FileCheck2, roles: ['admin', 'owner', 'controller'] },
-  // 내 승인함 — 관리자만 (승인자는 증빙관리에서 바로 승인/반려)
-  { to: '/inbox', label: '내 승인함', icon: Inbox, roles: ['admin'] },
+  // 내 승인함 — 관리자 + 승인자 (승인자가 결재 대기 항목 처리)
+  { to: '/inbox', label: '내 승인함', icon: Inbox, roles: ['admin', 'controller'] },
   { to: '/courses', label: '강좌', icon: BookOpen },
   { to: '/learning', label: '학습현황', icon: BarChart2 },
   { to: '/news', label: '회사소식', icon: Newspaper },

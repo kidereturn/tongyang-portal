@@ -473,7 +473,7 @@ export default function EvidenceListPage() {
                 <col style={{ width: 46 }} />   {/* 건수 */}
                 <col style={{ width: 40 }} />   {/* KPI */}
                 <col style={{ width: 64 }} />   {/* 상신 */}
-                {/* 승인 컬럼 삭제 — 요청사항 */}
+                {profile?.role !== 'admin' && <col style={{ width: 220 }} />}{/* 메모 (담당자·승인자 — 관리자가 작성한 메모 표시) */}
                 {profile?.role === 'admin' && <col style={{ width: 340 }} />}{/* 검토결과(드롭다운+메모) */}
                 <col style={{ width: 70 }} />   {/* 액션 */}
                 <col style={{ width: 76 }} />
@@ -488,6 +488,7 @@ export default function EvidenceListPage() {
                   <th className="num">건수</th>
                   <th>KPI</th>
                   <th>상신</th>
+                  {profile?.role !== 'admin' && <th>관리자 메모</th>}
                   {profile?.role === 'admin' && <th>검토결과</th>}
                   <th className="num">액션</th>
                   <th aria-hidden="true"></th>
@@ -516,7 +517,36 @@ export default function EvidenceListPage() {
                       </td>
                       <td style={{ fontFamily: 'var(--f-mono)', fontWeight: 500 }}>{act.kpi_score != null ? act.kpi_score.toFixed(1) : '-'}</td>
                       <td><span className={`at-tag ${si.cls.includes('yellow') ? 'amber' : si.cls.includes('blue') ? 'blue' : si.cls.includes('green') ? 'green' : si.cls.includes('red') ? 'red' : 'gray'}`}>{si.label}</span></td>
-                      {/* 승인 컬럼 삭제됨 — 요청사항 */}
+                      {/* 메모 컬럼 — 담당자·승인자: 관리자가 입력한 메모 (읽기전용) */}
+                      {profile?.role !== 'admin' && (
+                        <td>
+                          {act.review_memo && act.review_memo.trim() ? (
+                            <div
+                              title={act.review_memo}
+                              style={{
+                                background: '#FEF3C7',
+                                border: '1px solid #FCD34D',
+                                color: '#78350F',
+                                padding: '4px 8px',
+                                borderRadius: 6,
+                                fontSize: 11,
+                                lineHeight: 1.4,
+                                maxHeight: 48,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                wordBreak: 'keep-all',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                              }}
+                            >
+                              {act.review_memo}
+                            </div>
+                          ) : (
+                            <span style={{ color: 'var(--at-ink-faint)', fontSize: 11 }}>-</span>
+                          )}
+                        </td>
+                      )}
                       {profile?.role === 'admin' && (() => {
                         const staged = pendingReview[act.id]
                         const current = act.review_status ?? '미검토'
