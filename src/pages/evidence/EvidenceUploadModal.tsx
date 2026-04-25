@@ -1112,8 +1112,8 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
               <FileSpreadsheet size={14} />
               엑셀 다운로드
             </button>
-            {/* 전체 ZIP 다운로드 — 검토자(승인자·관리자) 가 모든 증빙을 한 번에 받기 */}
-            {viewOnly && items.some(it => it.uploads.some(u => !u.isNew && u.file_path)) && (
+            {/* 전체 ZIP 다운로드 — 모든 역할에서 저장된 증빙이 1건 이상이면 표시 (담당자도 본인 증빙 일괄 다운로드 가능) */}
+            {items.some(it => it.uploads.some(u => !u.isNew && u.file_path)) && (
               <button
                 onClick={async () => {
                   const JSZip = (await import('jszip')).default
