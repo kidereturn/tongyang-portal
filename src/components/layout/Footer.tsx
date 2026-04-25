@@ -12,7 +12,6 @@ const FAMILY_SITES: { label: string; href: string; highlight?: boolean }[] = [
   { label: '유진기업', href: 'https://eugenecorp.co.kr/' },
   { label: '동양(본사)', href: 'https://tongyanginc.co.kr/' },
   { label: '에이스하드웨어', href: 'https://www.ace-hardware.co.kr/' },
-  { label: '유진로봇', href: 'https://yujinrobot.com/' },
   { label: '유진프라이빗에쿼티', href: 'https://www.eugenepe.co.kr/' },
   { label: '유진투자증권', href: 'https://www.eugenefn.com/' },
   { label: '유진자산운용', href: 'http://fund.eugenefn.com/' },

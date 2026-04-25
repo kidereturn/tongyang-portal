@@ -59,7 +59,7 @@ export default function CoursesPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [showRegister, setShowRegister] = useState(false)
-  const [regCategory, setRegCategory] = useState('재무회계')
+  // 강좌 신청 카테고리는 UI 에서 제거됨 — 기본값으로 백엔드에 전달
   const [regTitle, setRegTitle] = useState('')
   const [regReason, setRegReason] = useState('')
   const [regSaving, setRegSaving] = useState(false)
@@ -158,7 +158,7 @@ export default function CoursesPage() {
     try {
       await (supabase as any).from('course_registrations').insert({
         user_id: profile.id,
-        requested_category: regCategory,
+        requested_category: '기타',
         requested_title: regTitle.trim(),
         reason: regReason.trim() || null,
       })
@@ -169,7 +169,7 @@ export default function CoursesPage() {
           recipient_id: a.id,
           sender_id: profile.id,
           title: `강좌 신청 - ${profile.full_name ?? ''} (${profile.employee_id ?? ''})`,
-          body: `카테고리: ${regCategory}\n강좌명: ${regTitle.trim()}\n사유: ${regReason.trim() || '(없음)'}`,
+          body: `강좌명: ${regTitle.trim()}\n사유: ${regReason.trim() || '(없음)'}`,
           is_read: false,
         }))
         await (supabase as any).from('notifications').insert(notes)
@@ -399,18 +399,7 @@ export default function CoursesPage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--at-ink-mute)' }}>카테고리</span>
-                <select
-                  value={regCategory}
-                  onChange={e => setRegCategory(e.target.value)}
-                  style={{ padding: '10px 12px', border: '1px solid var(--at-ink-hair)', borderRadius: 8, fontSize: 13 }}
-                >
-                  {CATEGORIES.filter(c => c.key !== 'all').map(c => (
-                    <option key={c.key} value={c.label}>{c.label}</option>
-                  ))}
-                </select>
-              </label>
+              {/* 카테고리 선택 제거 — 사용자 요청 */}
 
               <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--at-ink-mute)' }}>신청할 강좌명</span>

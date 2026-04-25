@@ -739,11 +739,11 @@ function NewsTabs({
                 <ExternalLink size={10} style={{ color: '#3182F6' }} />
               </div>
 
-              {/* 중앙: 제목 */}
+              {/* 중앙: 제목 — 50% 크게 (11 → 17) */}
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '6px 0' }}>
                 <h3
                   style={{
-                    fontSize: 11,
+                    fontSize: 17,
                     fontWeight: 700,
                     lineHeight: 1.4,
                     color: '#1E293B',

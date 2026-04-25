@@ -853,22 +853,54 @@ export default function BingoPage() {
         </div>
       )}
 
-      {/* Last message — 정답 시 하단 토스트, 오답 시 화면 중앙 모달 */}
+      {/* Last message — 정답·오답 둘 다 화면 중앙 모달 (사용자 요청) */}
       {lastMessage && !activeQuestion && (
         lastMessage.correct ? (
-          <div style={{
-            position: 'fixed',
-            left: '50%', bottom: 32,
-            transform: 'translateX(-50%)',
-            zIndex: 40,
-            padding: '14px 24px',
-            borderRadius: 14,
-            background: 'var(--at-green)',
-            color: '#fff',
-            fontSize: 14, fontWeight: 600,
-            boxShadow: '0 16px 32px -8px rgba(0,0,0,0.25)',
-          }}>
-            {lastMessage.text}
+          <div
+            onClick={() => setLastMessage(null)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 60,
+              background: 'rgba(0,0,0,0.55)',
+              display: 'grid', placeItems: 'center',
+              padding: 24, cursor: 'pointer',
+            }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                width: 'min(560px, 100%)',
+                background: '#fff',
+                borderRadius: 20,
+                padding: '36px 32px',
+                boxShadow: '0 24px 60px rgba(0,0,0,0.35)',
+                textAlign: 'center',
+                cursor: 'default',
+              }}
+            >
+              <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--at-green)', marginBottom: 18 }}>정답입니다!</div>
+              <div style={{
+                background: '#ECFDF5',
+                border: '1px solid #6EE7B7',
+                borderRadius: 12,
+                padding: '16px 18px',
+                fontSize: 17, fontWeight: 700, color: '#065F46',
+                lineHeight: 1.5,
+                wordBreak: 'keep-all',
+              }}>
+                {lastMessage.text}
+              </div>
+              <button
+                onClick={() => setLastMessage(null)}
+                style={{
+                  marginTop: 22, padding: '10px 28px', borderRadius: 10,
+                  background: 'var(--at-green)', color: '#fff',
+                  fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer',
+                }}
+              >
+                확인
+              </button>
+            </div>
           </div>
         ) : (
           <div
@@ -1026,7 +1058,7 @@ export default function BingoPage() {
             </div>
 
             <div style={{ marginTop: 14, fontSize: 11, color: 'var(--at-ink-faint)' }}>
-              🏆 3줄 이상 → 스타벅스 아메리카노 · 4줄 → 치킨 세트 · 5줄(풀빙고) → 상품권 10만원
+              🏆 매월 말 누적 빙고 줄 수 TOP 3 자동 시상 (월별 선물은 별도 공지)
             </div>
           </div>
         </div>

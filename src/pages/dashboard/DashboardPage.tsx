@@ -446,8 +446,8 @@ export default function DashboardPage() {
 
           {/* 검토 상태 — 역할별 노출 차별화 */}
           {isAdmin ? (
-            /* 관리자: 미검토 / 검토중 / 완료 / 수정제출 4타일 */
-            <div className="at-grid" style={{ marginTop: 16, gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+            /* 관리자: 미검토 / 검토중 / 완료 3타일 (수정제출은 위 OVERVIEW 행에서 노출) */
+            <div className="at-grid" style={{ marginTop: 16, gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
               {(() => {
                 const rvTotal = reviewStats.notReviewed + reviewStats.reviewing + reviewStats.done + reviewStats.modifyReq
                 const pct = (v: number) => (rvTotal > 0 ? Math.round((v / rvTotal) * 100) : 0)
@@ -483,16 +483,7 @@ export default function DashboardPage() {
                       <div className="kpi-value" style={{ color: 'var(--at-green)' }}>{reviewStats.done}<span className="unit">건</span></div>
                       <div className="kpi-sub">비율 {pct(reviewStats.done)}%</div>
                     </div>
-                    <Link to="/evidence?status=modifyReq" className="at-kpi at-kpi-pulse" style={{ textDecoration: 'none', borderColor: '#F87171', boxShadow: '0 0 0 2px rgba(248,113,113,0.1)' }}>
-                      <div className="kpi-label">
-                        <div className="kpi-icon" style={{ background: '#FEE2E2', color: '#DC2626' }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" /></svg>
-                        </div>
-                        검토 · 수정제출
-                      </div>
-                      <div className="kpi-value" style={{ color: '#DC2626' }}>{reviewStats.modifyReq}<span className="unit">건</span></div>
-                      <div className="kpi-sub">비율 {pct(reviewStats.modifyReq)}% · 담당자에게 수정 요청</div>
-                    </Link>
+                    {/* 검토 · 수정제출 박스 제거 — 위 at-g-4 행의 '수정제출' 박스와 중복 (사용자 요청) */}
                   </>
                 )
               })()}

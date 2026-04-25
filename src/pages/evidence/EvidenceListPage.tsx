@@ -26,6 +26,8 @@ interface Activity {
   controller_id: string | null
   owner_email: string | null
   controller_email: string | null
+  owner_employee_id?: string | null
+  controller_employee_id?: string | null
   review_status?: string | null
   review_memo?: string | null
 }
@@ -203,21 +205,27 @@ export default function EvidenceListPage() {
     setFiltered(r)
   }, [search, statusFilter, activities])
 
-  // 9개 filter call → 1회 loop 로 집계 + activities 배열 변경시만 재계산
+  // 박스 카운트 — 합산이 정확히 total 이 되도록 수정제출과 다른 박스가 mutually exclusive
+  // 우선순위: 수정제출 > 승인 > 반려 > 상신완료(완료) > 미완료
   const stats = useMemo(() => {
     const out = { total: activities.length, pending: 0, complete: 0, approved: 0, rejected: 0, modifyReq: 0, notReviewed: 0, reviewing: 0, reviewDone: 0 }
     for (const a of activities) {
-      switch (a.submission_status) {
-        case '미완료': out.pending++; break
-        case '완료':   out.complete++; break
-        case '승인':   out.approved++; break
-        case '반려':   out.rejected++; break
-      }
       const rs = a.review_status ?? '미검토'
-      if (rs === '수정제출') out.modifyReq++
-      else if (rs === '검토중') out.reviewing++
+      // 수정제출 1순위 — 다른 박스에서 빼기 위함 (사용자 핵심 요구: 박스 합 = 전체)
+      if (rs === '수정제출') {
+        out.modifyReq++
+      } else {
+        switch (a.submission_status) {
+          case '미완료': out.pending++; break
+          case '완료':   out.complete++; break
+          case '승인':   out.approved++; break
+          case '반려':   out.rejected++; break
+        }
+      }
+      // 검토 차원 (관리자 KPI 카드용 — 별도)
+      if (rs === '검토중') out.reviewing++
       else if (rs === '완료') out.reviewDone++
-      else out.notReviewed++
+      else if (rs !== '수정제출') out.notReviewed++
     }
     return out
   }, [activities])
@@ -515,7 +523,15 @@ export default function EvidenceListPage() {
                           {uploaded}/{total}
                         </span>
                       </td>
-                      <td style={{ fontFamily: 'var(--f-mono)', fontWeight: 500 }}>{act.kpi_score != null ? act.kpi_score.toFixed(1) : '-'}</td>
+                      <td style={{ fontFamily: 'var(--f-mono)', fontWeight: 500 }}>
+                        {act.kpi_score != null ? (() => {
+                          // KPI 등급: A(≥9) / B(≥7) / C(≥5) / D(≥3) / E(≥1) / F(<1)
+                          const s = act.kpi_score
+                          const grade = s >= 9 ? 'A' : s >= 7 ? 'B' : s >= 5 ? 'C' : s >= 3 ? 'D' : s >= 1 ? 'E' : 'F'
+                          const color = grade === 'A' ? '#10B981' : grade === 'B' ? '#3182F6' : grade === 'C' ? '#F59E0B' : grade === 'D' ? '#FB923C' : grade === 'E' ? '#EF4444' : '#6B7280'
+                          return (<span>{s.toFixed(1)} <span style={{ fontWeight: 700, color, fontSize: 10, marginLeft: 2 }}>{grade}</span></span>)
+                        })() : '-'}
+                      </td>
                       <td><span className={`at-tag ${si.cls.includes('yellow') ? 'amber' : si.cls.includes('blue') ? 'blue' : si.cls.includes('green') ? 'green' : si.cls.includes('red') ? 'red' : 'gray'}`}>{si.label}</span></td>
                       {/* 메모 컬럼 — 담당자·승인자: 관리자가 입력한 메모 (읽기전용) */}
                       {profile?.role !== 'admin' && (
@@ -610,7 +626,38 @@ export default function EvidenceListPage() {
                         )
                       })()}
                       <td className="num" style={{ paddingRight: 38 }}>
-                        {canUpload ? (
+                        {/* 승인자: 자기가 controller 인 act 가 '완료'(상신완료) 상태면 승인/반려 버튼 노출 */}
+                        {profile?.role === 'controller' && act.submission_status === '완료' && (act.controller_id === profile?.id || act.controller_employee_id === profile?.employee_id) ? (
+                          <div style={{ display: 'inline-flex', gap: 4 }}>
+                            <button
+                              onClick={async () => {
+                                if (!window.confirm(`"${act.title}" 을 승인하시겠습니까?`)) return
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                const db = supabase as any
+                                const now = new Date().toISOString()
+                                await db.from('approval_requests').update({ status: 'approved', decided_at: now, decided_by: profile?.id }).eq('activity_id', act.id).in('status', ['submitted'])
+                                await db.from('activities').update({ submission_status: '승인', updated_at: now }).eq('id', act.id)
+                                setActivities(prev => prev.map(a => a.id === act.id ? { ...a, submission_status: '승인' } : a))
+                              }}
+                              className="btn-compact primary"
+                              style={{ padding: '0 8px', height: 28, fontSize: 11 }}
+                            >승인</button>
+                            <button
+                              onClick={async () => {
+                                const reason = window.prompt('반려(수정제출) 사유를 입력해주세요:')
+                                if (!reason) return
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                const db = supabase as any
+                                const now = new Date().toISOString()
+                                await db.from('approval_requests').update({ status: 'rejected', decided_at: now, decided_by: profile?.id, controller_comment: reason }).eq('activity_id', act.id).in('status', ['submitted'])
+                                await db.from('activities').update({ submission_status: '반려', review_memo: reason, updated_at: now }).eq('id', act.id)
+                                setActivities(prev => prev.map(a => a.id === act.id ? { ...a, submission_status: '반려', review_memo: reason } : a))
+                              }}
+                              className="btn-compact"
+                              style={{ padding: '0 8px', height: 28, fontSize: 11, background: '#FEE2E2', color: '#B91C1C', borderColor: '#FCA5A5' }}
+                            >반려</button>
+                          </div>
+                        ) : canUpload ? (
                           <button
                             onClick={() => openUploadModal(act)}
                             className="btn-compact primary"

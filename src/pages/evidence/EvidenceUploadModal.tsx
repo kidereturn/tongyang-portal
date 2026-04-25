@@ -249,7 +249,9 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
       })
     )
 
-    // 파일 선택 후 자동저장은 race condition 위험 — 사용자가 '중간 저장' 클릭 시에만 저장
+    // 자동 중간저장 — 파일 선택 후 짧은 debounce 로 saving lock 가드 활용
+    // (handleSave 내부의 saving 가드가 race 방지)
+    setTimeout(() => { void handleSave() }, 600)
   }
 
   function handleDragOver(event: React.DragEvent, itemId: string) {
@@ -330,36 +332,27 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
     )
   }
 
+  // 통합 삭제 — 중간저장 전 '제거' 와 동일한 즉시성. confirm 없이 버튼 한 번 클릭으로 삭제
+  // 승인/완료 상태에서도 삭제 가능 (사용자 요구 — 제거버튼과 같은 동작 부여)
   async function handleDeletePersisted(uploadId: string, filePath: string) {
-    // 결재상신이 완료(활동 상태 '완료' 이상)면 삭제 불가 — 사용자 요청
-    const locked = activity.submission_status === '완료' || activity.submission_status === '승인'
-    if (locked) {
-      setError('결재상신이 완료된 증빙은 삭제할 수 없습니다. 관리자에게 취소를 요청하세요.')
-      setTimeout(() => setError(''), 4000)
-      return
-    }
-    if (!window.confirm('이 증빙 파일을 삭제하시겠습니까?')) return
-
+    // 즉시 UI 에서 제거 (낙관적 업데이트)
+    setItems(prev => prev.map(it => ({ ...it, uploads: it.uploads.filter(u => u.id !== uploadId) })))
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = supabase as any
-
-      // 1) DB 레코드 먼저 삭제 (RLS/권한 문제로 인한 실패 조기 감지)
-      const { error: deleteError } = await db
-        .from('evidence_uploads')
-        .delete()
-        .eq('id', uploadId)
-      if (deleteError) throw deleteError
-
-      // 2) Storage 파일 삭제 (실패해도 DB 삭제는 이미 반영됨 — 고아 파일만 남음)
-      try {
-        await (supabase.storage as any).from('evidence').remove([filePath])
-      } catch { /* storage cleanup 실패 무시 */ }
-
-      await reloadItems()
+      const { error: deleteError } = await db.from('evidence_uploads').delete().eq('id', uploadId)
+      if (deleteError) {
+        // RLS 거부 등 — UI 복원 위해 reloadItems
+        await reloadItems()
+        setError(`삭제 실패: ${deleteError.message}`)
+        setTimeout(() => setError(''), 4000)
+        return
+      }
+      try { await (supabase.storage as any).from('evidence').remove([filePath]) } catch { /* storage cleanup 실패 무시 */ }
       setSavedMsg('파일이 삭제되었습니다.')
-      setTimeout(() => setSavedMsg(''), 2500)
+      setTimeout(() => setSavedMsg(''), 2000)
     } catch (err) {
+      await reloadItems()
       setError(err instanceof Error ? err.message : '파일 삭제 중 오류가 발생했습니다.')
     }
   }
@@ -987,15 +980,12 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
 
                                       {!upload.isNew && upload.file_path ? (
                                         <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                                          {!upload.pendingReplace && (
-                                            <FileDownloadBtn path={upload.file_path} name={upload.file_name} />
-                                          )}
+                                          <FileDownloadBtn path={upload.file_path} name={upload.file_name} />
                                           {!viewOnly && upload.id && (
                                             <>
-                                              {upload.pendingReplace ? (
+                                              {upload.pendingReplace && (
                                                 <button
                                                   onClick={() => {
-                                                    // 교체 예약 취소
                                                     setItems(prev => prev.map(it => ({
                                                       ...it,
                                                       uploads: it.uploads.map(u => u.id === upload.id ? { ...u, pendingReplace: undefined } : u),
@@ -1006,7 +996,8 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                                                 >
                                                   교체 취소
                                                 </button>
-                                              ) : (
+                                              )}
+                                              {!upload.pendingReplace && (
                                                 <>
                                                   <input
                                                     type="file"
@@ -1027,16 +1018,17 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                                                     <RefreshCw size={12} />
                                                     <span>교체</span>
                                                   </button>
-                                                  <button
-                                                    onClick={() => handleDeletePersisted(upload.id!, upload.file_path)}
-                                                    className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 hover:border-red-200 transition-colors"
-                                                    title="이미 저장된 파일 삭제 (DB·Storage 즉시 반영)"
-                                                  >
-                                                    <Trash2 size={12} />
-                                                    <span>삭제</span>
-                                                  </button>
                                                 </>
                                               )}
+                                              {/* 삭제 버튼은 pendingReplace 여부와 상관없이 항상 표시 (제거 버튼과 동일 동작) */}
+                                              <button
+                                                onClick={() => handleDeletePersisted(upload.id!, upload.file_path)}
+                                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 hover:border-red-200 transition-colors"
+                                                title="삭제 (즉시 DB·Storage 제거)"
+                                              >
+                                                <Trash2 size={12} />
+                                                <span>삭제</span>
+                                              </button>
                                             </>
                                           )}
                                         </div>
@@ -1189,24 +1181,32 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
 }
 
 function FileDownloadBtn({ path, name }: { path: string; name: string }) {
+  const [busy, setBusy] = useState(false)
   async function handleDownload() {
-    const { data } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 3600)
-    if (!data?.signedUrl) return
-    // 원본 파일명으로 저장 (storage 의 hash 파일명이 아닌 사용자가 업로드한 이름)
+    if (busy) return
+    setBusy(true)
     try {
-      const res = await fetch(data.signedUrl)
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
+      // download 옵션을 사용해 직접 download URL 생성 (브라우저가 새 창 안 열고 저장)
+      const { data, error } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 3600, {
+        download: name || 'evidence',
+      })
+      if (error || !data?.signedUrl) {
+        alert(`다운로드 실패: ${error?.message || 'URL 생성 불가'}`)
+        return
+      }
+      // signedUrl 의 download=name 파라미터가 Content-Disposition: attachment 헤더를 추가하므로
+      // 단순 a 태그 클릭만으로 새 창 안 열고 다운로드됨 (Supabase storage 공식 방식)
       const a = document.createElement('a')
-      a.href = url
+      a.href = data.signedUrl
       a.download = name || 'evidence'
+      a.rel = 'noopener'
       document.body.appendChild(a)
       a.click()
       a.remove()
-      setTimeout(() => URL.revokeObjectURL(url), 5000)
-    } catch {
-      // fallback: 새 탭 열기
-      window.open(data.signedUrl, '_blank')
+    } catch (e) {
+      alert(`다운로드 오류: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setBusy(false)
     }
   }
 
