@@ -573,7 +573,19 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
         })
       }
 
-      setItems(nextItems)
+      // Race 가드: handleSave 시작 시 캡처한 items 외에 사용자가 추가 업로드한 새 파일을 보존
+      // setItems 를 함수형 업데이트로 — 처리된 upload id 외의 새 항목은 그대로 유지
+      const processedUploadIds = new Set(
+        nextItems.flatMap(it => it.uploads.map(u => u.id).filter(Boolean) as string[])
+      )
+      const nextItemMap = new Map(nextItems.map(it => [it.id, it]))
+      setItems(prev => prev.map(p => {
+        const merged = nextItemMap.get(p.id) || p
+        // saving 중 사용자가 추가한 새 파일 (nextItems 에 없는 isNew 항목) 보존
+        const extraNewUploads = p.uploads.filter(u => u.isNew && u.id && !processedUploadIds.has(u.id))
+        if (extraNewUploads.length === 0) return merged
+        return { ...merged, uploads: [...merged.uploads, ...extraNewUploads] }
+      }))
 
       if (uploadErrors.length > 0) {
         setError(
