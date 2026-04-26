@@ -98,7 +98,7 @@
       ]
     }
   ],
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
+  "rewrites": [{ "source": "/((?!api/|version.json|assets/|favicon|robots.txt|sitemap.xml).*)", "destination": "/index.html" }],
   "functions": {
     "api/dart-company-search.ts": {
       "maxDuration": 30,
