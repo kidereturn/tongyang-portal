@@ -14,8 +14,20 @@ const BUILD_ID = process.env.VERCEL_GIT_COMMIT_SHA
   ? process.env.VERCEL_GIT_COMMIT_SHA.slice(0, 7)
   : String(Date.now())
 
+// dist/version.json 자동 생성 — 매 진입 시 서버 fetch 로 신·구 번들 식별
+import { writeFileSync } from 'node:fs'
+import { resolve as pathResolve } from 'node:path'
+const versionJsonPlugin = {
+  name: 'write-version-json',
+  closeBundle() {
+    const out = pathResolve(__dirname, 'dist', 'version.json')
+    writeFileSync(out, JSON.stringify({ buildId: BUILD_ID, builtAt: new Date().toISOString() }))
+    console.log(`[version-json] wrote ${out} (buildId=${BUILD_ID})`)
+  },
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), versionJsonPlugin],
   define: {
     __BUILD_ID__: JSON.stringify(BUILD_ID),
   },

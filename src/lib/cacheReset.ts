@@ -52,38 +52,70 @@ async function hardFlush(opts: FlushOptions = {}) {
 }
 
 /**
- * 앱 시작 시 호출. 빌드 ID 가 바뀌었거나 이번 최초 방문이면
- * 캐시/SW 를 비우고 하드 리로드하여 신번들을 강제로 내려받게 한다.
+ * 앱 시작 시 호출. 서버의 /version.json 을 fetch 해서 진짜 최신 buildId 와 비교.
+ * 클라이언트 번들의 __BUILD_ID__ 만 비교하면 옛 번들이 캐시된 경우 영원히 옛 buildId 만 보임 (닭과 달걀).
+ * 서버 fetch 로 진짜 최신을 알아낸 뒤 다르면 hard reload 로 새 번들 강제 다운로드.
  */
+const RELOAD_GUARD_KEY = 'ty_reload_guard'
+
 export async function ensureFreshBundle(): Promise<void> {
   try {
-    const current = typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'dev'
+    const bundleBuildId = typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'dev'
     const stored = localStorage.getItem(BUILD_KEY)
     const flushedOnce = localStorage.getItem(FLUSH_ONCE_KEY)
+
+    // 무한 reload 방지 — 같은 세션에서 3회 이상 reload 했으면 중단
+    const guardCount = parseInt(sessionStorage.getItem(RELOAD_GUARD_KEY) ?? '0', 10)
+    if (guardCount >= 3) {
+      console.warn('[cacheReset] reload guard triggered, skipping')
+      sessionStorage.removeItem(RELOAD_GUARD_KEY)
+      localStorage.setItem(BUILD_KEY, bundleBuildId)
+      return
+    }
 
     // (A) 최초 1회 전 사용자 강제 플러시
     if (!flushedOnce) {
       localStorage.setItem(FLUSH_ONCE_KEY, '1')
-      localStorage.setItem(BUILD_KEY, current)
-      await hardFlush({ clearSessionStorage: true, clearAuth: false })
-      // 리로드하여 새 번들 로드 (URL 에 플래그 추가로 SW/HTTP 캐시 우회)
+      localStorage.setItem(BUILD_KEY, bundleBuildId)
+      sessionStorage.setItem(RELOAD_GUARD_KEY, String(guardCount + 1))
+      await hardFlush({ clearSessionStorage: false, clearAuth: false })  // sessionStorage 보존 (guard 위해)
       const url = new URL(window.location.href)
-      url.searchParams.set('_cf', current)
+      url.searchParams.set('_cf', bundleBuildId)
       window.location.replace(url.toString())
       return
     }
 
-    // (B) 빌드 ID 변경 감지 → 하드 플러시 + 리로드
-    if (stored && stored !== current) {
-      localStorage.setItem(BUILD_KEY, current)
-      await hardFlush({ clearSessionStorage: true, clearAuth: false })
+    // (B) 서버에서 진짜 최신 buildId 가져오기 (cache: no-store)
+    let serverBuildId: string | null = null
+    try {
+      const res = await fetch(`/version.json?_=${Date.now()}`, { cache: 'no-store' })
+      if (res.ok) {
+        const json = await res.json() as { buildId?: string }
+        serverBuildId = json?.buildId ?? null
+      }
+    } catch (e) {
+      console.warn('[cacheReset] version.json fetch failed', e)
+    }
+
+    // (C) 서버 buildId 와 번들 buildId 가 다르면 = 옛 번들 캐시됨 → hard reload
+    if (serverBuildId && serverBuildId !== bundleBuildId) {
+      console.info(`[cacheReset] stale bundle detected: bundle=${bundleBuildId} server=${serverBuildId}`)
+      localStorage.setItem(BUILD_KEY, serverBuildId)
+      sessionStorage.setItem(RELOAD_GUARD_KEY, String(guardCount + 1))
+      await hardFlush({ clearSessionStorage: false, clearAuth: false })
       const url = new URL(window.location.href)
-      url.searchParams.set('_cf', current)
+      url.searchParams.set('_cf', serverBuildId)
       window.location.replace(url.toString())
       return
     }
 
-    if (!stored) localStorage.setItem(BUILD_KEY, current)
+    // (D) localStorage 의 옛 buildId 가 다르면 동기화 (하지만 reload 는 안 함 — 이미 최신 번들이므로)
+    if (stored !== bundleBuildId) {
+      localStorage.setItem(BUILD_KEY, bundleBuildId)
+    }
+
+    // 정상 진입 — guard 카운터 리셋
+    sessionStorage.removeItem(RELOAD_GUARD_KEY)
   } catch (e) {
     console.warn('[cacheReset] ensureFreshBundle error', e)
   }
