@@ -202,19 +202,22 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
     [items]
   )
 
-  // 자동 중간저장 — hasNewFiles 가 true 가 되면 800ms 후 자동 저장
-  // (사용자 요청: 파일 1개 올릴 때마다 자동 중간저장)
-  // submitting 중에는 자동저장 막음 (handleSubmit 가 handleSave 직접 호출하므로 race 방지)
+  // 자동 중간저장 — 파일 1개 추가 시점에 1회만 트리거 (무한루프 방지)
+  // 어떤 isNew/pendingReplace upload 의 id 들을 추적해서, 같은 set 에 대해서는 재트리거 안 함
+  const lastAutoSavedSignatureRef = useRef<string>('')
   useEffect(() => {
     if (!hasNewFiles || saving || submitting || viewOnly || !profile?.id) return
+    // 현재 미저장 파일들의 signature 계산 — 같은 set 이면 자동저장 다시 안 함
+    const signature = items.flatMap(it => it.uploads.filter(u => u.isNew || u.pendingReplace).map(u => u.id || '')).sort().join('|')
+    if (signature === lastAutoSavedSignatureRef.current) return  // 이미 처리한 set
     const t = setTimeout(() => {
-      // 실행 직전 submitting 재확인 — 800ms 사이 결재상신 트리거된 경우 skip
       if (submitting || saving) return
+      lastAutoSavedSignatureRef.current = signature
       void handleSave()
     }, 800)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasNewFiles, saving, submitting])
+  }, [hasNewFiles, saving, submitting, items])
 
   function handleFileSelect(itemId: string, files: FileList | null) {
     if (!files || files.length === 0) return
@@ -344,24 +347,22 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
     )
   }
 
-  // 통합 삭제 — 중간저장 전 '제거' 와 동일한 즉시성. confirm 없이 버튼 한 번 클릭으로 삭제
-  // 승인/완료 상태에서도 삭제 가능 (사용자 요구 — 제거버튼과 같은 동작 부여)
+  // 통합 삭제 — 즉시 DB+Storage 제거. 중간저장 버튼은 영구적으로 활성화되어 있음
+  // 삭제는 자체로 영구 변경이라 자동 중간저장 트리거 불필요 (이미 DB 반영됨)
   async function handleDeletePersisted(uploadId: string, filePath: string) {
-    // 즉시 UI 에서 제거 (낙관적 업데이트)
     setItems(prev => prev.map(it => ({ ...it, uploads: it.uploads.filter(u => u.id !== uploadId) })))
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = supabase as any
       const { error: deleteError } = await db.from('evidence_uploads').delete().eq('id', uploadId)
       if (deleteError) {
-        // RLS 거부 등 — UI 복원 위해 reloadItems
         await reloadItems()
         setError(`삭제 실패: ${deleteError.message}`)
         setTimeout(() => setError(''), 4000)
         return
       }
       try { await (supabase.storage as any).from('evidence').remove([filePath]) } catch { /* storage cleanup 실패 무시 */ }
-      setSavedMsg('파일이 삭제되었습니다.')
+      setSavedMsg('파일이 삭제되었습니다. (자동 저장됨)')
       setTimeout(() => setSavedMsg(''), 2000)
     } catch (err) {
       await reloadItems()
@@ -460,6 +461,15 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
     let uploadedCount = 0
 
     try {
+      // saveDraft 시작 시점에 처리할 local_xxx id 들 캡처 — race 가드용
+      // (이 id 가 prev 에 남아있으면 = 처리 완료된 파일이므로 setItems 재추가하지 않음)
+      const consumedLocalIds = new Set<string>()
+      for (const item of items) {
+        for (const upload of item.uploads) {
+          if (upload.isNew && upload.id) consumedLocalIds.add(upload.id)
+          if (upload.pendingReplace && upload.id) consumedLocalIds.add(upload.id)
+        }
+      }
       const nextItems: PopulationItem[] = []
       let replacedCount = 0
 
@@ -580,16 +590,13 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
         })
       }
 
-      // Race 가드: handleSave 시작 시 캡처한 items 외에 사용자가 추가 업로드한 새 파일을 보존
-      // setItems 를 함수형 업데이트로 — 처리된 upload id 외의 새 항목은 그대로 유지
-      const processedUploadIds = new Set(
-        nextItems.flatMap(it => it.uploads.map(u => u.id).filter(Boolean) as string[])
-      )
+      // Race 가드: saveDraft 시작 시 캡처한 consumedLocalIds 사용
+      // - prev 에 남아있는 isNew 파일 중 consumedLocalIds 에 있으면 = 이미 처리됨 → 버림 (무한루프 방지)
+      // - 없으면 = saving 중 사용자가 추가한 신규 파일 → 보존
       const nextItemMap = new Map(nextItems.map(it => [it.id, it]))
       setItems(prev => prev.map(p => {
         const merged = nextItemMap.get(p.id) || p
-        // saving 중 사용자가 추가한 새 파일 (nextItems 에 없는 isNew 항목) 보존
-        const extraNewUploads = p.uploads.filter(u => u.isNew && u.id && !processedUploadIds.has(u.id))
+        const extraNewUploads = p.uploads.filter(u => (u.isNew || u.pendingReplace) && u.id && !consumedLocalIds.has(u.id))
         if (extraNewUploads.length === 0) return merged
         return { ...merged, uploads: [...merged.uploads, ...extraNewUploads] }
       }))
@@ -1187,8 +1194,9 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                   const ok = await handleSave()
                   if (ok) window.alert('중간 저장이 완료되었습니다.')
                 }}
-                disabled={saving || !hasNewFiles}
-                className={clsx('btn-secondary', !hasNewFiles && 'opacity-40 cursor-not-allowed')}
+                disabled={saving}
+                className="btn-secondary"
+                title={hasNewFiles ? '새 파일/교체 예약 저장' : '저장할 변경 없음 (수동 강제 저장)'}
               >
                 {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
                 중간 저장
@@ -1218,23 +1226,30 @@ function FileDownloadBtn({ path, name }: { path: string; name: string }) {
     if (busy) return
     setBusy(true)
     try {
-      // download 옵션을 사용해 직접 download URL 생성 (브라우저가 새 창 안 열고 저장)
-      const { data, error } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 3600, {
+      // 1) 다운로드 URL (Content-Disposition: attachment) — 파일 저장
+      const { data: dlData, error: dlErr } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 3600, {
         download: name || 'evidence',
       })
-      if (error || !data?.signedUrl) {
-        alert(`다운로드 실패: ${error?.message || 'URL 생성 불가'}`)
+      if (dlErr || !dlData?.signedUrl) {
+        alert(`다운로드 실패: ${dlErr?.message || 'URL 생성 불가'}`)
         return
       }
-      // signedUrl 의 download=name 파라미터가 Content-Disposition: attachment 헤더를 추가하므로
-      // 단순 a 태그 클릭만으로 새 창 안 열고 다운로드됨 (Supabase storage 공식 방식)
+      // 2) 보기 URL (Content-Disposition 없음) — 새 창에서 미리보기
+      const { data: viewData } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 3600)
+
+      // (a) 다운로드 트리거
       const a = document.createElement('a')
-      a.href = data.signedUrl
+      a.href = dlData.signedUrl
       a.download = name || 'evidence'
       a.rel = 'noopener'
       document.body.appendChild(a)
       a.click()
       a.remove()
+
+      // (b) 새 창에서 파일 열기 (사용자 요청 — 다운로드 + 새창 동시)
+      if (viewData?.signedUrl) {
+        window.open(viewData.signedUrl, '_blank', 'noopener,noreferrer')
+      }
     } catch (e) {
       alert(`다운로드 오류: ${e instanceof Error ? e.message : String(e)}`)
     } finally {

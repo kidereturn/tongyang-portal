@@ -478,9 +478,11 @@ export default function EvidenceListPage() {
                 <col style={{ width: 46 }} />   {/* 건수 */}
                 <col style={{ width: 40 }} />   {/* KPI */}
                 <col style={{ width: 64 }} />   {/* 상신 */}
-                {profile?.role !== 'admin' && <col style={{ width: 220 }} />}{/* 메모 (담당자·승인자 — 관리자가 작성한 메모 표시) */}
+                {profile?.role !== 'admin' && <col style={{ width: 220 }} />}{/* 관리자 메모 (담당자·승인자) */}
                 {profile?.role === 'admin' && <col style={{ width: 340 }} />}{/* 검토결과(드롭다운+메모) */}
-                <col style={{ width: 70 }} />   {/* 액션 */}
+                {/* 승인자/관리자: 승인/반려(=수정제출) 액션 컬럼 (메모와 증빙확인 사이) */}
+                {(profile?.role === 'controller' || profile?.role === 'admin') && <col style={{ width: 130 }} />}
+                <col style={{ width: 90 }} />   {/* 증빙확인 */}
                 <col style={{ width: 76 }} />
               </colgroup>
               <thead>
@@ -495,7 +497,8 @@ export default function EvidenceListPage() {
                   <th>상신</th>
                   {profile?.role !== 'admin' && <th>관리자 메모</th>}
                   {profile?.role === 'admin' && <th>검토결과</th>}
-                  <th className="num">액션</th>
+                  {(profile?.role === 'controller' || profile?.role === 'admin') && <th className="num">결재</th>}
+                  <th className="num">증빙확인</th>
                   <th aria-hidden="true"></th>
                 </tr>
               </thead>
@@ -622,39 +625,50 @@ export default function EvidenceListPage() {
                           </td>
                         )
                       })()}
-                      <td className="num" style={{ paddingRight: 38 }}>
-                        {/* 승인자: 자기가 controller 인 act 가 '완료'(상신완료) 상태면 승인/반려 버튼 노출 */}
-                        {profile?.role === 'controller' && act.submission_status === '완료' && (act.controller_id === profile?.id || act.controller_employee_id === profile?.employee_id) ? (
-                          <div style={{ display: 'inline-flex', gap: 4 }}>
-                            <button
-                              onClick={async () => {
-                                if (!window.confirm(`"${act.title}" 을 승인하시겠습니까?`)) return
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                const db = supabase as any
-                                const now = new Date().toISOString()
-                                await db.from('approval_requests').update({ status: 'approved', decided_at: now, decided_by: profile?.id }).eq('activity_id', act.id).in('status', ['submitted'])
-                                await db.from('activities').update({ submission_status: '승인', updated_at: now }).eq('id', act.id)
-                                setActivities(prev => prev.map(a => a.id === act.id ? { ...a, submission_status: '승인' } : a))
-                              }}
-                              className="btn-compact primary"
-                              style={{ padding: '0 8px', height: 28, fontSize: 11 }}
-                            >승인</button>
-                            <button
-                              onClick={async () => {
-                                const reason = window.prompt('반려(수정제출) 사유를 입력해주세요:')
-                                if (!reason) return
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                const db = supabase as any
-                                const now = new Date().toISOString()
-                                await db.from('approval_requests').update({ status: 'rejected', decided_at: now, decided_by: profile?.id, controller_comment: reason }).eq('activity_id', act.id).in('status', ['submitted'])
-                                await db.from('activities').update({ submission_status: '반려', review_memo: reason, updated_at: now }).eq('id', act.id)
-                                setActivities(prev => prev.map(a => a.id === act.id ? { ...a, submission_status: '반려', review_memo: reason } : a))
-                              }}
-                              className="btn-compact"
-                              style={{ padding: '0 8px', height: 28, fontSize: 11, background: '#FEE2E2', color: '#B91C1C', borderColor: '#FCA5A5' }}
-                            >반려</button>
-                          </div>
-                        ) : canUpload ? (
+                      {/* 결재 컬럼 — 승인자/관리자 전용. 승인 / 수정제출(반려) 버튼 */}
+                      {(profile?.role === 'controller' || profile?.role === 'admin') && (
+                        <td className="num">
+                          {(() => {
+                            const isMyApproval = profile?.role === 'admin' || (act.controller_id === profile?.id || act.controller_employee_id === profile?.employee_id)
+                            const canDecide = isMyApproval && act.submission_status === '완료'
+                            if (!canDecide) return <span style={{ color: 'var(--at-ink-faint)', fontSize: 11 }}>-</span>
+                            return (
+                              <div style={{ display: 'inline-flex', gap: 4 }}>
+                                <button
+                                  onClick={async () => {
+                                    if (!window.confirm(`"${act.title}" 을 승인하시겠습니까?`)) return
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    const db = supabase as any
+                                    const now = new Date().toISOString()
+                                    await db.from('approval_requests').update({ status: 'approved', decided_at: now, decided_by: profile?.id }).eq('activity_id', act.id).in('status', ['submitted'])
+                                    await db.from('activities').update({ submission_status: '승인', updated_at: now }).eq('id', act.id)
+                                    setActivities(prev => prev.map(a => a.id === act.id ? { ...a, submission_status: '승인' } : a))
+                                  }}
+                                  className="btn-compact primary"
+                                  style={{ padding: '0 6px', height: 26, fontSize: 11 }}
+                                >승인</button>
+                                <button
+                                  onClick={async () => {
+                                    const reason = window.prompt('수정제출 사유를 입력해주세요:')
+                                    if (!reason) return
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    const db = supabase as any
+                                    const now = new Date().toISOString()
+                                    await db.from('approval_requests').update({ status: 'rejected', decided_at: now, decided_by: profile?.id, controller_comment: reason }).eq('activity_id', act.id).in('status', ['submitted'])
+                                    await db.from('activities').update({ submission_status: '반려', review_memo: reason, review_status: '수정제출', updated_at: now }).eq('id', act.id)
+                                    setActivities(prev => prev.map(a => a.id === act.id ? { ...a, submission_status: '반려', review_memo: reason, review_status: '수정제출' } : a))
+                                  }}
+                                  className="btn-compact"
+                                  style={{ padding: '0 6px', height: 26, fontSize: 11, background: '#FEE2E2', color: '#B91C1C', borderColor: '#FCA5A5' }}
+                                >수정제출</button>
+                              </div>
+                            )
+                          })()}
+                        </td>
+                      )}
+                      {/* 증빙확인 컬럼 — 모든 역할에서 모달 열기 */}
+                      <td className="num" style={{ paddingRight: 12 }}>
+                        {canUpload ? (
                           <button
                             onClick={() => openUploadModal(act)}
                             className="btn-compact primary"
@@ -668,7 +682,7 @@ export default function EvidenceListPage() {
                             className="btn-compact"
                             style={{ padding: '0 10px', height: 28 }}
                           >
-                            <FileCheck2 size={11} />확인
+                            <FileCheck2 size={11} />증빙확인
                           </button>
                         ) : (
                           <span style={{ color: 'var(--at-ink-faint)', fontSize: 11 }}>-</span>
