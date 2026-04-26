@@ -205,6 +205,10 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
   // 자동 중간저장 — 파일 1개 추가 시점에 1회만 트리거 (무한루프 방지)
   // 어떤 isNew/pendingReplace upload 의 id 들을 추적해서, 같은 set 에 대해서는 재트리거 안 함
   const lastAutoSavedSignatureRef = useRef<string>('')
+  // activity 변경 시 signature 리셋 (다른 activity 모달 후 같은 activity 재진입 시 stale 방지)
+  useEffect(() => {
+    lastAutoSavedSignatureRef.current = ''
+  }, [activity.id])
   useEffect(() => {
     if (!hasNewFiles || saving || submitting || viewOnly || !profile?.id) return
     // 현재 미저장 파일들의 signature 계산 — 같은 set 이면 자동저장 다시 안 함
@@ -1248,7 +1252,12 @@ function FileDownloadBtn({ path, name }: { path: string; name: string }) {
 
       // (b) 새 창에서 파일 열기 (사용자 요청 — 다운로드 + 새창 동시)
       if (viewData?.signedUrl) {
-        window.open(viewData.signedUrl, '_blank', 'noopener,noreferrer')
+        const newWin = window.open(viewData.signedUrl, '_blank', 'noopener,noreferrer')
+        // popup blocker 감지 — null/closed 면 알림
+        if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
+          console.warn('[Download] 새 창이 차단되었습니다. 다운로드는 정상 완료.')
+          // 사용자에게는 alert 안 띄움 — 다운로드는 정상 동작했으므로
+        }
       }
     } catch (e) {
       alert(`다운로드 오류: ${e instanceof Error ? e.message : String(e)}`)
