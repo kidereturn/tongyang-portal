@@ -265,22 +265,19 @@ export default function EvidenceListPage() {
     const db = supabase as any
     try {
       const now = new Date().toISOString()
-      const activityPatch: Record<string, unknown> = { updated_at: now }
-      if (statusChanged) activityPatch.review_status = newStatus
-      if (memoChanged) activityPatch.review_memo = newMemo || null
-
-      // 수정제출로 변경되면 submission_status → '미완료' + 승인 이력 cancelled
+      // 수정제출로 변경 시 — RPC 트랜잭션으로 원자성 보장
       if (statusChanged && newStatus === '수정제출') {
-        activityPatch.submission_status = '미완료'
-      }
-      await db.from('activities').update(activityPatch).eq('id', activity.id)
-
-      if (statusChanged && newStatus === '수정제출') {
-        // 기존 approval_requests 를 cancelled 처리 (담당자가 상신 이전 상태로 복원)
-        await db.from('approval_requests')
-          .update({ status: 'cancelled', decided_at: now })
-          .eq('activity_id', activity.id)
-          .in('status', ['submitted', 'approved', 'rejected'])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rpc = (supabase.rpc as unknown as (name: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>)
+        const { error: rpcError } = await rpc('set_review_modify_req', { p_activity_id: activity.id, p_review_memo: memoChanged ? (newMemo || null) : null })
+        if (rpcError) throw rpcError
+      } else {
+        // 미검토/검토중/검토완료 또는 메모만 변경 — 기존 path
+        const activityPatch: Record<string, unknown> = { updated_at: now }
+        if (statusChanged) activityPatch.review_status = newStatus
+        if (memoChanged) activityPatch.review_memo = newMemo || null
+        const { error: updateError } = await db.from('activities').update(activityPatch).eq('id', activity.id)
+        if (updateError) throw updateError
       }
 
       // 로컬 상태 반영

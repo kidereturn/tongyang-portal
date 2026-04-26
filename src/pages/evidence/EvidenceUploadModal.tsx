@@ -204,9 +204,14 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
 
   // 자동 중간저장 — hasNewFiles 가 true 가 되면 800ms 후 자동 저장
   // (사용자 요청: 파일 1개 올릴 때마다 자동 중간저장)
+  // submitting 중에는 자동저장 막음 (handleSubmit 가 handleSave 직접 호출하므로 race 방지)
   useEffect(() => {
     if (!hasNewFiles || saving || submitting || viewOnly || !profile?.id) return
-    const t = setTimeout(() => { void handleSave() }, 800)
+    const t = setTimeout(() => {
+      // 실행 직전 submitting 재확인 — 800ms 사이 결재상신 트리거된 경우 skip
+      if (submitting || saving) return
+      void handleSave()
+    }, 800)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasNewFiles, saving, submitting])
@@ -432,6 +437,8 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
   async function handleSave() {
     // 이중 저장 가드 — 빠른 2회 클릭으로 중복 upload 방지
     if (saving) return false
+    // 결재상신 진행 중에는 자동저장 skip — handleSubmit 가 await handleSave() 호출하므로 race 방지
+    // (handleSubmit 가 호출한 경우는 saving lock 으로 두 번 호출 안 됨)
     if (!profile?.id) {
       setError('로그인 정보가 확인되지 않아 업로드를 진행할 수 없습니다.')
       return false

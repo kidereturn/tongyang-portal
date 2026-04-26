@@ -184,6 +184,11 @@ export default function InboxPage() {
   }
 
   async function handleAdminCancel(item: ApprovalItem) {
+    // 권한 가드: admin 만 강제 취소 가능 (RLS 도 차단하지만 클라이언트 가드 추가)
+    if (profile?.role !== 'admin') {
+      alert('관리자만 강제 취소가 가능합니다.')
+      return
+    }
     if (!confirm('관리자 권한으로 이 결재를 강제 취소하시겠습니까?\n\n• 승인/반려 이력 삭제 (승인자 승인완료 상태 초기화)\n• 상신여부 → 미완료\n• 검토결과 → 미검토\n• 증빙 Upload 재활성화\n• 대시보드 자동 반영')) return
     setProcessing(item.id)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
