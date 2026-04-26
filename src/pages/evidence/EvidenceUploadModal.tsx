@@ -652,6 +652,12 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = supabase as any
       const controllerId = await resolveControllerId()
+      // controller_id 없이 insert 하면 외래키/NOT NULL 위반 가능 → 명확한 메시지로 차단
+      if (!controllerId) {
+        setError('승인자 정보(이메일·이름·ID)를 모두 찾을 수 없어 결재상신을 진행할 수 없습니다. 관리자에게 문의해 주세요.')
+        setSubmitting(false)
+        return
+      }
 
       // 수정제출 건 재상신 시 review_status 를 '미검토' 로 복원하여 수정제출 카운트 감소
       // (사용자 스펙: "수정제출건이 상신완료 되면 카운트가 내려간다")

@@ -118,11 +118,23 @@ export async function chunkedIn<T>(
   if (values.length === 0) return { data: [], error: null }
   const unique = Array.from(new Set(values))
   const out: T[] = []
+  let firstError: Error | null = null
+  let failedChunks = 0
+  // 한 청크 실패 시 abort 하지 않고 다음 청크 진행 — 부분 데이터 손실 최소화
   for (let i = 0; i < unique.length; i += chunkSize) {
     const chunk = unique.slice(i, i + chunkSize)
     const { data, error } = await safeQuery<T[]>(buildQuery(chunk), ms, `${tag}[${i}/${unique.length}]`)
-    if (error) return { data: out, error }
+    if (error) {
+      failedChunks++
+      if (!firstError) firstError = error
+      console.warn(`[chunkedIn] ${tag} chunk ${i}/${unique.length} failed:`, error.message)
+      continue
+    }
     if (data) out.push(...data)
+  }
+  // 모든 청크 실패 시에만 에러 반환, 부분 성공이면 데이터 보존
+  if (failedChunks === Math.ceil(unique.length / chunkSize)) {
+    return { data: out, error: firstError }
   }
   return { data: out, error: null }
 }

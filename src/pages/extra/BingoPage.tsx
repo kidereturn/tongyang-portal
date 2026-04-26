@@ -161,12 +161,26 @@ export default function BingoPage() {
 
   const MAX_DAILY_PLAYS = 3
 
-  // 오늘 도전 횟수 로드
+  // 오늘 도전 횟수 로드 + 15일 이상 된 bingo_plays_* 키 자동 정리 (localStorage 비대화 방지)
   useEffect(() => {
     if (!profile?.id) return
-    const key = `bingo_plays_${profile.id}_${new Date().toISOString().slice(0, 10)}`
+    const today = new Date().toISOString().slice(0, 10)
+    const key = `bingo_plays_${profile.id}_${today}`
     const count = parseInt(localStorage.getItem(key) ?? '0', 10)
     setDailyPlays(count)
+    // 15일 이상 된 누적 키 cleanup
+    try {
+      const cutoff = new Date(Date.now() - 15 * 86400 * 1000).toISOString().slice(0, 10)
+      const toRemove: string[] = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i)
+        if (k && k.startsWith('bingo_plays_')) {
+          const dateMatch = k.match(/_(\d{4}-\d{2}-\d{2})$/)
+          if (dateMatch && dateMatch[1] < cutoff) toRemove.push(k)
+        }
+      }
+      for (const k of toRemove) localStorage.removeItem(k)
+    } catch { /* localStorage 차단 등 무시 */ }
   }, [profile?.id])
 
   // ESC: 팝업 닫기 + 오답 처리 (사용자 요청)
@@ -320,10 +334,13 @@ export default function BingoPage() {
   }, [profile?.id, bingoCount])
 
   // 이달의 빙고왕 실시간 랭킹 — TOP 10
-  // bingo_achievements 는 user_id onConflict 로 single row 유지 → updated_at 이 이달 이면 포함
+  // 진입 시 1회 + 5분마다 자동 갱신 + 풀빙고(5줄) 달성 시 즉시 갱신
+  // 매 정답마다 호출하던 race 제거 (Supabase 부하 절감)
   const [ranking, setRanking] = useState<Array<{ user_id: string; name: string; dept: string | null; lines: number }>>([])
+  const fullBingo = bingoCount >= 5
   useEffect(() => {
-    (async () => {
+    let cancelled = false
+    const fetchRanking = async () => {
       try {
         const firstOfMonth = new Date(); firstOfMonth.setDate(1); firstOfMonth.setHours(0,0,0,0)
         // updated_at 필터 (이달 활동자) — 실패 시 폴백으로 전체 max_lines
@@ -362,12 +379,20 @@ export default function BingoPage() {
           .map(uid => ({ user_id: uid, name: byId[uid]?.full_name ?? '익명', dept: byId[uid]?.department ?? null, lines: byUser[uid] }))
           .sort((a, b) => b.lines - a.lines)
           .slice(0, 10)
-        setRanking(list)
+        if (!cancelled) setRanking(list)
       } catch (e) {
         console.warn('[Bingo] ranking fetch failed:', e)
       }
-    })()
-  }, [bingoCount, profile?.id])
+    }
+    fetchRanking()
+    // 5분마다 자동 갱신 (탭 백그라운드 시 멈춤)
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchRanking()
+    }, 5 * 60 * 1000)
+    return () => { cancelled = true; clearInterval(interval) }
+    // 풀빙고(fullBingo) 달성 시 즉시 갱신 + profile 변경 시 갱신 (매 정답마다 X)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id, fullBingo])
 
   // Celebration — 매 줄 완성 시 (1~5줄 모두 축하)
   const lastCelebratedRef = useRef<number>(0)
