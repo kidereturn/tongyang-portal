@@ -73,7 +73,7 @@ export default function AdminPage() {
           <div>
             <div className="eyebrow">관리자<span className="sep" />Administration Console</div>
             <h1>관리자. <span className="soft">포털 전체 세팅과 운영.</span></h1>
-            <p className="lead">사용자 초기 업로드 → RCM 업로드 → 모집단 업로드 순서로 진행하세요. 로그인 ID와 초기 비밀번호는 모두 사번으로 맞춰집니다.</p>
+            <p className="lead">사용자 초기 업로드 → RCM 업로드 → 모집단 업로드 순서로 진행하세요. 로그인 ID는 사번, 초기 비밀번호는 <strong>ty + 사번</strong> 입니다.</p>
           </div>
           <div className="actions">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 10, fontSize: 12, color: '#92400E' }}>

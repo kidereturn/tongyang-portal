@@ -177,7 +177,7 @@ export default function LoginPage() {
                   name="password"
                   className="fld-in"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="초기 비밀번호는 사번"
+                  placeholder="초기 비밀번호: ty + 사번"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   autoComplete="current-password"
@@ -208,7 +208,7 @@ export default function LoginPage() {
           <div className="login-notice">
             <div className="ln-hd">
               <span style={{ width: 14, height: 14, borderRadius: 3, background: '#3182F6', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10 }}>✓</span>
-              <label>최초 로그인 시 초기 비밀번호는 사번</label>
+              <label>최초 로그인 시 초기 비밀번호는 ty + 사번 (예: 사번 101267 → ty101267)</label>
             </div>
             <div className="ln-tx">
               사용자가 비밀번호를 변경한 이후에는 변경한 비밀번호가 계속 유지됩니다.
@@ -271,7 +271,7 @@ export default function LoginPage() {
             </div>
 
             <p style={{ marginTop: 14, fontSize: 11, color: 'var(--at-ink-faint)', lineHeight: 1.5, textAlign: 'center' }}>
-              💡 최초 로그인 시 초기 비밀번호는 <b>사번</b>입니다.
+              💡 최초 로그인 시 초기 비밀번호는 <b>ty + 사번</b> 입니다. (예: 사번이 101267 이면 비밀번호는 ty101267)
             </p>
 
             <button

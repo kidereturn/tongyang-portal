@@ -223,7 +223,7 @@ export default function ProfilePage() {
             </button>
 
             <div className="rounded-lg bg-warm-50 p-4 text-xs text-warm-500 leading-relaxed">
-              <p>초기 비밀번호는 <strong className="text-brand-700">사번</strong>입니다.</p>
+              <p>최초 로그인 시 초기 비밀번호는 <strong className="text-brand-700">ty + 사번</strong> 입니다. (예: 사번이 101267 이면 ty101267)</p>
               <p className="mt-1">비밀번호 변경 후에는 변경된 비밀번호로 로그인합니다.</p>
             </div>
           </div>

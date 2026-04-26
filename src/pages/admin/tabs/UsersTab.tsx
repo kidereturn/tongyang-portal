@@ -301,7 +301,7 @@ function AddUserModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
       toast.update(loadingId, {
         kind: 'success',
         title: created > 0 ? '사용자 추가 완료' : '기존 사용자 업데이트',
-        description: `${fullName} (${employeeId})${created > 0 ? ' — 초기 비밀번호는 사번' : ''}`,
+        description: `${fullName} (${employeeId})${created > 0 ? ' — 초기 비밀번호: ty' + (employeeId || '사번') : ''}`,
       })
       onAdded()
     } catch (error) {
@@ -321,7 +321,7 @@ function AddUserModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
         <div className="mb-4 flex items-start justify-between">
           <div>
             <h3 className="text-lg font-bold text-brand-900">사용자 추가</h3>
-            <p className="mt-1 text-xs text-warm-500">로그인 ID는 사번이며, 초기 비밀번호는 사번과 동일합니다.</p>
+            <p className="mt-1 text-xs text-warm-500">로그인 ID는 사번, 초기 비밀번호는 <strong>ty + 사번</strong> 입니다.</p>
           </div>
           <button
             type="button"
