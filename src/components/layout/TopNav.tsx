@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import {
   BarChart2,
   Bell,
@@ -66,7 +66,6 @@ function filterNavItems(role?: string | null) {
 export default function TopNav() {
   const { profile, signOut } = useAuth()
   const { totalPoints } = usePoints()
-  const navigate = useNavigate()
   const [profileOpen, setProfileOpen] = useState(false)
   const [notiOpen, setNotiOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -236,8 +235,12 @@ export default function TopNav() {
   async function handleSignOut() {
     setProfileOpen(false)
     try { sessionStorage.setItem('skipIntro', '1') } catch { /* storage blocked */ }
-    await signOut()
-    navigate('/login')
+    // signOut hang 가능성 대비 — 5초 후 강제로 /login hard reload
+    const forceRedirect = setTimeout(() => { window.location.assign('/login') }, 5000)
+    try { await signOut() } catch { /* ignore */ }
+    clearTimeout(forceRedirect)
+    // 일반 navigate 가 router state 문제로 작동 안 할 수도 있어 hard reload 사용
+    window.location.assign('/login')
   }
 
   return (

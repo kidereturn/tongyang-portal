@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import {
   BarChart2,
   BookOpen,
@@ -45,7 +45,6 @@ const MORE_ITEMS = [
 
 export default function MobileTabBar() {
   const { profile, signOut } = useAuth()
-  const navigate = useNavigate()
   const [moreOpen, setMoreOpen] = useState(false)
   const role = profile?.role ?? 'owner'
   const isAdmin = role === 'admin'
@@ -55,8 +54,10 @@ export default function MobileTabBar() {
   async function handleSignOut() {
     setMoreOpen(false)
     try { sessionStorage.setItem('skipIntro', '1') } catch { /* storage blocked */ }
-    await signOut()
-    navigate('/login')
+    const forceRedirect = setTimeout(() => { window.location.assign('/login') }, 5000)
+    try { await signOut() } catch { /* ignore */ }
+    clearTimeout(forceRedirect)
+    window.location.assign('/login')
   }
 
   return (

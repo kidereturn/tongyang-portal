@@ -166,15 +166,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function signOut() {
-    try {
-      await supabase.auth.signOut()
-    } catch { /* ignore */ }
-    // Force clear auth state and storage even if signOut fails
-    setState({ user: null, session: null, profile: null, loading: false })
+    // 1) localStorage 의 sb-* 토큰 즉시 제거 — 네트워크 지연 무관하게 클라이언트 로그아웃 보장
     try {
       Object.keys(window.localStorage).forEach(key => {
         if (key.startsWith('sb-')) window.localStorage.removeItem(key)
       })
+    } catch { /* ignore */ }
+    // 2) AuthContext state 즉시 초기화 — UI 가 즉시 비로그인 상태로 전환
+    setState({ user: null, session: null, profile: null, loading: false })
+    // 3) Supabase signOut 은 timeout 8s 으로 wrap — 서버 응답 안 와도 차단되지 않음
+    try {
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise(resolve => setTimeout(resolve, 8000)),
+      ])
     } catch { /* ignore */ }
   }
 
