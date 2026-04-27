@@ -1328,35 +1328,25 @@ function FileDownloadBtn({ path, name }: { path: string; name: string }) {
     if (busy) return
     setBusy(true)
     try {
-      // 1) 다운로드 URL (Content-Disposition: attachment) — 파일 저장
-      const { data: dlData, error: dlErr } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 3600, {
+      // CRITICAL: 이전 버전은 window.open 으로 새창에서 동시에 파일을 열었으나,
+      // PDF viewer 가 fetch/realtime channel 을 stuck 시켜 이후 모든 supabase 요청이 hang
+      // → 모달 닫으면 fetchActivities 가 8-9초 timeout 후 빈 결과(0건) 표시.
+      // 수정: 새창 열기 제거 → 다운로드만 (브라우저가 OS 기본앱으로 자동 열림).
+      // signed URL 도 1번만 생성 (이전엔 download/view 두 번 호출)
+      const { data, error } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 3600, {
         download: name || 'evidence',
       })
-      if (dlErr || !dlData?.signedUrl) {
-        alert(`다운로드 실패: ${dlErr?.message || 'URL 생성 불가'}`)
+      if (error || !data?.signedUrl) {
+        alert(`다운로드 실패: ${error?.message || 'URL 생성 불가'}`)
         return
       }
-      // 2) 보기 URL (Content-Disposition 없음) — 새 창에서 미리보기
-      const { data: viewData } = await (supabase.storage as any).from('evidence').createSignedUrl(path, 3600)
-
-      // (a) 다운로드 트리거
       const a = document.createElement('a')
-      a.href = dlData.signedUrl
+      a.href = data.signedUrl
       a.download = name || 'evidence'
       a.rel = 'noopener'
       document.body.appendChild(a)
       a.click()
       a.remove()
-
-      // (b) 새 창에서 파일 열기 (사용자 요청 — 다운로드 + 새창 동시)
-      if (viewData?.signedUrl) {
-        const newWin = window.open(viewData.signedUrl, '_blank', 'noopener,noreferrer')
-        // popup blocker 감지 — null/closed 면 알림
-        if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
-          console.warn('[Download] 새 창이 차단되었습니다. 다운로드는 정상 완료.')
-          // 사용자에게는 alert 안 띄움 — 다운로드는 정상 동작했으므로
-        }
-      }
     } catch (e) {
       alert(`다운로드 오류: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
@@ -1367,11 +1357,12 @@ function FileDownloadBtn({ path, name }: { path: string; name: string }) {
   return (
     <button
       onClick={handleDownload}
-      className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-brand-700 bg-warm-50 border border-warm-200 hover:bg-warm-100 hover:border-warm-300 transition-colors"
+      disabled={busy}
+      className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-brand-700 bg-warm-50 border border-warm-200 hover:bg-warm-100 hover:border-warm-300 transition-colors disabled:opacity-50"
       title="다운로드"
     >
       <Download size={12} />
-      <span>다운로드</span>
+      <span>{busy ? '...' : '다운로드'}</span>
     </button>
   )
 }
