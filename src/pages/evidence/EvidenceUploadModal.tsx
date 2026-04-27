@@ -607,7 +607,9 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
             continue
           }
 
-          const dbFileName = `${activity.unique_key ?? ''}_${item.transaction_id ?? item.id}_${upload.file.name}`
+          // closure 캡처용 ref (TS narrowing 우회)
+          const fileRef = upload.file
+          const dbFileName = `${activity.unique_key ?? ''}_${item.transaction_id ?? item.id}_${fileRef.name}`
           const { data: savedUpload, error: insertError } = await tryTwice<{ data: any; error: any }>(
             () => db.from('evidence_uploads').insert({
               population_item_id: item.id,
@@ -615,12 +617,12 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
               owner_id: profile.id,
               file_path: storagePath,
               file_name: dbFileName,
-              original_file_name: upload.file.name,
-              file_size: upload.file.size,
+              original_file_name: fileRef.name,
+              file_size: fileRef.size,
               unique_key: activity.unique_key,
               status: 'uploaded',
             }).select('id, file_name, original_file_name, file_path, file_size, uploaded_at').single(),
-            30000, `${upload.file.name} DB insert`
+            30000, `${fileRef.name} DB insert`
           )
 
           if (insertError) {
