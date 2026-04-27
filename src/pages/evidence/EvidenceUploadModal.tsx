@@ -295,6 +295,21 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
     // 자동 중간저장은 useEffect 로 hasNewFiles 감지 (closure 문제 회피)
   }
 
+  // 윈도우 레벨 드래그앤드롭 가로채기 — 드롭존 외 영역에 파일 떨어뜨려도 브라우저 기본 동작(파일 열기) 차단
+  // (사용자 보고: 드롭존 외 드롭 → 새창에서 파일 열림 → 그 후 모달 무한 로딩)
+  useEffect(() => {
+    const preventDrop = (e: DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    window.addEventListener('dragover', preventDrop)
+    window.addEventListener('drop', preventDrop)
+    return () => {
+      window.removeEventListener('dragover', preventDrop)
+      window.removeEventListener('drop', preventDrop)
+    }
+  }, [])
+
   function handleDragOver(event: React.DragEvent, itemId: string) {
     event.preventDefault()
     event.stopPropagation()

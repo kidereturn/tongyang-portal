@@ -200,10 +200,26 @@ async function runScenario(page, cycleIdx, log) {
   step(`db_check_35 (${c3}건)`, c3 >= 30)  // 부분 실패 허용 (timeout 시)
 
   // ⑦ 36번째 — 드롭존 외 영역에 드롭 시뮬레이션
-  // (puppeteer 로 실 사용자 드롭은 어려움. 대신 모달 외부 클릭으로 대체 — 새창 열림 가능성)
-  // 또는 드래그 이벤트만 시뮬레이트 → 드롭존 외 영역
-  // → 실제로 새창 열림 확인 못해도 다음 단계로 진행
-  const newPagesBefore = (await page.browser().pages()).length
+  // window 에 dragover/drop 이벤트 dispatch — 모달 외부에 떨어뜨림
+  // 새창 열림 (브라우저 navigate) 발생 → React state 손상 가능
+  const browserCtx = page.browser()
+  const newPagesBefore = (await browserCtx.pages()).length
+  await page.evaluate(() => {
+    const dataTransfer = new DataTransfer()
+    // 가짜 파일을 dataTransfer 에 추가
+    try {
+      const blob = new Blob(['%PDF-1.4 fake'], { type: 'application/pdf' })
+      const file = new File([blob], 'misdrop.pdf', { type: 'application/pdf' })
+      dataTransfer.items.add(file)
+    } catch {}
+    // 모달 외부 (modal-overlay 의 빈 공간 또는 body) 에 dragover + drop 이벤트
+    const target = document.body
+    target.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer }))
+    target.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }))
+  })
+  await wait(2000)
+  const newPagesAfter = (await browserCtx.pages()).length
+  step(`misdrop_outside (new pages ${newPagesAfter - newPagesBefore})`, newPagesAfter === newPagesBefore, '브라우저 기본 동작 차단')
 
   // ⑧ 36번째부터 1개씩 업로드 (15개) — hang 측정
   let hangCount = 0
