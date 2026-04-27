@@ -15,7 +15,6 @@ import {
   Map,
   MessageCircle,
   Newspaper,
-  Search,
   Settings,
   Shield,
   TrendingUp,
@@ -298,10 +297,7 @@ export default function TopNav() {
       </div>
 
       <div className="at-nav-right">
-        {/* Search icon (placeholder for future global search) */}
-        <div className="at-nav-icon" title="검색">
-          <Search size={16} strokeWidth={1.8} />
-        </div>
+        {/* 검색 아이콘 — 사용자 요청으로 삭제 */}
 
         {/* Notification bell */}
         <div ref={notiRef} style={{ position: 'relative' }}>

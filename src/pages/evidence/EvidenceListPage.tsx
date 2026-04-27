@@ -179,6 +179,22 @@ export default function EvidenceListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Supabase Realtime: evidence_uploads 변경 시 카운트 자동 새로고침 (모달 닫을 필요 X)
+  useEffect(() => {
+    if (!profile) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+    const channel = db
+      .channel('evidence-uploads-watch')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'evidence_uploads' }, () => {
+        // debounce — 짧은 시간 내 다중 INSERT/DELETE 합쳐 1회만 호출
+        if ((window as any).__evRefetchT) clearTimeout((window as any).__evRefetchT)
+        ;(window as any).__evRefetchT = setTimeout(() => { void fetchActivities() }, 600)
+      })
+      .subscribe()
+    return () => { db.removeChannel(channel) }
+  }, [profile, fetchActivities])
+
   useEffect(() => {
     let r = activities
     if (search) {
@@ -232,7 +248,13 @@ export default function EvidenceListPage() {
   const rate = stats.total > 0 ? Math.round(stats.approved / stats.total * 100) : 0
 
   function openUploadModal(act: Activity) { setSelectedActivity(act); setModalOpen(true) }
-  function handleClose(refresh?: boolean) { setModalOpen(false); setSelectedActivity(null); if (refresh) fetchActivities() }
+  function handleClose(refresh?: boolean) {
+    setModalOpen(false)
+    setSelectedActivity(null)
+    // 모달 close 시 항상 재조회 → 업로드 건수 실시간 반영 (사용자 요청)
+    fetchActivities()
+    void refresh
+  }
 
   // 관리자 검토상태·메모 작성 중인 값 (저장 버튼 누르기 전까지 로컬 스테이징)
   const [pendingReview, setPendingReview] = useState<Record<string, string>>({})
@@ -328,9 +350,12 @@ export default function EvidenceListPage() {
       setPendingReview(prev => { const n = { ...prev }; delete n[activity.id]; return n })
       setPendingMemo(prev => { const n = { ...prev }; delete n[activity.id]; return n })
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '알 수 없는 오류'
-      console.error('[saveReviewStatus] FAILED', err)
-      window.alert(`검토결과 저장 실패: ${msg}\n\n새로고침 후 다시 시도해 주세요. 계속 발생 시 IT 담당자에게 콘솔 로그를 알려주세요.`)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const e = err as any
+      const msg = e?.message || (typeof e === 'string' ? e : JSON.stringify(e).slice(0, 200))
+      const stack = e?.stack ? '\n\n[기술 정보]\n' + String(e.stack).split('\n').slice(0, 6).join('\n') : ''
+      console.error('[saveReviewStatus] FAILED', { message: msg, stack: e?.stack, raw: err })
+      window.alert(`검토결과 저장 실패: ${msg}\n\n새로고침 후 다시 시도해 주세요. 계속 발생 시 콘솔(F12) 의 [saveReviewStatus] FAILED 로그를 IT 담당자에게 알려주세요.${stack}`)
     } finally {
       setSavingReview(null)
     }
@@ -456,6 +481,18 @@ export default function EvidenceListPage() {
               <input placeholder="통제번호·활동명·담당자 검색" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
             <div className="filter-chips">
+              <button
+                onClick={() => fetchActivities()}
+                title="증빙목록 새로고침"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: 28, height: 28, marginRight: 6, padding: 0,
+                  background: '#fff', border: '1px solid var(--at-line)', borderRadius: 6,
+                  color: 'var(--at-ink-soft)', cursor: 'pointer', flexShrink: 0,
+                }}
+              >
+                <RefreshCw size={13} />
+              </button>
               {(profile?.role === 'admin'
                 ? [
                     // 관리자: 상신완료/상신미완료/승인완료 포함 (요청사항)
@@ -539,9 +576,18 @@ export default function EvidenceListPage() {
               </thead>
               <tbody>
                 {filtered.map(act => {
-                  const si = STATUS_MAP[act.submission_status] ?? STATUS_MAP['미완료']
-                  const canUpload = profile?.role === 'owner' && act.submission_status !== '승인'
+                  // 표시 라벨: 수정제출 review_status 인 경우 (승인자/관리자가 반려) → '수정제출' 으로 표기
+                  const isModifyReq = (act.review_status ?? '') === '수정제출'
+                  const si = isModifyReq
+                    ? { label: '수정제출', cls: 'badge-red' }
+                    : (STATUS_MAP[act.submission_status] ?? STATUS_MAP['미완료'])
+                  // 담당자: '상신완료(완료)' 또는 '승인완료(승인)' 상태에서는 수정 불가 (사용자 요구)
+                  // 단 review_status='수정제출' 이면 다시 수정 가능
+                  const canUpload = profile?.role === 'owner'
+                    && act.submission_status !== '승인'
+                    && act.submission_status !== '완료'
                   const isView = profile?.role === 'controller' || (profile?.role === 'admin')
+                    || (profile?.role === 'owner' && (act.submission_status === '완료' || act.submission_status === '승인'))
                   const uploaded = evidenceCounts[act.id] ?? 0
                   const total = populationTotals[act.id] ?? 0
                   return (
@@ -558,15 +604,7 @@ export default function EvidenceListPage() {
                           {uploaded}/{total}
                         </span>
                       </td>
-                      <td style={{ fontFamily: 'var(--f-mono)', fontWeight: 500 }}>
-                        {act.kpi_score != null ? (() => {
-                          // KPI 등급: A(≥9) / B(≥7) / C(≥5) / D(≥3) / E(≥1) / F(<1)
-                          const s = act.kpi_score
-                          const grade = s >= 9 ? 'A' : s >= 7 ? 'B' : s >= 5 ? 'C' : s >= 3 ? 'D' : s >= 1 ? 'E' : 'F'
-                          const color = grade === 'A' ? '#10B981' : grade === 'B' ? '#3182F6' : grade === 'C' ? '#F59E0B' : grade === 'D' ? '#FB923C' : grade === 'E' ? '#EF4444' : '#6B7280'
-                          return (<span>{s.toFixed(1)} <span style={{ fontWeight: 700, color, fontSize: 10, marginLeft: 2 }}>{grade}</span></span>)
-                        })() : '-'}
-                      </td>
+                      <td style={{ fontFamily: 'var(--f-mono)', fontWeight: 500 }}>{act.kpi_score != null ? act.kpi_score.toFixed(1) : '-'}</td>
                       <td><span className={`at-tag ${si.cls.includes('yellow') ? 'amber' : si.cls.includes('blue') ? 'blue' : si.cls.includes('green') ? 'green' : si.cls.includes('red') ? 'red' : 'gray'}`}>{si.label}</span></td>
                       {/* 메모 컬럼 — 담당자·승인자: 관리자가 입력한 메모 (읽기전용) */}
                       {profile?.role !== 'admin' && (
@@ -751,7 +789,12 @@ export default function EvidenceListPage() {
         <EvidenceUploadModal
           activity={selectedActivity}
           onClose={handleClose}
-          viewOnly={profile?.role === 'controller'}
+          viewOnly={
+            profile?.role === 'controller' ||
+            profile?.role === 'admin' ||
+            // 담당자라도 상신완료/승인완료 상태면 수정 불가 (관리자가 수정제출 누른 후만 다시 편집 가능)
+            (profile?.role === 'owner' && (selectedActivity.submission_status === '완료' || selectedActivity.submission_status === '승인'))
+          }
         />
       )}
     </>

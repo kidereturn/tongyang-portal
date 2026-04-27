@@ -184,6 +184,7 @@ export default function BingoPage() {
   }, [profile?.id])
 
   // ESC: 팝업 닫기 + 오답 처리 (사용자 요청)
+  // 오답 시 도전 1회 소모 + 새게임 자동 로드
   useEffect(() => {
     if (activeIdx === null) return
     function onKey(e: KeyboardEvent) {
@@ -197,23 +198,22 @@ export default function BingoPage() {
         if (timerRef.current) clearInterval(timerRef.current)
         const q = questions[idx]
         const explanation = `ESC 로 취소 → 오답. 정답: "${q.answer}". ${q.explanation}`
-        const isFirstAnswerInSession = Object.keys(answers).length === 0
         setAnswers(prev => ({ ...prev, [idx]: { correct: false, explanation } }))
         setLastMessage({ correct: false, text: `취소 처리 → 오답. 정답: "${q.answer}"` })
         setActiveIdx(null)
         setSubjectiveAnswer('')
         setSelectedChoice('')
-        if (isFirstAnswerInSession) {
-          incrementDailyPlays()
-          if (profile?.id) {
-            void (supabase as any).from('user_points').insert({
-              user_id: profile.id,
-              action: 'bingo_attempt',
-              points: 10,
-              description: '빙고 참여 포인트',
-            })
-          }
+        // 오답 = 도전 1회 소모 + 새게임 자동 로드 (사용자 요청)
+        incrementDailyPlays()
+        if (profile?.id) {
+          void (supabase as any).from('user_points').insert({
+            user_id: profile.id,
+            action: 'bingo_attempt',
+            points: 10,
+            description: '빙고 참여 포인트',
+          })
         }
+        scheduleAutoReload()
         processingAnswerRef.current = false
       }
     }
@@ -251,6 +251,29 @@ export default function BingoPage() {
     const next = dailyPlays + 1
     localStorage.setItem(key, String(next))
     setDailyPlays(next)
+  }
+
+  // 1줄 완성 또는 오답 후 1.5초 뒤 새게임 자동 로드 (남은 도전 횟수 있을 때만)
+  const autoReloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  function scheduleAutoReload() {
+    if (autoReloadTimerRef.current) clearTimeout(autoReloadTimerRef.current)
+    autoReloadTimerRef.current = setTimeout(() => {
+      // 남은 도전 횟수 있어야 새게임 로드
+      const today = new Date().toISOString().slice(0, 10)
+      const key = profile?.id ? `bingo_plays_${profile.id}_${today}` : null
+      const currentPlays = key ? parseInt(localStorage.getItem(key) ?? '0', 10) : MAX_DAILY_PLAYS
+      if (currentPlays >= MAX_DAILY_PLAYS) return
+      // 새게임 — 오답·정답 누적 모두 초기화
+      setQuestions(buildBingoQuestions())
+      setAnswers({})
+      setActiveIdx(null)
+      setSubjectiveAnswer('')
+      setSelectedChoice('')
+      setShowCelebration(false)
+      setLastMessage(null)
+      notifiedRef.current = false
+      lastCelebratedRef.current = 0
+    }, 1500)
   }
 
   const remainingPlays = MAX_DAILY_PLAYS - dailyPlays
@@ -300,6 +323,17 @@ export default function BingoPage() {
               setSubjectiveAnswer('')
               setSelectedChoice('')
               setShowExplosion(false)
+              // 시간초과도 오답 → 도전 1회 소모 + 새게임 자동 로드
+              incrementDailyPlays()
+              if (profile?.id) {
+                void (supabase as any).from('user_points').insert({
+                  user_id: profile.id,
+                  action: 'bingo_attempt',
+                  points: 10,
+                  description: '빙고 참여 포인트',
+                })
+              }
+              scheduleAutoReload()
             }, 1200)
           }
           return 0
@@ -436,17 +470,21 @@ export default function BingoPage() {
       ? `정답! ${q.explanation}`
       : `오답. 정답: "${q.answer}". ${q.explanation}`
 
-    // 실제 답을 제출한 시점에 첫 정답이면 도전 횟수 증가 (ESC 취소엔 카운트 X)
-    const isFirstAnswerInSession = Object.keys(answers).length === 0
+    // 정답 시 줄 완성 여부 미리 계산 (1줄 완성 시 도전 1회 소모 + 새게임)
+    const newCorrectSet = new Set(correctSet)
+    if (correct) newCorrectSet.add(idx)
+    const newBingoCount = countBingoLines(newCorrectSet)
+    const lineJustCompleted = correct && newBingoCount > bingoCount
+
     setAnswers(prev => ({ ...prev, [idx]: { correct, explanation } }))
     setLastMessage({ correct, text: correct ? '정답입니다!' : `오답. 정답: "${q.answer}"` })
     setActiveIdx(null)
     setSubjectiveAnswer('')
     setSelectedChoice('')
-    // lock 은 이미 함수 상단에서 null 로 설정됨 — 다른 경로는 진입 불가
-    if (isFirstAnswerInSession) {
+
+    // 사용자 요청: 1줄 완성 또는 오답 1회 = 도전 1회 소모 + 새게임 자동 로드
+    if (!correct || lineJustCompleted) {
       incrementDailyPlays()
-      // 빙고 참여 1회당 10점 포인트 적립 (세션별 1회) — 사용자 요청
       if (profile?.id) {
         void (supabase as any).from('user_points').insert({
           user_id: profile.id,
@@ -455,7 +493,9 @@ export default function BingoPage() {
           description: '빙고 참여 포인트',
         })
       }
+      scheduleAutoReload()
     }
+
     // lock 해제 (다음 문제 준비)
     processingAnswerRef.current = false
   }

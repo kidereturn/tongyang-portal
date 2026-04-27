@@ -228,6 +228,7 @@ function WebtoonComments({ webtoonId, episodeTitle }: { webtoonId: string; episo
   const [sending, setSending] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
+  const [anonymous, setAnonymous] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -251,8 +252,8 @@ function WebtoonComments({ webtoonId, episodeTitle }: { webtoonId: string; episo
       const { error } = await (supabase as any).from('webtoon_comments').insert({
         webtoon_id: webtoonId,
         user_id: profile.id,
-        user_name: profile.full_name ?? null,
-        user_dept: profile.department ?? null,
+        user_name: anonymous ? '익명' : (profile.full_name ?? null),
+        user_dept: anonymous ? null : (profile.department ?? null),
         body: text.trim(),
       })
       if (error) throw error
@@ -309,9 +310,9 @@ function WebtoonComments({ webtoonId, episodeTitle }: { webtoonId: string; episo
       </div>
 
       {/* 작성 폼 */}
-      <div className="mb-5 flex gap-2 items-start">
+      <div className="mb-2 flex gap-2 items-start">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
-          {profile?.full_name?.slice(0, 1) ?? '?'}
+          {anonymous ? '?' : (profile?.full_name?.slice(0, 1) ?? '?')}
         </div>
         <textarea
           value={text}
@@ -327,6 +328,17 @@ function WebtoonComments({ webtoonId, episodeTitle }: { webtoonId: string; episo
         >
           <Send size={13} />등록
         </button>
+      </div>
+      <div className="mb-5 ml-10">
+        <label className="inline-flex items-center gap-1.5 text-xs text-warm-600 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={anonymous}
+            onChange={e => setAnonymous(e.target.checked)}
+            className="rounded border-warm-300"
+          />
+          익명으로 게시
+        </label>
       </div>
 
       {/* 댓글 목록 */}

@@ -360,6 +360,17 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
+              {/* 월말 D-DAY — 랭킹 확정 안내 */}
+              {(() => {
+                const now = new Date()
+                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+                const dDay = Math.ceil((lastDay.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                return (
+                  <div style={{ marginTop: 14, padding: '10px 14px', background: 'linear-gradient(135deg, #FEF3C7, #FDE68A)', borderRadius: 10, fontSize: 13, color: '#78350F', fontWeight: 600, textAlign: 'center' }}>
+                    📅 월말 마감 D-{String(dDay).padStart(2, '0')} · 매월 말일 기준으로 랭킹이 확정됩니다
+                  </div>
+                )
+              })()}
             </div>
           </div>
         </div>

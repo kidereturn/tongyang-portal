@@ -39,7 +39,7 @@ export default function KpiPage() {
           { label: '전체 완료율', value: '82%', icon: TrendingUp, color: 'brand', change: '+5%' },
           { label: '통제활동 수', value: '420', icon: BarChart2, color: 'blue', change: '' },
           { label: '최고 점수 부서', value: '안양공장', icon: Award, color: 'yellow', change: '92점' },
-          { label: '평균 KPI 점수', value: '81.5', icon: Star, color: 'green', change: '점' },
+          { label: '평균 KPI 점수', value: '81.5', icon: Star, color: 'green', change: '점 · 등급 B' },
         ].map(s => (
           <div key={s.label} className="card p-4">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${

@@ -928,8 +928,15 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
 
         {activity.description && (
           <div className="px-6 py-3 bg-blue-50 border-b border-blue-100">
-            <p className="text-xs text-blue-700 font-bold mb-0.5">제출 증빙에 대한 설명</p>
-            <p className="text-sm text-blue-900 font-semibold">{activity.description}</p>
+            <p className="text-xs text-blue-700 font-bold mb-1">제출 증빙에 대한 설명</p>
+            <p className="text-sm text-blue-900 font-semibold">
+              <span style={{
+                background: 'linear-gradient(180deg, transparent 60%, #FEF08A 60%)',
+                padding: '0 2px',
+                boxDecorationBreak: 'clone',
+                WebkitBoxDecorationBreak: 'clone',
+              }}>{activity.description}</span>
+            </p>
           </div>
         )}
 
@@ -1013,35 +1020,35 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                         >
                           <td className="text-center text-[11px] text-warm-400 align-top pt-3 px-1">{index + 1}</td>
                           <td className="align-top py-2 px-1.5">
-                            <div className="rounded-lg border border-brand-100 bg-brand-50/40 px-2 py-2 text-[11px] font-mono text-brand-800 break-all whitespace-normal font-semibold">
+                            <div className="rounded-lg border border-brand-100 bg-brand-50/40 px-2 py-2 text-[13px] font-mono text-brand-800 break-all whitespace-normal font-semibold">
                               {item.unique_key_2 ?? '-'}
                             </div>
                           </td>
                           <td className="align-top py-2 px-1.5">
-                            <div className="rounded-lg border border-warm-200 bg-white px-2 py-2 text-[11px] font-mono text-brand-700 break-all whitespace-normal">
+                            <div className="rounded-lg border border-warm-200 bg-white px-2 py-2 text-[13px] font-mono text-brand-700 break-all whitespace-normal">
                               {item.transaction_id ?? '-'}
                             </div>
                           </td>
                           <td className="align-top py-2 px-1.5">
-                            <div className="rounded-lg border border-warm-200 bg-white px-2 py-2 text-[11px] text-brand-700 whitespace-nowrap">
+                            <div className="rounded-lg border border-warm-200 bg-white px-2 py-2 text-[13px] text-brand-700 whitespace-nowrap">
                               {item.transaction_date ?? '-'}
                             </div>
                           </td>
                           <td className="align-top py-2 px-1.5">
-                            <div className="rounded-lg border border-warm-200 bg-white px-2 py-2 text-[11px] text-brand-700 whitespace-normal break-words leading-5">
+                            <div className="rounded-lg border border-warm-200 bg-white px-2 py-2 text-[13px] text-brand-700 whitespace-normal break-words leading-5">
                               {item.description ?? '-'}
                             </div>
                           </td>
                           <td className="align-top py-2 px-1.5">
                             <div className="rounded-lg border border-warm-200 bg-white px-2 py-2 min-h-[64px]">
                               {additionalRows.length === 0 ? (
-                                <span className="text-[11px] text-warm-400">-</span>
+                                <span className="text-[13px] text-warm-400">-</span>
                               ) : (
                                 <div className="space-y-1.5">
                                   {additionalRows.map(row => (
                                     <div key={row.label} className="rounded-md bg-warm-50 border border-warm-100 px-1.5 py-1">
-                                      <p className="text-[10px] font-semibold text-warm-500">{row.label}</p>
-                                      <p className="text-[11px] font-medium text-brand-800 break-words">{row.value}</p>
+                                      <p className="text-[12px] font-semibold text-warm-500">{row.label}</p>
+                                      <p className="text-[13px] font-medium text-brand-800 break-words">{row.value}</p>
                                     </div>
                                   ))}
                                 </div>

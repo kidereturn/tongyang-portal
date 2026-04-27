@@ -366,7 +366,11 @@ export default function CourseDetailPage() {
   const [showAskQ, setShowAskQ] = useState(false)
   const [qAsking, setQAsking] = useState(false)
   const [newQText, setNewQText] = useState('')
+  const [qAnonymous, setQAnonymous] = useState(false)
   const [detailQ, setDetailQ] = useState<typeof qaList[number] | null>(null)
+
+  // 익명 마커 (zero-width chars) — DB 스키마 변경 없이 익명 플래그를 안전하게 인코딩
+  const ANON_MARK = '​​[익명]​'
 
   useEffect(() => {
     if (!selectedVideo?.id) return
@@ -377,15 +381,20 @@ export default function CourseDetailPage() {
           .select('id, user_id, question, answer, created_at, answered_at, profiles:profiles(full_name)')
           .eq('course_id', selectedVideo.id)
           .order('created_at', { ascending: false })
-        const items = (data ?? []).map((r: any) => ({
-          id: r.id,
-          user_id: r.user_id,
-          question: r.question,
-          answer: r.answer,
-          answered_at: r.answered_at,
-          created_at: r.created_at,
-          user_name: r.profiles?.full_name ?? '익명',
-        }))
+        const items = (data ?? []).map((r: any) => {
+          const rawQ = r.question ?? ''
+          const isAnon = typeof rawQ === 'string' && rawQ.startsWith(ANON_MARK)
+          const cleanQ = isAnon ? rawQ.slice(ANON_MARK.length) : rawQ
+          return {
+            id: r.id,
+            user_id: r.user_id,
+            question: cleanQ,
+            answer: r.answer,
+            answered_at: r.answered_at,
+            created_at: r.created_at,
+            user_name: isAnon ? '익명' : (r.profiles?.full_name ?? '익명'),
+          }
+        })
         setQaList(items)
       } catch { /* silent */ }
     })()
@@ -396,12 +405,13 @@ export default function CourseDetailPage() {
     if (!text || !profile?.id || !selectedVideo?.id) return
     setQAsking(true)
     try {
+      const storedQ = qAnonymous ? `${ANON_MARK}${text}` : text
       await (supabase as any).from('course_qa').insert({
         course_id: selectedVideo.id,
         user_id: profile.id,
-        question: text,
+        question: storedQ,
       })
-      // Notify self + admins
+      // Notify self + admins (관리자에겐 익명이어도 작성자 표시 — 운영 목적)
       const recipients: Array<{ id: string }> = []
       const { data: admins } = await (supabase as any).from('profiles').select('id').eq('role', 'admin').eq('is_active', true)
       recipients.push(...(admins ?? []))
@@ -410,8 +420,8 @@ export default function CourseDetailPage() {
       const notes = unique.map(id => ({
         recipient_id: id,
         sender_id: profile.id,
-        title: `수강생 질문 - ${selectedVideo.title}`,
-        body: `${profile.full_name ?? ''} (${profile.employee_id ?? ''})\n\n${text}`,
+        title: `수강생 질문${qAnonymous ? ' [익명]' : ''} - ${selectedVideo.title}`,
+        body: `${profile.full_name ?? ''} (${profile.employee_id ?? ''})${qAnonymous ? ' [공개 표기는 익명]' : ''}\n\n${text}`,
         is_read: false,
       }))
       if (notes.length) await (supabase as any).from('notifications').insert(notes)
@@ -419,12 +429,17 @@ export default function CourseDetailPage() {
       const { data } = await (supabase as any)
         .from('course_qa').select('id, user_id, question, answer, created_at, answered_at, profiles:profiles(full_name)')
         .eq('course_id', selectedVideo.id).order('created_at', { ascending: false })
-      setQaList((data ?? []).map((r: any) => ({
-        id: r.id, user_id: r.user_id, question: r.question, answer: r.answer, answered_at: r.answered_at, created_at: r.created_at,
-        user_name: r.profiles?.full_name ?? '익명',
-      })))
+      setQaList((data ?? []).map((r: any) => {
+        const rawQ = r.question ?? ''
+        const isAnon = typeof rawQ === 'string' && rawQ.startsWith(ANON_MARK)
+        const cleanQ = isAnon ? rawQ.slice(ANON_MARK.length) : rawQ
+        return {
+          id: r.id, user_id: r.user_id, question: cleanQ, answer: r.answer, answered_at: r.answered_at, created_at: r.created_at,
+          user_name: isAnon ? '익명' : (r.profiles?.full_name ?? '익명'),
+        }
+      }))
       alert('질문이 등록되었습니다. 관리자와 본인에게 알림이 전송되었어요.')
-      setNewQText(''); setShowAskQ(false)
+      setNewQText(''); setQAnonymous(false); setShowAskQ(false)
     } catch (e: any) {
       alert('등록 실패: ' + (e?.message ?? ''))
     } finally {
@@ -799,7 +814,15 @@ export default function CourseDetailPage() {
               rows={6}
               style={{ width: '100%', padding: '12px 14px', border: '1px solid var(--at-ink-hair)', borderRadius: 10, fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }}
             />
-            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--at-ink-mute)' }}>등록하면 관리자와 본인에게 알림이 전송됩니다.</div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12, color: 'var(--at-ink-soft)', cursor: 'pointer', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={qAnonymous}
+                onChange={e => setQAnonymous(e.target.checked)}
+              />
+              익명으로 게시 (다른 수강생에게 이름이 표시되지 않습니다)
+            </label>
+            <div style={{ marginTop: 6, fontSize: 11, color: 'var(--at-ink-mute)' }}>등록하면 관리자와 본인에게 알림이 전송됩니다.</div>
             <button
               onClick={submitQuestion}
               disabled={qAsking || !newQText.trim()}
