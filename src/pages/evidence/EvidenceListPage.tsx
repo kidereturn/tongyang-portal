@@ -267,11 +267,17 @@ export default function EvidenceListPage() {
       const now = new Date().toISOString()
       console.info('[saveReviewStatus] start', { actId: activity.id, newStatus, memoChanged })
 
-      // 10초 timeout — Supabase API hang 방지 (any 캐스트로 generic 회피)
+      // 세션 만료 사전 체크 — 'Cannot read properties of undefined' 같은 supabase 내부 에러 방지
+      const sessionRes = await supabase.auth.getSession()
+      if (!sessionRes.data.session) {
+        throw new Error('세션이 만료되었습니다. 새로고침 후 다시 로그인해 주세요.')
+      }
+
+      // 30초 timeout — Supabase 느린 환경 보호 (any 캐스트로 generic 회피)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const withTimeout = (p: any): Promise<any> => Promise.race([
         Promise.resolve(p),
-        new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase API 응답 시간 초과 (10초)')), 10000)),
+        new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase API 응답 시간 초과 (30초)')), 30000)),
       ])
 
       // 수정제출로 변경 시 — RPC 트랜잭션으로 원자성 보장 (admin 권한 SECURITY DEFINER)

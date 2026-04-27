@@ -148,17 +148,33 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
           setItems([])
           return
         }
+        // 세션 만료 확인 (만료 시 응답이 401 + supabase-js 가 internal error 발생 가능)
+        const sessionRes = await supabase.auth.getSession()
+        if (!sessionRes.data.session) {
+          setError('세션이 만료되었습니다. 새로고침 후 다시 로그인해 주세요.')
+          setItems([])
+          return
+        }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const db = supabase as any
-        // 10초 timeout race — Supabase hang 시 무한 로딩 방지
-        const withTimeout = <T,>(p: PromiseLike<T>, ms = 10000): Promise<T> => Promise.race([
-          Promise.resolve(p),
-          new Promise<T>((_, reject) => setTimeout(() => reject(new Error('모집단 조회 응답 시간 초과 (10초)')), ms)),
-        ])
-
+        // 30초 timeout (느린 네트워크 + Supabase cold start 대비) + 1회 자동 재시도
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const withTimeoutRetry = async (build: () => any, ms = 30000): Promise<any> => {
+          const exec = () => Promise.race([
+            Promise.resolve(build()),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`응답 시간 초과 (${Math.round(ms/1000)}초)`)), ms)),
+          ])
+          try { return await exec() }
+          catch (e) {
+            console.warn('[modal load] retrying after timeout', e)
+            return await exec()
+          }
+        }
+        const popKey = activity.unique_key
+        const actId = activity.id
         const [popRes, upRes] = await Promise.all([
-          withTimeout(db.from('population_items').select('*').eq('unique_key', activity.unique_key).order('unique_key_2', { ascending: true, nullsFirst: false })),
-          withTimeout(db.from('evidence_uploads').select('id, file_name, original_file_name, file_path, file_size, uploaded_at, population_item_id').eq('activity_id', activity.id)),
+          withTimeoutRetry(() => db.from('population_items').select('*').eq('unique_key', popKey).order('unique_key_2', { ascending: true, nullsFirst: false })),
+          withTimeoutRetry(() => db.from('evidence_uploads').select('id, file_name, original_file_name, file_path, file_size, uploaded_at, population_item_id').eq('activity_id', actId)),
         ])
         const popItems = (popRes as any)?.data
         const uploads = (upRes as any)?.data
