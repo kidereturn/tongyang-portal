@@ -295,24 +295,43 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
     // 자동 중간저장은 useEffect 로 hasNewFiles 감지 (closure 문제 회피)
   }
 
-  // 윈도우 레벨 드래그앤드롭 가로채기 — 드롭존 외 영역에 파일 떨어뜨려도 브라우저 기본 동작(파일 열기) 차단
-  // (사용자 보고: 드롭존 외 드롭 → 새창에서 파일 열림 → 그 후 모달 무한 로딩)
+  // 드롭존 외 어디에 떨어뜨려도 아무 일 안 일어나게 (Windows 탐색기 기본 동작과 동일)
+  // capture phase 로 등록 — 어떤 React/element 핸들러보다 먼저 가로챔
+  // 드롭존 핸들러는 stopPropagation 으로 이 차단을 피하고 정상 처리
   useEffect(() => {
-    const preventDrop = (e: DragEvent) => {
+    const blockDefaultDragDrop = (e: DragEvent) => {
+      // 드롭존 element 에 떨어졌으면 stopPropagation 이 호출되어 여기 안 옴 (정상 처리)
+      // 그 외 영역 = 무조건 차단
       e.preventDefault()
-      e.stopPropagation()
+      // dropEffect = 'none' → OS 가 "여기는 못 놓음" 표시 (Windows 탐색기 동작)
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'none'
     }
-    window.addEventListener('dragover', preventDrop)
-    window.addEventListener('drop', preventDrop)
+    // capture: true — bubble 보다 먼저, 어떤 child 보다 먼저 발화
+    window.addEventListener('dragenter', blockDefaultDragDrop, { capture: true })
+    window.addEventListener('dragover', blockDefaultDragDrop, { capture: true })
+    window.addEventListener('drop', blockDefaultDragDrop, { capture: true })
+    document.addEventListener('dragenter', blockDefaultDragDrop, { capture: true })
+    document.addEventListener('dragover', blockDefaultDragDrop, { capture: true })
+    document.addEventListener('drop', blockDefaultDragDrop, { capture: true })
     return () => {
-      window.removeEventListener('dragover', preventDrop)
-      window.removeEventListener('drop', preventDrop)
+      window.removeEventListener('dragenter', blockDefaultDragDrop, { capture: true } as any)
+      window.removeEventListener('dragover', blockDefaultDragDrop, { capture: true } as any)
+      window.removeEventListener('drop', blockDefaultDragDrop, { capture: true } as any)
+      document.removeEventListener('dragenter', blockDefaultDragDrop, { capture: true } as any)
+      document.removeEventListener('dragover', blockDefaultDragDrop, { capture: true } as any)
+      document.removeEventListener('drop', blockDefaultDragDrop, { capture: true } as any)
     }
   }, [])
 
   function handleDragOver(event: React.DragEvent, itemId: string) {
+    // 정확히 이 td 박스 안에서만 활성. 외부 차단 listener 보다 먼저 처리되도록 stopPropagation
     event.preventDefault()
     event.stopPropagation()
+    // native event 의 capture phase listener 도 우회 — 이 영역만 dropEffect='copy' 표시
+    if (event.nativeEvent && event.nativeEvent.stopImmediatePropagation) {
+      event.nativeEvent.stopImmediatePropagation()
+    }
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
     if (viewOnly || uploadBlocked) return
     setDragOverItemId(itemId)
   }
@@ -326,6 +345,9 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
   function handleDrop(event: React.DragEvent, itemId: string) {
     event.preventDefault()
     event.stopPropagation()
+    if (event.nativeEvent && event.nativeEvent.stopImmediatePropagation) {
+      event.nativeEvent.stopImmediatePropagation()
+    }
     setDragOverItemId(null)
     if (viewOnly) return
     const droppedFiles = event.dataTransfer?.files
