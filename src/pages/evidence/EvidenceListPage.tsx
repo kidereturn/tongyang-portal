@@ -563,8 +563,8 @@ export default function EvidenceListPage() {
               <thead>
                 <tr>
                   <th>통제번호</th>
-                  <th style={{ paddingLeft: 151 }}>통제활동명</th>
-                  <th>담당부서</th>
+                  <th style={{ paddingLeft: 38 }}>통제활동명</th>
+                  <th style={{ paddingLeft: 76 }}>담당부서</th>
                   <th>담당자</th>
                   <th>승인자</th>
                   <th className="num">건수</th>
@@ -596,10 +596,10 @@ export default function EvidenceListPage() {
                   return (
                     <tr key={act.id}>
                       <td><span className="pr-code">{act.control_code}</span></td>
-                      <td style={{ fontWeight: 500, color: 'var(--at-ink)', paddingLeft: 151 }} title={act.title ?? ''}>
+                      <td style={{ fontWeight: 500, color: 'var(--at-ink)', paddingLeft: 38 }} title={act.title ?? ''}>
                         {act.title && act.title.length > 36 ? act.title.slice(0, 36) + '…' : (act.title ?? '-')}
                       </td>
-                      <td>{act.department ?? '-'}</td>
+                      <td style={{ paddingLeft: 76 }}>{act.department ?? '-'}</td>
                       <td>{act.owner_name ?? '-'}</td>
                       <td>{act.controller_name ?? '-'}</td>
                       <td className="num">
