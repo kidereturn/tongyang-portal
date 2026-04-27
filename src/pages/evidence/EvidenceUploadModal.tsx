@@ -486,9 +486,15 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
     const uploadErrors: string[] = []
     let uploadedCount = 0
 
+    // 모든 storage/DB 호출에 timeout — hang 시 finally 보장 (사용자 보고: 무한 '저장 중...' stuck)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const timed = async <R,>(p: any, ms: number, label: string): Promise<R> => Promise.race<R>([
+      Promise.resolve(p) as Promise<R>,
+      new Promise<R>((_, rej) => setTimeout(() => rej(new Error(`${label} 응답 시간 초과 (${Math.round(ms/1000)}초)`)), ms)),
+    ])
+
     try {
       // saveDraft 시작 시점에 처리할 local_xxx id 들 캡처 — race 가드용
-      // (이 id 가 prev 에 남아있으면 = 처리 완료된 파일이므로 setItems 재추가하지 않음)
       const consumedLocalIds = new Set<string>()
       for (const item of items) {
         for (const upload of item.uploads) {
@@ -509,8 +515,10 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
             const safeName = sanitizeFileName(pr.newFileName)
             const storagePath = `${profile.id}/${item.id}/${timestamp}_${safeName}`
-            const { error: se } = await (supabase.storage as any)
-              .from('evidence').upload(storagePath, pr.newFile, { upsert: false })
+            const { error: se } = await timed<{ error: any }>(
+              (supabase.storage as any).from('evidence').upload(storagePath, pr.newFile, { upsert: false }),
+              60000, `${pr.newFileName} 교체 storage 업로드`
+            ).catch(e => ({ error: { message: e.message } }))
             if (se) {
               uploadErrors.push(`${pr.newFileName} 교체 실패: ${se.message}`)
               // 교체 pending 유지하여 사용자 재시도 가능
@@ -518,18 +526,16 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
               continue
             }
             const dbFileName = `${activity.unique_key ?? ''}_${item.transaction_id ?? item.id}_${pr.newFileName}`
-            const { data: updated, error: ue } = await db
-              .from('evidence_uploads')
-              .update({
+            const { data: updated, error: ue } = await timed<{ data: any; error: any }>(
+              db.from('evidence_uploads').update({
                 file_path: storagePath,
                 file_name: dbFileName,
                 original_file_name: pr.newFileName,
                 file_size: pr.newFileSize,
                 uploaded_at: new Date().toISOString(),
-              })
-              .eq('id', upload.id)
-              .select('id, file_name, original_file_name, file_path, file_size, uploaded_at')
-              .single()
+              }).eq('id', upload.id).select('id, file_name, original_file_name, file_path, file_size, uploaded_at').single(),
+              30000, `${pr.newFileName} DB update`
+            ).catch(e => ({ data: null, error: { message: e.message } }))
             if (ue) {
               await (supabase.storage as any).from('evidence').remove([storagePath])
               uploadErrors.push(`${pr.newFileName} DB 업데이트 실패: ${ue.message}`)
@@ -566,9 +572,10 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
           const safeName = sanitizeFileName(upload.file.name)
           const storagePath = `${profile.id}/${item.id}/${timestamp}_${safeName}`
 
-          const { error: storageError } = await (supabase.storage as any)
-            .from('evidence')
-            .upload(storagePath, upload.file, { upsert: false })
+          const { error: storageError } = await timed<{ error: any }>(
+            (supabase.storage as any).from('evidence').upload(storagePath, upload.file, { upsert: false }),
+            60000, `${upload.file.name} storage 업로드`
+          ).catch(e => ({ error: { message: e.message } }))
 
           if (storageError) {
             uploadErrors.push(`${upload.file.name}: ${storageError.message}`)
@@ -577,9 +584,8 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
           }
 
           const dbFileName = `${activity.unique_key ?? ''}_${item.transaction_id ?? item.id}_${upload.file.name}`
-          const { data: savedUpload, error: insertError } = await db
-            .from('evidence_uploads')
-            .insert({
+          const { data: savedUpload, error: insertError } = await timed<{ data: any; error: any }>(
+            db.from('evidence_uploads').insert({
               population_item_id: item.id,
               activity_id: activity.id,
               owner_id: profile.id,
@@ -589,9 +595,9 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
               file_size: upload.file.size,
               unique_key: activity.unique_key,
               status: 'uploaded',
-            })
-            .select('id, file_name, original_file_name, file_path, file_size, uploaded_at')
-            .single()
+            }).select('id, file_name, original_file_name, file_path, file_size, uploaded_at').single(),
+            30000, `${upload.file.name} DB insert`
+          ).catch(e => ({ data: null, error: { message: e.message } }))
 
           if (insertError) {
             await (supabase.storage as any).from('evidence').remove([storagePath])
