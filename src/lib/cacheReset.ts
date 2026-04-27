@@ -41,7 +41,8 @@ async function hardFlush(opts: FlushOptions = {}) {
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i)
         if (!k) continue
-        if (k.startsWith(authPrefix) || k === BUILD_KEY || k === FLUSH_ONCE_KEY) keep.push(k)
+        // sb-* (Supabase auth), 빌드/플러시 메타, 인트로 skip 플래그, 빙고 plays 보존
+        if (k.startsWith(authPrefix) || k === BUILD_KEY || k === FLUSH_ONCE_KEY || k === 'ty_skip_intro_until' || k.startsWith('bingo_plays_')) keep.push(k)
       }
       const saved: Record<string, string> = {}
       for (const k of keep) saved[k] = localStorage.getItem(k) ?? ''

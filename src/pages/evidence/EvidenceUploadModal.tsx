@@ -143,51 +143,57 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
 
   useEffect(() => {
     async function load() {
-      if (!activity.unique_key) {
-        setItems([])
-        setLoading(false)
-        return
-      }
-
-      setLoading(true)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const db = supabase as any
-
-      const { data: popItems } = await db
-        .from('population_items')
-        .select('*')
-        .eq('unique_key', activity.unique_key)
-        .order('unique_key_2', { ascending: true, nullsFirst: false })
-
-      const { data: uploads } = await db
-        .from('evidence_uploads')
-        .select('id, file_name, original_file_name, file_path, file_size, uploaded_at, population_item_id')
-        .eq('activity_id', activity.id)
-
-      const uploadMap: Record<string, UploadedFile[]> = {}
-      ;((uploads ?? []) as StoredUploadRow[]).forEach(upload => {
-        if (!uploadMap[upload.population_item_id]) {
-          uploadMap[upload.population_item_id] = []
+      try {
+        if (!activity.unique_key) {
+          setItems([])
+          return
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const db = supabase as any
+        // 10초 timeout race — Supabase hang 시 무한 로딩 방지
+        const withTimeout = <T,>(p: PromiseLike<T>, ms = 10000): Promise<T> => Promise.race([
+          Promise.resolve(p),
+          new Promise<T>((_, reject) => setTimeout(() => reject(new Error('모집단 조회 응답 시간 초과 (10초)')), ms)),
+        ])
 
-        uploadMap[upload.population_item_id].push({
-          id: upload.id,
-          file_name: upload.original_file_name || upload.file_name,
-          file_path: upload.file_path,
-          file_size: upload.file_size ?? undefined,
-          uploaded_at: upload.uploaded_at ?? undefined,
+        const [popRes, upRes] = await Promise.all([
+          withTimeout(db.from('population_items').select('*').eq('unique_key', activity.unique_key).order('unique_key_2', { ascending: true, nullsFirst: false })),
+          withTimeout(db.from('evidence_uploads').select('id, file_name, original_file_name, file_path, file_size, uploaded_at, population_item_id').eq('activity_id', activity.id)),
+        ])
+        const popItems = (popRes as any)?.data
+        const uploads = (upRes as any)?.data
+
+        const uploadMap: Record<string, UploadedFile[]> = {}
+        ;((uploads ?? []) as StoredUploadRow[]).forEach(upload => {
+          if (!uploadMap[upload.population_item_id]) {
+            uploadMap[upload.population_item_id] = []
+          }
+          uploadMap[upload.population_item_id].push({
+            id: upload.id,
+            file_name: upload.original_file_name || upload.file_name,
+            file_path: upload.file_path,
+            file_size: upload.file_size ?? undefined,
+            uploaded_at: upload.uploaded_at ?? undefined,
+          })
         })
-      })
 
-      setItems(
-        ((popItems ?? []) as PopulationItem[]).map(item => ({
-          ...item,
-          uploads: uploadMap[item.id] ?? [],
-        }))
-      )
-      setLoading(false)
+        setItems(
+          ((popItems ?? []) as PopulationItem[]).map(item => ({
+            ...item,
+            uploads: uploadMap[item.id] ?? [],
+          }))
+        )
+      } catch (err) {
+        console.error('[modal load] failed', err)
+        setError(`모집단 데이터 로드 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`)
+        setItems([])
+      } finally {
+        // 성공/실패와 무관하게 로딩 종료 (무한 회전 방지)
+        setLoading(false)
+      }
     }
 
+    setLoading(true)
     void load()
   }, [activity.id, activity.unique_key])
 

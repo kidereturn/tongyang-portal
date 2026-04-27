@@ -14,11 +14,19 @@ interface IntroGateProps {
  * User can skip via button.
  */
 export default function IntroGate({ children }: IntroGateProps) {
-  // Skip intro if user just logged out — check and consume the flag on mount
+  // Skip intro if user just logged out — localStorage 에 만료 timestamp 저장
+  // (sessionStorage 는 ensureFreshBundle reload 시 비워질 수 있어 localStorage 사용)
   const [showIntro, setShowIntro] = useState(() => {
     try {
+      // sessionStorage (옛 방식) 도 호환
       if (sessionStorage.getItem('skipIntro') === '1') {
         sessionStorage.removeItem('skipIntro')
+        return false
+      }
+      // localStorage 만료 timestamp 방식 (10초 내 mount 시 skip)
+      const expiry = parseInt(localStorage.getItem('ty_skip_intro_until') ?? '0', 10)
+      if (expiry > Date.now()) {
+        localStorage.removeItem('ty_skip_intro_until')
         return false
       }
     } catch { /* storage blocked — fall through */ }

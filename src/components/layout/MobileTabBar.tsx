@@ -53,7 +53,10 @@ export default function MobileTabBar() {
 
   async function handleSignOut() {
     setMoreOpen(false)
-    try { sessionStorage.setItem('skipIntro', '1') } catch { /* storage blocked */ }
+    try {
+      sessionStorage.setItem('skipIntro', '1')
+      localStorage.setItem('ty_skip_intro_until', String(Date.now() + 30000))
+    } catch { /* storage blocked */ }
     const forceRedirect = setTimeout(() => { window.location.assign('/login') }, 5000)
     try { await signOut() } catch { /* ignore */ }
     clearTimeout(forceRedirect)

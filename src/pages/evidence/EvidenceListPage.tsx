@@ -265,20 +265,46 @@ export default function EvidenceListPage() {
     const db = supabase as any
     try {
       const now = new Date().toISOString()
-      // 수정제출로 변경 시 — RPC 트랜잭션으로 원자성 보장
+      console.info('[saveReviewStatus] start', { actId: activity.id, newStatus, memoChanged })
+
+      // 10초 timeout — Supabase API hang 방지
+      const withTimeout = <T,>(p: Promise<T>): Promise<T> => Promise.race([
+        p,
+        new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Supabase API 응답 시간 초과 (10초)')), 10000)),
+      ])
+
+      // 수정제출로 변경 시 — RPC 트랜잭션으로 원자성 보장 (admin 권한 SECURITY DEFINER)
       if (statusChanged && newStatus === '수정제출') {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const rpc = (supabase.rpc as unknown as (name: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>)
-        const { error: rpcError } = await rpc('set_review_modify_req', { p_activity_id: activity.id, p_review_memo: memoChanged ? (newMemo || null) : null })
-        if (rpcError) throw rpcError
+        const { error: rpcError } = await withTimeout(rpc('set_review_modify_req', { p_activity_id: activity.id, p_review_memo: memoChanged ? (newMemo || null) : null }))
+        if (rpcError) {
+          console.error('[saveReviewStatus] RPC failed, falling back to direct update', rpcError)
+          // RPC 실패 시 일반 update fallback (RLS admin 정책에 의존)
+          const { error: fallbackError } = await withTimeout(
+            db.from('activities').update({
+              review_status: '수정제출',
+              submission_status: '미완료',
+              review_memo: memoChanged ? (newMemo || null) : undefined,
+              updated_at: now,
+            }).eq('id', activity.id)
+          )
+          if (fallbackError) throw fallbackError
+          // approval_requests cancelled (best-effort)
+          await withTimeout(
+            db.from('approval_requests').update({ status: 'cancelled', decided_at: now })
+              .eq('activity_id', activity.id).in('status', ['submitted', 'approved', 'rejected'])
+          ).catch(e => console.warn('[saveReviewStatus] cancel approvals failed', e))
+        }
       } else {
-        // 미검토/검토중/검토완료 또는 메모만 변경 — 기존 path
+        // 미검토/검토중/검토완료 또는 메모만 변경
         const activityPatch: Record<string, unknown> = { updated_at: now }
         if (statusChanged) activityPatch.review_status = newStatus
         if (memoChanged) activityPatch.review_memo = newMemo || null
-        const { error: updateError } = await db.from('activities').update(activityPatch).eq('id', activity.id)
+        const { error: updateError } = await withTimeout(db.from('activities').update(activityPatch).eq('id', activity.id))
         if (updateError) throw updateError
       }
+      console.info('[saveReviewStatus] success')
 
       // 로컬 상태 반영
       setActivities(prev => prev.map(a => a.id === activity.id
@@ -295,7 +321,9 @@ export default function EvidenceListPage() {
       setPendingReview(prev => { const n = { ...prev }; delete n[activity.id]; return n })
       setPendingMemo(prev => { const n = { ...prev }; delete n[activity.id]; return n })
     } catch (err) {
-      window.alert(`검토결과 저장 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`)
+      const msg = err instanceof Error ? err.message : '알 수 없는 오류'
+      console.error('[saveReviewStatus] FAILED', err)
+      window.alert(`검토결과 저장 실패: ${msg}\n\n새로고침 후 다시 시도해 주세요. 계속 발생 시 IT 담당자에게 콘솔 로그를 알려주세요.`)
     } finally {
       setSavingReview(null)
     }

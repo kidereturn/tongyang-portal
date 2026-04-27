@@ -234,7 +234,11 @@ export default function TopNav() {
 
   async function handleSignOut() {
     setProfileOpen(false)
-    try { sessionStorage.setItem('skipIntro', '1') } catch { /* storage blocked */ }
+    // 인트로 영상 skip — sessionStorage + localStorage timestamp 둘 다 (reload 거쳐도 보존)
+    try {
+      sessionStorage.setItem('skipIntro', '1')
+      localStorage.setItem('ty_skip_intro_until', String(Date.now() + 30000))  // 30초 만료
+    } catch { /* storage blocked */ }
     // signOut hang 가능성 대비 — 5초 후 강제로 /login hard reload
     const forceRedirect = setTimeout(() => { window.location.assign('/login') }, 5000)
     try { await signOut() } catch { /* ignore */ }
