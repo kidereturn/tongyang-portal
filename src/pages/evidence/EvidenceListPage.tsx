@@ -304,9 +304,12 @@ export default function EvidenceListPage() {
 
       // 수정제출로 변경 시 — RPC 트랜잭션으로 원자성 보장 (admin 권한 SECURITY DEFINER)
       if (statusChanged && newStatus === '수정제출') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const rpc = (supabase.rpc as unknown as (name: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>)
-        const { error: rpcError } = await withTimeout(rpc('set_review_modify_req', { p_activity_id: activity.id, p_review_memo: memoChanged ? (newMemo || null) : null }))
+        // CRITICAL: supabase.rpc 를 변수에 분리하면 this 바인딩이 사라져
+        // 'Cannot read properties of undefined (reading rest)' 에러 발생.
+        // 반드시 supabase.rpc(...) 또는 db.rpc(...) 형태로 직접 호출해야 함.
+        const { error: rpcError } = await withTimeout(
+          db.rpc('set_review_modify_req', { p_activity_id: activity.id, p_review_memo: memoChanged ? (newMemo || null) : null })
+        )
         if (rpcError) {
           console.error('[saveReviewStatus] RPC failed, falling back to direct update', rpcError)
           // RPC 실패 시 일반 update fallback (RLS admin 정책에 의존)
