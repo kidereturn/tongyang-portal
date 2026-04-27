@@ -225,21 +225,21 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
   )
 
   // 자동 중간저장 — 파일 1개 추가 시점에 1회만 트리거 (무한루프 방지)
-  // 어떤 isNew/pendingReplace upload 의 id 들을 추적해서, 같은 set 에 대해서는 재트리거 안 함
+  // signature ref 는 handleSave 성공 후에만 업데이트 (saving 가드로 거부된 경우는 다음 cycle 에서 재시도)
   const lastAutoSavedSignatureRef = useRef<string>('')
-  // activity 변경 시 signature 리셋 (다른 activity 모달 후 같은 activity 재진입 시 stale 방지)
   useEffect(() => {
     lastAutoSavedSignatureRef.current = ''
   }, [activity.id])
   useEffect(() => {
     if (!hasNewFiles || saving || submitting || viewOnly || !profile?.id) return
-    // 현재 미저장 파일들의 signature 계산 — 같은 set 이면 자동저장 다시 안 함
     const signature = items.flatMap(it => it.uploads.filter(u => u.isNew || u.pendingReplace).map(u => u.id || '')).sort().join('|')
-    if (signature === lastAutoSavedSignatureRef.current) return  // 이미 처리한 set
-    const t = setTimeout(() => {
-      if (submitting || saving) return
-      lastAutoSavedSignatureRef.current = signature
-      void handleSave()
+    if (signature === lastAutoSavedSignatureRef.current) return
+    const t = setTimeout(async () => {
+      if (submitting || saving) return  // race 가드
+      const ok = await handleSave()
+      // handleSave 가 false 반환한 경우 (saving 가드로 거부, 또는 실패) ref 업데이트 안 함
+      // → 다음 useEffect cycle 에서 같은 signature 재시도 가능
+      if (ok !== false) lastAutoSavedSignatureRef.current = signature
     }, 800)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
