@@ -290,8 +290,10 @@ async function fetchDartDisclosures(corpCode: string, bgnDe?: string, endDe?: st
  * - 중복 제거: account_nm 정규화 후 첫 등장만 유지
  * - 핵심 6개 항목만 반환
  */
-async function fetchFinancials(corpCode: string): Promise<FinanceRow[]> {
-  if (!DART_API_KEY) return []
+type FinancialResult = { rows: FinanceRow[]; meta: { bsnsYear: number; reprtCode: string; fsDiv: string } | null }
+
+async function fetchFinancials(corpCode: string): Promise<FinancialResult> {
+  if (!DART_API_KEY) return { rows: [], meta: null }
 
   const year = new Date().getFullYear() - 1
 
@@ -342,7 +344,7 @@ async function fetchFinancials(corpCode: string): Promise<FinanceRow[]> {
         }
 
         if (filtered.length >= 3) {
-          return filtered
+          return { rows: filtered, meta: { bsnsYear: year, reprtCode, fsDiv } }
         }
       } catch {
         /* try next report type */
@@ -385,11 +387,11 @@ async function fetchFinancials(corpCode: string): Promise<FinanceRow[]> {
           bfefrmtrm_amount: r.bfefrmtrm_amount ?? '-',
         })
       }
-      if (filtered.length >= 3) return filtered
+      if (filtered.length >= 3) return { rows: filtered, meta: { bsnsYear: prevYear, reprtCode: '11011', fsDiv } }
     } catch { /* try next */ }
   }
 
-  return []
+  return { rows: [], meta: null }
 }
 
 /**
@@ -467,6 +469,7 @@ export async function GET(request: Request) {
         newsItems,
         dartItems: [],
         financials: [],
+        financialMeta: null,
       })
     }
 
@@ -488,10 +491,10 @@ export async function GET(request: Request) {
 
     const dartAllUrl = `https://dart.fss.or.kr/dsab001/main.do?option=corp&textCrpNm=${encodeURIComponent(corpNameParam)}`
 
-    const [newsItems, dartItems, financials, stockInfo] = await Promise.all([
+    const [newsItems, dartItems, financialResult, stockInfo] = await Promise.all([
       fetchFinanceNews().catch(() => []),
       fetchDartDisclosures(corpCode, bgnDe, endDe).catch(() => []),
-      fetchFinancials(corpCode).catch(() => []),
+      fetchFinancials(corpCode).catch(() => ({ rows: [], meta: null })),
       fetchStockInfo(stockCode).catch(() => null),
     ])
 
@@ -504,7 +507,8 @@ export async function GET(request: Request) {
       dartAllUrl,
       newsItems,
       dartItems,
-      financials,
+      financials: financialResult.rows,
+      financialMeta: financialResult.meta,
       stockInfo,
     })
   } catch (error) {

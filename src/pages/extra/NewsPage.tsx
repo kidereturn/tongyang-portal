@@ -21,11 +21,42 @@ type StockInfo = {
   high52w: string; low52w: string; volume: string
 }
 
+type FinancialMeta = { bsnsYear: number; reprtCode: string; fsDiv: string } | null
+
 type FeedResponse = {
   ok: boolean; refreshedAt: string; corpName: string; corpCode: string
   stockCode?: string; dartAllUrl: string
   newsItems: NewsItem[]; dartItems: DartItem[]; financials: FinanceRow[]
+  financialMeta?: FinancialMeta
   stockInfo?: StockInfo | null
+}
+
+const REPRT_LABEL: Record<string, string> = {
+  '11011': '사업보고서',
+  '11012': '반기보고서',
+  '11013': '1분기보고서',
+  '11014': '3분기보고서',
+}
+function buildPeriodLabel(meta: FinancialMeta): { source: string; thstrm: string; frmtrm: string; bfefrmtrm: string } | null {
+  if (!meta) return null
+  const reprtName = REPRT_LABEL[meta.reprtCode] ?? meta.reprtCode
+  const fsName = meta.fsDiv === 'CFS' ? '연결' : '개별'
+  if (meta.reprtCode === '11011') {
+    return {
+      source: `${meta.bsnsYear} ${reprtName} (${fsName})`,
+      thstrm: `FY${meta.bsnsYear}`,
+      frmtrm: `FY${meta.bsnsYear - 1}`,
+      bfefrmtrm: `FY${meta.bsnsYear - 2}`,
+    }
+  }
+  // 분기/반기 — 분기말/반기말 누적
+  const periodTag = meta.reprtCode === '11012' ? '1H' : meta.reprtCode === '11013' ? '1Q' : '3Q'
+  return {
+    source: `${meta.bsnsYear} ${reprtName} (${fsName})`,
+    thstrm: `${periodTag}'${String(meta.bsnsYear).slice(2)}`,
+    frmtrm: `${periodTag}'${String(meta.bsnsYear - 1).slice(2)}`,
+    bfefrmtrm: `${periodTag}'${String(meta.bsnsYear - 2).slice(2)}`,
+  }
 }
 
 type CompanySearchResult = {
@@ -270,20 +301,34 @@ export default function NewsPage() {
           </div>
 
           {/* 재무제표 요약 */}
-          {(data?.financials ?? []).length > 0 && (
+          {(data?.financials ?? []).length > 0 && (() => {
+            const periodInfo = buildPeriodLabel(data?.financialMeta ?? null)
+            return (
             <div className="rounded-lg border border-warm-200 bg-white p-4 shadow-sm">
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-brand-900">
-                <BarChart3 size={16} className="text-sky-600" />
-                {data?.corpName} 주요 재무지표
-              </h3>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h3 className="flex items-center gap-2 text-sm font-bold text-brand-900">
+                  <BarChart3 size={16} className="text-sky-600" />
+                  {data?.corpName} 주요 재무지표
+                </h3>
+                <span className="text-[11px] text-warm-500 font-medium">단위: 백만원</span>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b-2 border-sky-100 text-left text-[11px] font-semibold text-warm-500">
                       <th className="py-2 pr-4">항목</th>
-                      <th className="py-2 pr-4 text-right">당기</th>
-                      <th className="py-2 pr-4 text-right">전기</th>
-                      <th className="py-2 text-right">전전기</th>
+                      <th className="py-2 pr-4 text-right">
+                        당기
+                        {periodInfo && <div className="text-[10px] font-normal text-warm-400 mt-0.5">{periodInfo.thstrm}</div>}
+                      </th>
+                      <th className="py-2 pr-4 text-right">
+                        전기
+                        {periodInfo && <div className="text-[10px] font-normal text-warm-400 mt-0.5">{periodInfo.frmtrm}</div>}
+                      </th>
+                      <th className="py-2 text-right">
+                        전전기
+                        {periodInfo && <div className="text-[10px] font-normal text-warm-400 mt-0.5">{periodInfo.bfefrmtrm}</div>}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -292,17 +337,27 @@ export default function NewsPage() {
                         const n = Number(v.replace(/,/g, ''))
                         return !Number.isNaN(n) && n < 0
                       }
+                      // 음수 → 빨간색 괄호 표기 (회계 관례)
+                      const fmt = (v: string) => {
+                        const formatted = formatAmount(v)
+                        if (formatted === '-') return '-'
+                        if (isNegative(v)) {
+                          // 음수 부호 제거 후 괄호로 감싸기
+                          return `(${formatted.replace(/^-/, '')})`
+                        }
+                        return formatted
+                      }
                       return (
                         <tr key={i} className="border-b border-warm-50 hover:bg-sky-50/50 transition">
                           <td className="py-2.5 pr-4 font-semibold text-brand-800 text-xs">{r.account_nm}</td>
-                          <td className={clsx('py-2.5 pr-4 text-right font-bold text-xs', isNegative(r.thstrm_amount) ? 'text-red-600' : 'text-brand-900')}>
-                            {formatAmount(r.thstrm_amount)}
+                          <td className={clsx('py-2.5 pr-4 text-right font-bold text-xs font-mono', isNegative(r.thstrm_amount) ? 'text-red-600' : 'text-brand-900')}>
+                            {fmt(r.thstrm_amount)}
                           </td>
-                          <td className={clsx('py-2.5 pr-4 text-right text-xs', isNegative(r.frmtrm_amount) ? 'text-red-500' : 'text-warm-500')}>
-                            {formatAmount(r.frmtrm_amount)}
+                          <td className={clsx('py-2.5 pr-4 text-right text-xs font-mono', isNegative(r.frmtrm_amount) ? 'text-red-600' : 'text-warm-500')}>
+                            {fmt(r.frmtrm_amount)}
                           </td>
-                          <td className={clsx('py-2.5 text-right text-xs', isNegative(r.bfefrmtrm_amount) ? 'text-red-400' : 'text-warm-400')}>
-                            {formatAmount(r.bfefrmtrm_amount)}
+                          <td className={clsx('py-2.5 text-right text-xs font-mono', isNegative(r.bfefrmtrm_amount) ? 'text-red-600' : 'text-warm-400')}>
+                            {fmt(r.bfefrmtrm_amount)}
                           </td>
                         </tr>
                       )
@@ -311,10 +366,13 @@ export default function NewsPage() {
                 </table>
               </div>
               <p className="mt-2 text-[10px] text-warm-400">
-                출처: DART 전자공시 (연결재무제표 우선, 개별재무제표 폴백 / 단위: 백만원)
+                {periodInfo
+                  ? `출처: ${periodInfo.source} · 당기 = ${periodInfo.thstrm} (DART 전자공시)`
+                  : '출처: DART 전자공시 (연결재무제표 우선, 개별재무제표 폴백)'}
               </p>
             </div>
-          )}
+            )
+          })()}
         </section>
 
         {/* ───── RIGHT: 뉴스 4탭 ───── */}

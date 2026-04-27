@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Edit3, Plus, Save, Trash2, X } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Edit3, Paperclip, Plus, Save, Trash2, Upload, X } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../../lib/supabase'
+
+type Attachment = { name: string; path: string; size: number; uploaded_at: string }
 
 type Notice = {
   id: string
@@ -13,9 +15,21 @@ type Notice = {
   is_pinned: boolean
   author_name: string | null
   created_at: string
+  attachments?: Attachment[]
 }
 
 const BADGE_COLORS = ['blue', 'red', 'green', 'purple', 'amber', 'slate']
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes}B`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
+}
+
+function sanitizePath(name: string) {
+  // Supabase storage 키에는 ASCII + 한글 허용. 위험 문자만 치환
+  return name.replace(/[/\\?%*:|"<>]/g, '_').slice(0, 200)
+}
 
 export default function NoticesTab() {
   const [notices, setNotices] = useState<Notice[]>([])
@@ -30,6 +44,9 @@ export default function NoticesTab() {
   const [fBadge, setFBadge] = useState('공지')
   const [fBadgeColor, setFBadgeColor] = useState('blue')
   const [fPinned, setFPinned] = useState(false)
+  const [fAttachments, setFAttachments] = useState<Attachment[]>([])
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchNotices = useCallback(async () => {
     setLoading(true)
@@ -49,6 +66,7 @@ export default function NoticesTab() {
     setIsNew(true)
     setEditing(null)
     setFType('notice'); setFTitle(''); setFContent(''); setFBadge('공지'); setFBadgeColor('blue'); setFPinned(false)
+    setFAttachments([])
   }
 
   function openEdit(n: Notice) {
@@ -56,15 +74,61 @@ export default function NoticesTab() {
     setEditing(n)
     setFType(n.type as 'notice' | 'manual'); setFTitle(n.title); setFContent(n.content)
     setFBadge(n.badge); setFBadgeColor(n.badge_color); setFPinned(n.is_pinned)
+    setFAttachments(Array.isArray(n.attachments) ? n.attachments : [])
   }
 
-  function closeForm() { setEditing(null); setIsNew(false) }
+  function closeForm() { setEditing(null); setIsNew(false); setFAttachments([]) }
+
+  async function handleFilePick(files: FileList | null) {
+    if (!files || files.length === 0) return
+    setUploading(true)
+    const newAtts: Attachment[] = []
+    try {
+      for (const file of Array.from(files)) {
+        // 50MB 한도
+        if (file.size > 50 * 1024 * 1024) {
+          alert(`${file.name} 은(는) 50MB 를 초과해 업로드할 수 없습니다.`)
+          continue
+        }
+        const ts = Date.now()
+        const safeName = sanitizePath(file.name)
+        const path = `notice-${ts}-${Math.random().toString(36).slice(2, 8)}/${safeName}`
+        const { error } = await (supabase as any).storage.from('notices').upload(path, file, {
+          cacheControl: '3600', upsert: false,
+        })
+        if (error) {
+          console.error('[Notices] upload failed', error)
+          alert(`파일 업로드 실패: ${file.name}\n${error.message ?? ''}`)
+          continue
+        }
+        newAtts.push({
+          name: file.name,
+          path,
+          size: file.size,
+          uploaded_at: new Date().toISOString(),
+        })
+      }
+      if (newAtts.length > 0) setFAttachments(prev => [...prev, ...newAtts])
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  async function removeAttachment(att: Attachment) {
+    if (!confirm(`"${att.name}" 첨부를 삭제하시겠습니까?`)) return
+    try {
+      await (supabase as any).storage.from('notices').remove([att.path])
+    } catch { /* best-effort */ }
+    setFAttachments(prev => prev.filter(a => a.path !== att.path))
+  }
 
   async function handleSave() {
     if (!fTitle.trim()) return alert('제목을 입력하세요')
     const payload = {
       type: fType, title: fTitle.trim(), content: fContent.trim(),
       badge: fBadge, badge_color: fBadgeColor, is_pinned: fPinned,
+      attachments: fAttachments,
       updated_at: new Date().toISOString(),
     }
     try {
@@ -122,6 +186,52 @@ export default function NoticesTab() {
           </div>
           <input value={fTitle} onChange={e => setFTitle(e.target.value)} placeholder="제목" className="input w-full text-sm" />
           <textarea value={fContent} onChange={e => setFContent(e.target.value)} placeholder="내용 (마크다운 지원)" rows={8} className="input w-full text-sm" />
+
+          {/* 첨부파일 영역 */}
+          <div className="rounded-lg border border-warm-200 bg-white p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold text-brand-800 flex items-center gap-1.5">
+                <Paperclip size={13} />첨부파일 ({fAttachments.length}개)
+              </p>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="inline-flex items-center gap-1.5 rounded border border-brand-200 bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-700 hover:bg-brand-100 disabled:opacity-50"
+              >
+                <Upload size={12} />{uploading ? '업로드 중...' : '파일 추가'}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={e => handleFilePick(e.target.files)}
+                className="hidden"
+              />
+            </div>
+            {fAttachments.length === 0 ? (
+              <p className="text-[11px] text-warm-400">첨부된 파일이 없습니다. (PDF·이미지·문서 / 파일당 최대 50MB)</p>
+            ) : (
+              <div className="space-y-1">
+                {fAttachments.map(att => (
+                  <div key={att.path} className="flex items-center gap-2 rounded bg-warm-50 px-2 py-1.5 text-xs">
+                    <Paperclip size={11} className="text-warm-400 shrink-0" />
+                    <span className="flex-1 truncate font-medium text-brand-800">{att.name}</span>
+                    <span className="text-[10px] text-warm-400">{formatFileSize(att.size)}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(att)}
+                      className="text-warm-400 hover:text-red-600"
+                      title="삭제"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <button onClick={handleSave} className="btn-primary text-xs py-2"><Save size={14} />저장</button>
         </div>
       )}

@@ -115,11 +115,21 @@ export default function KpiPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>순위</th><th>부서</th><th>KPI 점수</th><th>통제활동 수</th><th>완료</th><th>완료율</th><th>비고</th>
+                <th>순위</th>
+                <th>부서</th>
+                <th>KPI 점수</th>
+                <th className="text-center">통제활동 수</th>
+                <th className="text-center">완료</th>
+                <th>완료율</th>
+                <th>비고</th>
               </tr>
             </thead>
             <tbody>
-              {KPI_DATA.map((d, i) => (
+              {KPI_DATA.map((d, i) => {
+                // 가상 등급 (점수 기준): 90+=A, 85+=B, 80+=C, 75+=D, 70+=E, 미만=F
+                const grade = d.score >= 90 ? 'A' : d.score >= 85 ? 'B' : d.score >= 80 ? 'C' : d.score >= 75 ? 'D' : d.score >= 70 ? 'E' : 'F'
+                const gradeColor = grade === 'A' ? '#16A34A' : grade === 'B' ? '#3182F6' : grade === 'C' ? '#0891B2' : grade === 'D' ? '#D97706' : grade === 'E' ? '#EA580C' : '#DC2626'
+                return (
                 <tr key={d.dept}>
                   <td className="text-center">
                     <span className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-xs font-bold ${
@@ -130,6 +140,9 @@ export default function KpiPage() {
                   <td>
                     <span className={`badge ${d.score >= 90 ? 'badge-green' : d.score >= 80 ? 'badge-blue' : 'badge-yellow'}`}>
                       {d.score}점
+                    </span>
+                    <span style={{ marginLeft: 6, padding: '1px 6px', fontSize: 11, fontWeight: 700, color: gradeColor, border: `1px solid ${gradeColor}`, borderRadius: 4, fontFamily: 'var(--f-mono)' }}>
+                      {grade}
                     </span>
                   </td>
                   <td className="text-center">{d.activities}</td>
@@ -146,7 +159,8 @@ export default function KpiPage() {
                     {i === 0 ? '🏆 최우수' : i < 3 ? '우수' : ''}
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>

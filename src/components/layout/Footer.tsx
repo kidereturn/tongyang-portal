@@ -94,7 +94,7 @@ export default function Footer() {
             <div>
               서울특별시 영등포구 국제금융로2길 24 (여의도동)
               &nbsp;&nbsp;&nbsp;
-              TEL/ 02 - 6150 - 7172
+              TEL/ 02 - 6150 - 7000
               &nbsp;&nbsp;&nbsp;
               FAX/ 02 - 6150 - 7109
             </div>

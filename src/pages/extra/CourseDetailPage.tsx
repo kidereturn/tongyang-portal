@@ -381,10 +381,16 @@ export default function CourseDetailPage() {
           .select('id, user_id, question, answer, created_at, answered_at, profiles:profiles(full_name)')
           .eq('course_id', selectedVideo.id)
           .order('created_at', { ascending: false })
+        const isAdminUser = profile?.role === 'admin'
         const items = (data ?? []).map((r: any) => {
           const rawQ = r.question ?? ''
           const isAnon = typeof rawQ === 'string' && rawQ.startsWith(ANON_MARK)
           const cleanQ = isAnon ? rawQ.slice(ANON_MARK.length) : rawQ
+          const realName = r.profiles?.full_name ?? '익명'
+          // 관리자는 익명 게시도 [익명: 홍길동] 형태로 신원 확인 (운영 목적)
+          const displayName = isAnon
+            ? (isAdminUser ? `[익명: ${realName}]` : '익명')
+            : realName
           return {
             id: r.id,
             user_id: r.user_id,
@@ -392,13 +398,13 @@ export default function CourseDetailPage() {
             answer: r.answer,
             answered_at: r.answered_at,
             created_at: r.created_at,
-            user_name: isAnon ? '익명' : (r.profiles?.full_name ?? '익명'),
+            user_name: displayName,
           }
         })
         setQaList(items)
       } catch { /* silent */ }
     })()
-  }, [selectedVideo?.id])
+  }, [selectedVideo?.id, profile?.role])
 
   async function submitQuestion() {
     const text = newQText.trim()
@@ -429,13 +435,16 @@ export default function CourseDetailPage() {
       const { data } = await (supabase as any)
         .from('course_qa').select('id, user_id, question, answer, created_at, answered_at, profiles:profiles(full_name)')
         .eq('course_id', selectedVideo.id).order('created_at', { ascending: false })
+      const isAdminUser = profile?.role === 'admin'
       setQaList((data ?? []).map((r: any) => {
         const rawQ = r.question ?? ''
         const isAnon = typeof rawQ === 'string' && rawQ.startsWith(ANON_MARK)
         const cleanQ = isAnon ? rawQ.slice(ANON_MARK.length) : rawQ
+        const realName = r.profiles?.full_name ?? '익명'
+        const displayName = isAnon ? (isAdminUser ? `[익명: ${realName}]` : '익명') : realName
         return {
           id: r.id, user_id: r.user_id, question: cleanQ, answer: r.answer, answered_at: r.answered_at, created_at: r.created_at,
-          user_name: isAnon ? '익명' : (r.profiles?.full_name ?? '익명'),
+          user_name: displayName,
         }
       }))
       alert('질문이 등록되었습니다. 관리자와 본인에게 알림이 전송되었어요.')

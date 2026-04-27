@@ -238,10 +238,31 @@ function WebtoonComments({ webtoonId, episodeTitle }: { webtoonId: string; episo
         .select('*')
         .eq('webtoon_id', webtoonId)
         .order('created_at', { ascending: false })
-      setComments(data ?? [])
+      const rows = data ?? []
+      // 관리자: 익명 댓글의 실제 작성자 이름 표시 ([익명: 홍길동])
+      if (profile?.role === 'admin' && rows.length > 0) {
+        const anonUserIds = rows.filter((r: any) => r.user_name === '익명').map((r: any) => r.user_id).filter(Boolean)
+        const uniq = Array.from(new Set(anonUserIds))
+        if (uniq.length > 0) {
+          const { data: profs } = await (supabase as any)
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', uniq)
+          const nameMap: Record<string, string> = {}
+          for (const p of (profs ?? []) as Array<{ id: string; full_name: string | null }>) {
+            nameMap[p.id] = p.full_name ?? '?'
+          }
+          for (const r of rows as Array<{ user_id: string; user_name: string | null }>) {
+            if (r.user_name === '익명' && nameMap[r.user_id]) {
+              r.user_name = `[익명: ${nameMap[r.user_id]}]`
+            }
+          }
+        }
+      }
+      setComments(rows)
     } catch { /* silent */ }
     finally { setLoading(false) }
-  }, [webtoonId])
+  }, [webtoonId, profile?.role])
 
   useEffect(() => { void load() }, [load])
 

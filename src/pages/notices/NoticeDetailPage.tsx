@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Calendar, Pin } from 'lucide-react'
+import { ArrowLeft, Calendar, Download, Paperclip, Pin } from 'lucide-react'
 import clsx from 'clsx'
 import { supabase } from '../../lib/supabase'
+
+type Attachment = { name: string; path: string; size: number; uploaded_at: string }
 
 type Notice = {
   id: string
@@ -14,6 +16,33 @@ type Notice = {
   is_pinned: boolean
   author_name: string | null
   created_at: string
+  attachments?: Attachment[]
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes}B`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
+}
+
+async function downloadAttachment(att: Attachment) {
+  try {
+    const { data, error } = await (supabase as any).storage
+      .from('notices')
+      .createSignedUrl(att.path, 60, { download: att.name })
+    if (error || !data?.signedUrl) {
+      alert('다운로드 URL 생성 실패')
+      return
+    }
+    const a = document.createElement('a')
+    a.href = data.signedUrl
+    a.download = att.name
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  } catch (e) {
+    alert('다운로드 실패: ' + (e instanceof Error ? e.message : ''))
+  }
 }
 
 function renderContent(text: string) {
@@ -111,6 +140,29 @@ export default function NoticeDetailPage() {
           <div className="prose-sm">
             {renderContent(notice.content)}
           </div>
+
+          {/* Attachments */}
+          {Array.isArray(notice.attachments) && notice.attachments.length > 0 && (
+            <div className="mt-8 border-t border-warm-100 pt-5">
+              <p className="mb-3 flex items-center gap-1.5 text-sm font-bold text-brand-900">
+                <Paperclip size={14} />첨부파일 ({notice.attachments.length}개)
+              </p>
+              <div className="space-y-2">
+                {notice.attachments.map(att => (
+                  <button
+                    key={att.path}
+                    onClick={() => downloadAttachment(att)}
+                    className="flex w-full items-center gap-2 rounded-lg border border-warm-200 bg-warm-50/50 px-3 py-2.5 text-left text-sm hover:border-brand-300 hover:bg-brand-50 transition"
+                  >
+                    <Paperclip size={14} className="text-warm-500 shrink-0" />
+                    <span className="flex-1 truncate font-medium text-brand-800">{att.name}</span>
+                    <span className="text-[11px] text-warm-400">{formatFileSize(att.size)}</span>
+                    <Download size={13} className="text-brand-600" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </article>
     </div>
