@@ -204,6 +204,7 @@ export default function BingoPage() {
         setSubjectiveAnswer('')
         setSelectedChoice('')
         // 오답 = 도전 1회 소모 + 새게임 자동 로드 (사용자 요청)
+        roundLockedRef.current = true
         incrementDailyPlays()
         if (profile?.id) {
           void (supabase as any).from('user_points').insert({
@@ -248,10 +249,16 @@ export default function BingoPage() {
   function incrementDailyPlays() {
     if (!profile?.id) return
     const key = `bingo_plays_${profile.id}_${new Date().toISOString().slice(0, 10)}`
-    const next = dailyPlays + 1
+    // localStorage 가 진실 — race 회피 (state 는 stale 가능)
+    const stored = parseInt(localStorage.getItem(key) ?? '0', 10)
+    const next = stored + 1
     localStorage.setItem(key, String(next))
     setDailyPlays(next)
   }
+
+  // 라운드 잠금 — 라운드 종료(1줄 또는 오답) 후 새게임 로드 전까지 모든 입력 차단
+  // 1라운드 = 도전 1회 보장 (이중 카운트 방지)
+  const roundLockedRef = useRef(false)
 
   // 1줄 완성 또는 오답 후 1.5초 뒤 새게임 자동 로드 (남은 도전 횟수 있을 때만)
   const autoReloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -262,7 +269,10 @@ export default function BingoPage() {
       const today = new Date().toISOString().slice(0, 10)
       const key = profile?.id ? `bingo_plays_${profile.id}_${today}` : null
       const currentPlays = key ? parseInt(localStorage.getItem(key) ?? '0', 10) : MAX_DAILY_PLAYS
-      if (currentPlays >= MAX_DAILY_PLAYS) return
+      if (currentPlays >= MAX_DAILY_PLAYS) {
+        // 도전 횟수 소진 — 새게임 로드 X, 잠금 유지 (사용자가 셀 클릭 시 alert)
+        return
+      }
       // 새게임 — 오답·정답 누적 모두 초기화
       setQuestions(buildBingoQuestions())
       setAnswers({})
@@ -273,11 +283,9 @@ export default function BingoPage() {
       setLastMessage(null)
       notifiedRef.current = false
       lastCelebratedRef.current = 0
+      roundLockedRef.current = false  // 새게임 시작 → 잠금 해제
     }, 1500)
   }
-
-  const remainingPlays = MAX_DAILY_PLAYS - dailyPlays
-  const canPlay = remainingPlays > 0
 
   const correctSet = useMemo(() => {
     const s = new Set<number>()
@@ -324,6 +332,7 @@ export default function BingoPage() {
               setSelectedChoice('')
               setShowExplosion(false)
               // 시간초과도 오답 → 도전 1회 소모 + 새게임 자동 로드
+              roundLockedRef.current = true
               incrementDailyPlays()
               if (profile?.id) {
                 void (supabase as any).from('user_points').insert({
@@ -440,12 +449,18 @@ export default function BingoPage() {
 
   function openCell(idx: number) {
     if (answers[idx] !== undefined || activeIdx !== null) return
-    if (!canPlay && Object.keys(answers).length === 0) {
+    // 라운드 잠금 — 라운드 종료 후 새게임 로드 전 입력 차단 (이중 카운트·진행 방지)
+    if (roundLockedRef.current) return
+    // 오늘 도전 기회 소진 시 — answers 길이 무관하게 항상 막음 (사용자 요청)
+    // localStorage 를 진실로 사용 — state stale 회피
+    const today = new Date().toISOString().slice(0, 10)
+    const key = profile?.id ? `bingo_plays_${profile.id}_${today}` : null
+    const currentPlays = key ? parseInt(localStorage.getItem(key) ?? '0', 10) : 0
+    if (currentPlays >= MAX_DAILY_PLAYS) {
       alert(`오늘의 도전 기회 ${MAX_DAILY_PLAYS}회를 모두 사용했습니다.\n내일 다시 도전하세요!`)
       return
     }
-    // 도전 횟수 증가는 submitAnswer()에서 첫 정답/오답 제출 시에만 발생.
-    // ESC로 창을 닫아도 카운트되지 않음.
+    // 도전 횟수 증가는 submitAnswer/ESC/timeout 에서 라운드 종료 시 1회만 발생.
     setActiveIdx(idx)
     setLastMessage(null)
     setSubjectiveAnswer('')
@@ -484,6 +499,8 @@ export default function BingoPage() {
 
     // 사용자 요청: 1줄 완성 또는 오답 1회 = 도전 1회 소모 + 새게임 자동 로드
     if (!correct || lineJustCompleted) {
+      // 라운드 잠금 — 새게임 로드 전까지 추가 입력 차단 (1라운드 = 1 도전 보장)
+      roundLockedRef.current = true
       incrementDailyPlays()
       if (profile?.id) {
         void (supabase as any).from('user_points').insert({
@@ -504,8 +521,11 @@ export default function BingoPage() {
   // 월말 집계에서 TOP 3 산정 → 자동 시상
 
   function resetGame() {
-    // 오늘 도전 한도 소진 시 경고 후 리셋 진행 X
-    if (!canPlay && dailyPlays >= MAX_DAILY_PLAYS) {
+    // 오늘 도전 한도 소진 시 경고 후 리셋 진행 X — localStorage 기준 (state stale 회피)
+    const today = new Date().toISOString().slice(0, 10)
+    const key = profile?.id ? `bingo_plays_${profile.id}_${today}` : null
+    const currentPlays = key ? parseInt(localStorage.getItem(key) ?? '0', 10) : 0
+    if (currentPlays >= MAX_DAILY_PLAYS) {
       alert(`오늘 도전 ${MAX_DAILY_PLAYS}회를 모두 사용했습니다.\n내일 다시 도전하세요!`)
       return
     }
@@ -518,6 +538,7 @@ export default function BingoPage() {
     setLastMessage(null)
     notifiedRef.current = false
     lastCelebratedRef.current = 0
+    roundLockedRef.current = false
   }
 
   // Persist bingo achievement whenever bingoCount or correct count changes
