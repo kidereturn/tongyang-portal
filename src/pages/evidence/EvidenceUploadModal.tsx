@@ -486,12 +486,36 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
     const uploadErrors: string[] = []
     let uploadedCount = 0
 
-    // 모든 storage/DB 호출에 timeout — hang 시 finally 보장 (사용자 보고: 무한 '저장 중...' stuck)
+    // 모든 storage/DB 호출에 timeout + 1회 재시도 — hang/일시실패 자동 복구
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const timed = async <R,>(p: any, ms: number, label: string): Promise<R> => Promise.race<R>([
       Promise.resolve(p) as Promise<R>,
       new Promise<R>((_, rej) => setTimeout(() => rej(new Error(`${label} 응답 시간 초과 (${Math.round(ms/1000)}초)`)), ms)),
     ])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tryTwice = async <R extends { error?: any }>(make: () => any, ms: number, label: string): Promise<R> => {
+      const first = await timed<R>(make(), ms, label).catch(e => ({ error: { message: e.message } } as R))
+      if (!first?.error) return first
+      // 1초 backoff 후 재시도 (transient 네트워크 일시 실패 자동 복구)
+      console.warn(`[saveDraft] ${label} 1차 실패, 1초 후 재시도:`, first.error)
+      await new Promise(r => setTimeout(r, 1000))
+      return await timed<R>(make(), ms, label).catch(e => ({ error: { message: e.message } } as R))
+    }
+
+    // 세션 토큰 사전 갱신 — 만료 임박 시 RLS 거부/hang 방지
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        setError('세션이 만료되었습니다. 새로고침 후 다시 로그인해 주세요.')
+        return false
+      }
+      // 만료 1분 전이면 강제 refresh
+      if (session.expires_at && session.expires_at * 1000 < Date.now() + 60000) {
+        await supabase.auth.refreshSession()
+      }
+    } catch (e) {
+      console.warn('[saveDraft] session check failed', e)
+    }
 
     try {
       // saveDraft 시작 시점에 처리할 local_xxx id 들 캡처 — race 가드용
@@ -515,10 +539,10 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
             const safeName = sanitizeFileName(pr.newFileName)
             const storagePath = `${profile.id}/${item.id}/${timestamp}_${safeName}`
-            const { error: se } = await timed<{ error: any }>(
-              (supabase.storage as any).from('evidence').upload(storagePath, pr.newFile, { upsert: false }),
+            const { error: se } = await tryTwice<{ error: any }>(
+              () => (supabase.storage as any).from('evidence').upload(storagePath, pr.newFile, { upsert: false }),
               60000, `${pr.newFileName} 교체 storage 업로드`
-            ).catch(e => ({ error: { message: e.message } }))
+            )
             if (se) {
               uploadErrors.push(`${pr.newFileName} 교체 실패: ${se.message}`)
               // 교체 pending 유지하여 사용자 재시도 가능
@@ -526,8 +550,8 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
               continue
             }
             const dbFileName = `${activity.unique_key ?? ''}_${item.transaction_id ?? item.id}_${pr.newFileName}`
-            const { data: updated, error: ue } = await timed<{ data: any; error: any }>(
-              db.from('evidence_uploads').update({
+            const { data: updated, error: ue } = await tryTwice<{ data: any; error: any }>(
+              () => db.from('evidence_uploads').update({
                 file_path: storagePath,
                 file_name: dbFileName,
                 original_file_name: pr.newFileName,
@@ -535,7 +559,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
                 uploaded_at: new Date().toISOString(),
               }).eq('id', upload.id).select('id, file_name, original_file_name, file_path, file_size, uploaded_at').single(),
               30000, `${pr.newFileName} DB update`
-            ).catch(e => ({ data: null, error: { message: e.message } }))
+            )
             if (ue) {
               await (supabase.storage as any).from('evidence').remove([storagePath])
               uploadErrors.push(`${pr.newFileName} DB 업데이트 실패: ${ue.message}`)
@@ -572,10 +596,10 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
           const safeName = sanitizeFileName(upload.file.name)
           const storagePath = `${profile.id}/${item.id}/${timestamp}_${safeName}`
 
-          const { error: storageError } = await timed<{ error: any }>(
-            (supabase.storage as any).from('evidence').upload(storagePath, upload.file, { upsert: false }),
+          const { error: storageError } = await tryTwice<{ error: any }>(
+            () => (supabase.storage as any).from('evidence').upload(storagePath, upload.file, { upsert: false }),
             60000, `${upload.file.name} storage 업로드`
-          ).catch(e => ({ error: { message: e.message } }))
+          )
 
           if (storageError) {
             uploadErrors.push(`${upload.file.name}: ${storageError.message}`)
@@ -584,8 +608,8 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
           }
 
           const dbFileName = `${activity.unique_key ?? ''}_${item.transaction_id ?? item.id}_${upload.file.name}`
-          const { data: savedUpload, error: insertError } = await timed<{ data: any; error: any }>(
-            db.from('evidence_uploads').insert({
+          const { data: savedUpload, error: insertError } = await tryTwice<{ data: any; error: any }>(
+            () => db.from('evidence_uploads').insert({
               population_item_id: item.id,
               activity_id: activity.id,
               owner_id: profile.id,
@@ -597,7 +621,7 @@ export default function EvidenceUploadModal({ activity, onClose, viewOnly = fals
               status: 'uploaded',
             }).select('id, file_name, original_file_name, file_path, file_size, uploaded_at').single(),
             30000, `${upload.file.name} DB insert`
-          ).catch(e => ({ data: null, error: { message: e.message } }))
+          )
 
           if (insertError) {
             await (supabase.storage as any).from('evidence').remove([storagePath])
