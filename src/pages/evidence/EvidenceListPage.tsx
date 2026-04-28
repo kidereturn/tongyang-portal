@@ -99,8 +99,9 @@ export default function EvidenceListPage() {
         // URL 길이 초과 (PostgREST 8KB 제한) 방지 — 특히 한글 unique_key 400+ 건에서 400 에러
         // 모든 IN 쿼리를 chunk(100) 로 쪼개어 순차 실행
         const [uploadsRes, approvalsRes, populationRes] = await Promise.all([
-          chunkedIn<{ activity_id: string }>(
-            (chunk) => db.from('evidence_uploads').select('activity_id').in('activity_id', chunk),
+          // 모집단 행별 업로드 여부 — 같은 (activity_id, population_item_id) 가 여러 번 업로드되면 1로 카운트
+          chunkedIn<{ activity_id: string; population_item_id: string | null }>(
+            (chunk) => db.from('evidence_uploads').select('activity_id, population_item_id').in('activity_id', chunk),
             activityIds, 100, 12_000, 'evidence.uploads',
           ),
           chunkedIn<{ activity_id: string; status: string }>(
@@ -114,8 +115,15 @@ export default function EvidenceListPage() {
               )
             : Promise.resolve({ data: [] as { unique_key: string }[], error: null }),
         ])
+        // 사용자 요구: 건수 = "파일 개수" 가 아니라 "증빙이 업로드된 모집단 행의 수" (진행률 분자와 일치)
+        // (activity_id, population_item_id) 조합으로 unique 카운트
         const counts: Record<string, number> = {}
-        for (const u of uploadsRes.data ?? []) {
+        const uploadedKeySet = new Set<string>()
+        for (const u of (uploadsRes.data ?? []) as Array<{ activity_id: string; population_item_id: string | null }>) {
+          if (!u.population_item_id) continue  // population_item_id 없는 행은 제외 (legacy)
+          const k = `${u.activity_id}::${u.population_item_id}`
+          if (uploadedKeySet.has(k)) continue
+          uploadedKeySet.add(k)
           counts[u.activity_id] = (counts[u.activity_id] ?? 0) + 1
         }
         setEvidenceCounts(counts)

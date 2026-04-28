@@ -59,7 +59,35 @@ export default function TellMePage() {
         query = query.eq('is_hidden', false)
       }
       const { data } = await safeQuery<Post[]>(query, 10_000, 'tellme.posts')
-      setPosts(data ?? [])
+      let rows = data ?? []
+      // 관리자: 익명 글의 실제 작성자 이름을 [익명: 홍길동] 형태로 노출
+      if (profile?.role === 'admin' && rows.length > 0) {
+        const anonAuthorIds = rows.filter(p => p.is_anonymous).map(p => p.author_id).filter(Boolean)
+        const uniq = Array.from(new Set(anonAuthorIds))
+        if (uniq.length > 0) {
+          const { data: profs } = await (supabase as any)
+            .from('profiles')
+            .select('id, full_name, department')
+            .in('id', uniq)
+          const nameMap: Record<string, { full_name: string | null; department: string | null }> = {}
+          for (const p of (profs ?? []) as Array<{ id: string; full_name: string | null; department: string | null }>) {
+            nameMap[p.id] = { full_name: p.full_name, department: p.department }
+          }
+          rows = rows.map(post => {
+            if (post.is_anonymous && nameMap[post.author_id]) {
+              return {
+                ...post,
+                author_name: `[익명: ${nameMap[post.author_id].full_name ?? '?'}]`,
+                author_department: nameMap[post.author_id].department ?? null,
+                // is_anonymous 는 그대로 유지 → 다른 사용자 화면에서는 여전히 '익명' 표시
+                // 하지만 author_name 이 채워졌으므로 admin 화면에서는 실명 노출
+              }
+            }
+            return post
+          })
+        }
+      }
+      setPosts(rows)
     } catch {
       setPosts([])
     } finally {
@@ -212,8 +240,11 @@ export default function TellMePage() {
                   <p className="text-sm text-warm-600 leading-relaxed whitespace-pre-wrap">{post.content}</p>
                   <div className="flex items-center gap-3 mt-2 text-xs text-warm-400">
                     <span>
-                      {post.is_anonymous ? '익명' : (post.author_name ?? '알 수 없음')}
-                      {!post.is_anonymous && post.author_department ? ` · ${post.author_department}` : ''}
+                      {/* 관리자가 익명 글을 보면 fetchPosts 가 author_name 을 [익명: 홍길동] 으로 채움 → 그대로 표시 */}
+                      {post.is_anonymous
+                        ? (profile?.role === 'admin' && post.author_name ? post.author_name : '익명')
+                        : (post.author_name ?? '알 수 없음')}
+                      {((profile?.role === 'admin' && post.is_anonymous && post.author_department) || (!post.is_anonymous && post.author_department)) ? ` · ${post.author_department}` : ''}
                     </span>
                     <span>{new Date(post.created_at).toLocaleString('ko-KR')}</span>
                   </div>
@@ -268,8 +299,10 @@ export default function TellMePage() {
                 </span>
                 <h2 className="text-lg font-bold text-brand-900 break-words">{detailPost.title}</h2>
                 <p className="mt-1 text-xs text-warm-500">
-                  {detailPost.is_anonymous ? '익명' : (detailPost.author_name ?? '알 수 없음')}
-                  {!detailPost.is_anonymous && detailPost.author_department ? ` · ${detailPost.author_department}` : ''}
+                  {detailPost.is_anonymous
+                    ? (profile?.role === 'admin' && detailPost.author_name ? detailPost.author_name : '익명')
+                    : (detailPost.author_name ?? '알 수 없음')}
+                  {((profile?.role === 'admin' && detailPost.is_anonymous && detailPost.author_department) || (!detailPost.is_anonymous && detailPost.author_department)) ? ` · ${detailPost.author_department}` : ''}
                   {' · '}
                   {new Date(detailPost.created_at).toLocaleString('ko-KR')}
                 </p>

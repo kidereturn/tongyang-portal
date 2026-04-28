@@ -26,9 +26,18 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
 }
 
-function sanitizePath(name: string) {
-  // Supabase storage 키에는 ASCII + 한글 허용. 위험 문자만 치환
-  return name.replace(/[/\\?%*:|"<>]/g, '_').slice(0, 200)
+function sanitizeStorageKey(name: string) {
+  // Supabase storage InvalidKey 정책: ASCII 영숫자 + . _ - 만 허용. 한글·공백·특수문자 모두 차단됨.
+  // 확장자만 추출해서 보존, 본문은 안전한 hash 로 대체. 원본 이름은 attachments.name 으로 보존.
+  const dot = name.lastIndexOf('.')
+  let ext = ''
+  if (dot >= 0 && dot < name.length - 1) {
+    ext = name.slice(dot).toLowerCase().replace(/[^a-z0-9.]/g, '')
+    if (ext.length > 10) ext = ext.slice(0, 10)
+  }
+  // 8자리 hex hash (충돌 방지) — 빠른 의사난수로 충분 (path 안의 timestamp + random prefix 가 이미 unique)
+  const hash = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6)
+  return `${hash}${ext}`
 }
 
 export default function NoticesTab() {
@@ -91,8 +100,10 @@ export default function NoticesTab() {
           continue
         }
         const ts = Date.now()
-        const safeName = sanitizePath(file.name)
-        const path = `notice-${ts}-${Math.random().toString(36).slice(2, 8)}/${safeName}`
+        // 원본 파일명에 한글·공백 등이 있어도 storage 키는 ASCII-safe 로 생성 (Invalid key 회피)
+        // 다운로드 시 Content-Disposition 으로 원본 파일명을 복원하므로 사용자에겐 영향 없음
+        const safeKey = sanitizeStorageKey(file.name)
+        const path = `notice-${ts}-${Math.random().toString(36).slice(2, 8)}/${safeKey}`
         const { error } = await (supabase as any).storage.from('notices').upload(path, file, {
           cacheControl: '3600', upsert: false,
         })

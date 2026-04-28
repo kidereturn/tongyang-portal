@@ -376,17 +376,29 @@ export default function CourseDetailPage() {
     if (!selectedVideo?.id) return
     ;(async () => {
       try {
-        const { data } = await (supabase as any)
+        // implicit FK join (`profiles:profiles(full_name)`) 은 일부 환경에서 풀리지 않음 → 명시적 2-step fetch
+        const { data: rows } = await (supabase as any)
           .from('course_qa')
-          .select('id, user_id, question, answer, created_at, answered_at, profiles:profiles(full_name)')
+          .select('id, user_id, question, answer, created_at, answered_at')
           .eq('course_id', selectedVideo.id)
           .order('created_at', { ascending: false })
+        const userIds = Array.from(new Set((rows ?? []).map((r: any) => r.user_id).filter(Boolean)))
+        let nameMap: Record<string, string> = {}
+        if (userIds.length > 0) {
+          const { data: profs } = await (supabase as any)
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', userIds)
+          for (const p of (profs ?? []) as Array<{ id: string; full_name: string | null }>) {
+            nameMap[p.id] = p.full_name ?? '?'
+          }
+        }
         const isAdminUser = profile?.role === 'admin'
-        const items = (data ?? []).map((r: any) => {
+        const items = (rows ?? []).map((r: any) => {
           const rawQ = r.question ?? ''
           const isAnon = typeof rawQ === 'string' && rawQ.startsWith(ANON_MARK)
           const cleanQ = isAnon ? rawQ.slice(ANON_MARK.length) : rawQ
-          const realName = r.profiles?.full_name ?? '익명'
+          const realName = nameMap[r.user_id] ?? '?'
           // 관리자는 익명 게시도 [익명: 홍길동] 형태로 신원 확인 (운영 목적)
           const displayName = isAnon
             ? (isAdminUser ? `[익명: ${realName}]` : '익명')
@@ -402,7 +414,7 @@ export default function CourseDetailPage() {
           }
         })
         setQaList(items)
-      } catch { /* silent */ }
+      } catch (e) { console.warn('[CourseQA] load failed', e) }
     })()
   }, [selectedVideo?.id, profile?.role])
 
@@ -417,30 +429,38 @@ export default function CourseDetailPage() {
         user_id: profile.id,
         question: storedQ,
       })
-      // Notify self + admins (관리자에겐 익명이어도 작성자 표시 — 운영 목적)
-      const recipients: Array<{ id: string }> = []
-      const { data: admins } = await (supabase as any).from('profiles').select('id').eq('role', 'admin').eq('is_active', true)
-      recipients.push(...(admins ?? []))
-      recipients.push({ id: profile.id })
-      const unique = Array.from(new Set(recipients.map(r => r.id)))
-      const notes = unique.map(id => ({
-        recipient_id: id,
-        sender_id: profile.id,
-        title: `수강생 질문${qAnonymous ? ' [익명]' : ''} - ${selectedVideo.title}`,
-        body: `${profile.full_name ?? ''} (${profile.employee_id ?? ''})${qAnonymous ? ' [공개 표기는 익명]' : ''}\n\n${text}`,
-        is_read: false,
-      }))
-      if (notes.length) await (supabase as any).from('notifications').insert(notes)
-      // Refresh list
-      const { data } = await (supabase as any)
-        .from('course_qa').select('id, user_id, question, answer, created_at, answered_at, profiles:profiles(full_name)')
+      // 알림: SECURITY DEFINER RPC 로 호출 (notifications INSERT RLS 가 admin only 라 owner 직접 insert 시 silent fail)
+      try {
+        const { error: rpcErr } = await (supabase as any).rpc('notify_course_question', {
+          p_course_title: selectedVideo.title,
+          p_question: text,
+          p_sender_id: profile.id,
+          p_sender_name: profile.full_name ?? '',
+          p_sender_emp: profile.employee_id ?? '',
+          p_is_anonymous: qAnonymous,
+        })
+        if (rpcErr) console.warn('[CourseQA] notify RPC failed:', rpcErr)
+      } catch (e) {
+        console.warn('[CourseQA] notify RPC exception:', e)
+      }
+      // Refresh list (명시적 2-step fetch)
+      const { data: rows } = await (supabase as any)
+        .from('course_qa').select('id, user_id, question, answer, created_at, answered_at')
         .eq('course_id', selectedVideo.id).order('created_at', { ascending: false })
+      const userIds = Array.from(new Set((rows ?? []).map((r: any) => r.user_id).filter(Boolean)))
+      let nameMap: Record<string, string> = {}
+      if (userIds.length > 0) {
+        const { data: profs } = await (supabase as any).from('profiles').select('id, full_name').in('id', userIds)
+        for (const p of (profs ?? []) as Array<{ id: string; full_name: string | null }>) {
+          nameMap[p.id] = p.full_name ?? '?'
+        }
+      }
       const isAdminUser = profile?.role === 'admin'
-      setQaList((data ?? []).map((r: any) => {
+      setQaList((rows ?? []).map((r: any) => {
         const rawQ = r.question ?? ''
         const isAnon = typeof rawQ === 'string' && rawQ.startsWith(ANON_MARK)
         const cleanQ = isAnon ? rawQ.slice(ANON_MARK.length) : rawQ
-        const realName = r.profiles?.full_name ?? '익명'
+        const realName = nameMap[r.user_id] ?? '?'
         const displayName = isAnon ? (isAdminUser ? `[익명: ${realName}]` : '익명') : realName
         return {
           id: r.id, user_id: r.user_id, question: cleanQ, answer: r.answer, answered_at: r.answered_at, created_at: r.created_at,
