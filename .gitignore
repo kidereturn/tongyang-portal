@@ -43,3 +43,9 @@ screenshots-upload-1000
 screenshots-verify-fixes
 docs/captures/owner/_dummy.pdf
 ~$*.pptx
+
+# 비디오 작업 임시 파일
+docs/videos/frames/
+docs/videos/work/
+docs/videos/base.mp4
+docs/videos/timeline.json
